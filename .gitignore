@@ -1,0 +1,21 @@
+# Environment
+.env
+.env.local
+
+# System
+__pycache__/
+.DS_Store
+
+# Build & Dependency
+node_modules/
+.next/
+dist/
+
+# Editor
+.vscode/
+
+# Project output
+output/
+plan/
+morpheus_web/
+*.pdf
