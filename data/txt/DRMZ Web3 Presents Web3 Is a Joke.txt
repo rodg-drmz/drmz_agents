@@ -1,0 +1,123 @@
+Web 3 is like the cool new upgrade
+for the internet that’s all about
+decentralization and using innovative
+technologies like AI, blockchains,
+cryptocurrencies, robotics, and
+Internet of Things (IoT).
+DRMZ WEB3 
+NEWSLETTER
+SO, WHAT ISWEB3?
+Actually, No! Web3 is not a joke. It's a
+revolutionary shift in how we interact
+with the internet. It's about empowering
+individuals, enhancing privacy, and
+fostering innovation!
+IT IS REALLY AJOKE?
+ February, 15th 2024
+
+1
+Blockchains are like digital ledgers that record transactions
+across a decentralized network. They ensure transparency,
+security, and immutability. 
+Cardano, the third generation of cryptocurrencies,
+emphasizes scalability, sustainability, and interoperability.
+Rooted in rigorous research and academic principles, it
+offers a secure platform for decentralized applications and
+real-world asset tokenization.
+BLOCKCHAINS
+UNDERSTANDING BLOCKCHAINS
+GETTING STARTED
+CARDANO
+BITCOIN & ETHEREUM
+Bitcoin was the first generation of cryptocurrencies, introducing
+decentralized digital currency, while Ethereum, the second
+generation, expanded blockchain technology to support smart
+contracts and decentralized applications (DApps).
+
+2
+Wallets are the gateway to decentralized finance (DeFi)
+and NFTs. They allow you to securely store your tokens
+and interact with DApps directly from your browser.
+BLOCKCHAIN WALLETS
+DOWNLOAD
+VESPR WALLET! EXPERTADVICE
+“Not Your Keys, Not
+Your Crypto” 
+Regardless of the wallet
+you choose, secure &
+protect your private
+keys (secret words)
+above all else!
+Vespr is a popular mobile option for interacting with the
+Cardano blockchain. Metamask and Phantom are
+popular options for interacting with Ethereum & Solana
+blockchains.
+
+3
+CARDANO STAKE POOLS
+At the heart of
+Ouroboros is the
+concept of infinity
+Ouroboros, Cardano's Proof of stake consensus mechanism is  
+approximately 10,000 times more energy-efficient than Bitcoin’s
+Proof of work. 
+Slot leaders are selected to mint blocks based on their “stake” in
+the network.
+Stake pools that produce blocks receive rewards and these are
+redistributed to delegators. 3000+ SPOs decentralize Cardano.
+Set up a Cardano wallet of
+your choice.
+1.
+Navigate to the delegation
+section & search for "DRMZ"
+2.
+Sign & Delegate your ADA.3.
+"STAKING ADA IS
+SIMPLE AND
+REWARDING!
+Your ADA is now working for
+you, contributing to the
+decentralization and security
+of the Cardano blockchain
+
+4
+UTXO vs. Accounts Model 
+REAL-WORLD
+ASSETS ARE BEING
+“TOKENIZED”
+NFTS & DEFI
+NFTs are like digital collector's items, unique and
+irreplaceable.
+On Cardano, creators can tokenize their art, music, or
+other digital assets as NFTs, proving ownership and
+authenticity on the blockchain.
+CARDANO
+Cardano, like Bitcoin, operates on
+the UTXO (Unspent Transaction
+Output) model to process and
+validate transactions
+Ethereum, like while many other
+popular blockchains, including
+prefer the Accounting model for
+professing & validating
+FUNGIBLE =
+INTERCHANGEABLE
+DeFi brings traditional financial services to the
+blockchain, making them more accessible and efficient.
+Cardano's DeFi ecosystem includes lending,
+borrowing, trading, and more, all without
+intermediaries.
+NFTS ARE “NATIVE
+TOKENS” ON
+CARDANO
+TOKEN GATING
+Web3 token gating offers various benefits,
+including incentivizing token ownership,
+fostering community engagement, and
+monetizing digital content or services.
+For example, check out our free AI course
+on Work.Courses
+
+AND, OF COURSE:
+5
+Hope to see you at the next one!

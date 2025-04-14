@@ -1,0 +1,2825 @@
+Hydra: Fast Isomorphic State Channels
+Manuel M. T. Chakravarty1, Sandro Coretti1, Matthias Fitzi1, Peter Gaˇ zi1, Philipp Kant1,
+Aggelos Kiayias2, and Alexander Russell 3
+1IOHK. firstname.lastname@iohk.io.
+2University of Edinburgh and IOHK. akiayias@inf.ed.ac.uk.
+3University of Connecticut and IOHK. acr@cse.uconn.edu.
+Abstract
+State channels are an attractive layer-two solution for improving the throughput and latency
+of blockchains. They oﬀer optimistic oﬀchain settlement of payments and expedient oﬀchain evo-
+lution of smart contracts between multiple parties without imposing any additional assumptions
+beyond those of the underlying blockchain. In the case of disputes, or if a party fails to respond,
+cryptographic evidence collected in the oﬀchain channel is used to settle the last conﬁrmed state
+onchain, such that in-progress contracts can be continued under mainchain consensus.
+A serious disadvantage present in current layer-two state channel protocols is that existing
+layer-one smart contract infrastructure and contract code cannot be reused oﬀchain without
+change.
+In this paper, we introduce Hydra, an isomorphic multi-party state channel. Hydra simpliﬁes
+oﬀchain protocol and smart contract development by directly adopting the layer-one smart
+contract system, in this way allowing the same code to be used both on- and oﬀ-chain. Taking
+advantage of the extended UTxO model , we develop a fast oﬀ-chain protocol for evolution of
+Hydra heads (our isomorphic state channels) that has smaller round complexity than all previous
+proposals and enables the state channel processing to advance on-demand, concurrently and
+asynchronously.
+We establish strong security properties for the protocol, and we present and evaluate ex-
+tensive simulation results that demonstrate that Hydra approaches the physical limits of the
+network in terms of transaction conﬁrmation time and throughput while keeping storage require-
+ments at the lowest possible. Finally, our experimental methodology may be of independent
+interest in the general context of evaluating consensus protocols.
+1 Introduction
+Permissionless distributed ledger protocols suﬀer from serious scalability limitations, including high
+transaction latency (the time required to settle a transaction), low throughput (the number of
+transactions that can be settled per unit of time), and excessive storage required to maintain the
+state of the system and its transaction history, which can be ever growing.
+Several solutions have been proposed to mitigate these problems by adapting the details of the
+underlying ledger protocols. Such direct adaptations for scalability are often referred to aslayer-one
+solutions.
+Layer-one solutions face an inherent limitation, however, as settlement remains a cumbersome
+process that involves the participation of a large, dynamic set of participants and requires exchange
+1
+
+of signiﬁcant amounts of data. An alternative approach to improve scalability, which is our emphasis
+in this work, is layer-two (sometimes referred to also as oﬀchain) solutions that overlay a new
+protocol on top of the (layer-one) blockchain. Layer-two solutions allow parties to securely transfer
+funds from the blockchain into an oﬀchain protocol instance, settle transactions in this instance
+(quasi) independently of the underlying chain, and safely transfer funds back to the underlying
+chain as needed.
+Oﬀchain solutions have the advantage that they do not require additional trust assumptions
+about the honesty of parties beyond those of the underlying blockchain, and that they can be very
+eﬃcient in the optimistic case where all participants in the oﬀchain protocol instance behave as
+expected. In particular, such an instance operates among a small number of parties that commu-
+nicate with each other directly, and in a way that allows them to forget about recent transactions
+as soon as they respectively update (and secure) their local states.
+The most prominent oﬀchain scalability solution is the concept of payment channels [9, 33, 16].
+A payment channel is established among two parties, allowing them to pay funds back and forth
+on this channel; in the optimistic case, this can take place without notifying the layer-one protocol.
+Payment channels have been extended to payment-channel networks, e.g., the Bitcoin Lightning
+Network [33]. Such networks, in principle, allow for oﬀchain fund transfers among any two parties
+that are connected via a path of payment channels.
+As a drawback, in a traditional payment-channel network a transaction between two parties
+that do not share a direct payment channel requires interaction among all parties on a payment-
+channel path between them (so-calledintermediaries), even in the optimistic case. Virtual payment
+channels, e.g., Perun [19], address this and do not require interaction with intermediate parties (in
+the optimistic case).
+State channels [5] extend the concept of payment channels to states in order to support smart
+contracts. State-channel networks [21, 15, 29] likewise extend the concept of state channels to
+networks (analogously to the network extension discussed above). Still, these networks only allow
+for the establishment of pairwise state channels over the network.
+Multi-party state channels were introduced in [31] together with a high-level description of a
+respective protocol. A multi-party state channel allows a set of parties to maintain a “common”
+state whereon they can compute without interacting with the blockchain (in the optimistic case).
+In [18], the notion of multi-party virtual state channels was introduced, state channels among
+multiple parties that can be setup without blockchain interaction (given that a connected graph of
+pairwise state channels among the parties already exists); and a respective protocol was presented.
+Despite the above signiﬁcant advances, important challenges remain, both in terms of establish-
+ing high oﬀchain processing performance that approximates the physical limits of the underlying
+network as well as in the sense of imposing signiﬁcant conceptual and engineering overhead over
+layer-one as the oﬀchain contract state must be veriﬁed in a non-native representation; the rea-
+son is that the state of the contracts evolved in a speciﬁc state channel needs to be isolated and
+represented in a form that permits it to be manipulated both oﬀchain and by the onchain smart
+contract scripting system in case of an oﬀchain dispute. This lead to designs where the computa-
+tions performed oﬀchain are no longer in the representation used by the ledger itself; i.e., they are
+non-native. For example, the sample Solidity contract of [31] serializes the state into a bytes32
+array. The smart contracts themselves need to be adapted correspondingly. In other words, the
+scripting system of the ledger and of state channels attached to the ledger diverge in a substantial
+way, eﬀectively imposing two distinct scripting systems.
+2
+
+Hydra. In Hydra, we tackle both problems, oﬀchain processing performance and state represen-
+tation, with the introduction of isomorphic multi-party state channels. These are state channels
+that are capable of expediently reusing the exact state representation of the underlying ledger and,
+hence, inherit the ledger’s scripting system as is. Thus, state channels eﬀectively yield parallel,
+oﬀchain ledger siblings, which we call heads—the ledger becomes multi-headed. The creation of
+a new head follows a similar commitment scheme as is common in state channels. However, once
+a state channel is closed, either cooperatively or due to a dispute, the head state is seamlessly
+absorbed into the underlying ledger state and the same smart contract code as used oﬀchain is
+now used onchain. This is possible, even without a priori registration of the contracts used in a
+head, because one and the same state representation and contract (binary) code is used oﬀchain
+and onchain.
+Not every blockchain scripting system is conducive to isomorphic state channels. Building them
+requires to eﬃciently carve out arbitrary chunks of blockchain state, process them independently,
+and be able at any time to eﬃciently merge them back in. We observe that the Bitcoin-style UTxO
+ledger model [6, 34] is particularly well suited as a uniform representation of onchain and oﬀchain
+state, while simultaneously promising increased parallelism in transaction processing inside multi-
+party state channels. While the main restriction of the plain UTxO model has traditionally been
+its limited scripting capabilities, the introduction of the Extended UTxO model (EUTxO) [13] has
+lifted this restriction and enabled support for general state machines. Extended UTxO models
+form the basis for the smart contract platforms of existing blockchains, such as Cardano [14] and
+Ergo [17]; hence, the work presented in this paper would also be of immediate practical relevance.
+Just like the UTxO ledger representation, the EUTxO ledger representation makes all data
+dependencies explicitly without introducing false dependencies — in other words, two transactions
+do only directly or indirectly depend on each other if there is an actual data dependency between
+them. This avoids the over-sequentialization of systems depending on a global state. Hence, the
+length of the longest path through the EUTxO graph coincides with the depth complexity of the
+workload entailed by transaction processing and validation. This is the optimum as far as parallel
+transaction processing is concerned [10].
+Exploiting the EUTxO ledger representation, we are able to design an oﬀchain protocol with
+unparalleled performance. In particular, the Hydra head protocol is capable of oﬀchain processing
+asynchronously and concurrently between diﬀerent members of the head, utilizing merely 3 rounds
+of interaction for updates. In contrast previous works in multiparty state channels either required
+a synchronous operation or imposed 4 rounds to facilitate sequentializing inputs and organizing the
+oﬀchain state.
+In more detail, in Hydra, a set of parties coordinates to commit a set of UTxOs (owned by the
+parties) into an oﬀchain protocol, called the head protocol. That UTxO set constitutes the initial
+head state, which the parties can then evolve by handling smart contracts and transactions among
+themselves without blockchain interaction—in the optimistic case.
+Due to the isomorphic nature of Hydra heads, transaction validation, including script execution,
+proceeds according to the exact same rules as onchain. In fact, the exact same validation code
+can be used. This guarantees that onchain and oﬀchain semantics coincide, leading to signiﬁcant
+engineering simpliﬁcations. In case of disputes or in case some party wishes to terminate the oﬀchain
+protocol, the parties decommit the current state of the head back to the blockchain. Ultimately, a
+decommit will result in an updated blockchain state that is consistent with the oﬀchain protocol
+evolution on the initially committed UTxO set. To reduce mainchain overhead, the mainchain is
+3
+
+oblivious of the detailed transaction history of the head protocol that lead to the updated state.
+Crucially, the time required to decommit is independent of the number of parties participating in
+a head or the size of the head state. Moreover, the decommit process is designed such that, when
+the latest state in the head is very large, the head state can be decommitted in small (but parallel)
+chunks. Finally, Hydra allows incremental commits and decommits, i.e., UTxOs can be added to
+and removed from a running head without closing it.
+Cross-head networking. In this paper, we focus solely on the analysis of the Hydra head protocol;
+nevertheless, the existence of multiple, partially overlapping heads oﬀ the mainchain can give rise to
+cross-head communication (as in the Lightning Network [33]), using similar techniques to [21, 18].
+Online participation requirements. The Hydra head protocol is geared towards the scenario
+where the participants who are required to validate transactions are online and responsive. As in
+e.g. [33], being oﬄine will prevent progress, and also participation in a potential onchain dispute
+resolution. The scenario where a number of parties are regularly oﬄine is also of interest but not
+in scope for the current version.
+Performance evaluation methodology and experimental results. As transaction-processing per-
+formance is the fundamental motivation for layer-two protocols, these properties of the Hydra
+protocol are particularly important to establish. While transactions-per-second (TPS) is an imme-
+diate ﬁgure of merit for deployed systems, it is sensitive to changes in the underlying hardware or
+network; in particular, it is an unreliable means for experimentally comparing various algorithmic
+proposals unless the experiments precisely duplicate the computing environment which is also sen-
+sitive to user inputs. To avoid these diﬃculties and second-guessing speciﬁc usage scenarios, we
+adopt a “baseline relative” approach to establish performance guarantees, which demonstrates that
+Hydra achieves performance that approaches the theoretical optimum for any consensus protocol.
+Our experimental results are obtained by simulation, which additionally permits a high-precision
+exploration of the speciﬁc design choices adopted by the Hydra protocol. We consider two major
+types of baselines elaborated below.
+The universal baseline. As mentioned above, we begin by considering a baseline reﬂecting the weak-
+est obligations of any consensus algorithm. Speciﬁcally, the universal baseline merely con-
+siders the cost of processing each transaction and disseminating the transactions across the
+network; observe that any iterated consensus algorithm that yields full state at each node
+must necessarily carry out both operations. We demonstrate that Hydra achieves eﬃciency
+that rivals even this ideal for most scenarios. As this protocol-independent baseline is one
+against which any iterated consensus algorithm can be compared, near optimality with respect
+to this baseline implicitly demonstrates that Hydra is competitive with any other consensus
+layer. In our experiments we compare Hydra with the universal baseline for a number of
+diﬀerent scenarios that reﬂect user behavior.
+The unlimited baseline. The second baseline focuses on the characteristics of the protocol itself. In
+particular it asks how does the protocol implementation compare to an idealized execution of
+the protocol by a set of nodes that experience no local contention for resources. This baseline
+comparison is meant to be complementary to the universal baseline and helps answer the
+following question. Whenever there is divergence between the universal baseline and the
+actual consensus protocol execution in the experiment, how much of this divergence is to
+be attributed to the inherent cost of running the consensus protocol vs. the costs arising
+due to contention for resources within each node. Even good consensus protocol designs are
+4
+
+expected to diverge from the universal baseline: after all, consensus is a diﬃcult problem to
+solve. However good protocol designs should always approximate their unlimited baseline. In
+our experiments we demonstrate that this is the case for Hydra in all the diﬀerent scenarios
+of our experimental setup.
+Experimental results. We conducted detailed simulations of head performance under a variety
+of load and networking scenarios, including both geographically localized heads and heads with
+participants spread over multiple continents, incurring large network delays. We found that our
+head protocol, in the optimistic case, achieves progress that rivals the speed and throughput of
+the network in all conﬁgurations; this is aided by the concurrency aﬀorded by the partial-only
+transaction ordering permitted by the graph-structure underlying UTxO ledgers.
+Comparison to previous work. A number of previous works study state channel protocols.
+The protocol by Miller et al. [31] allows a set of parties to initiate a smart contract instance (state)
+onchain and take it oﬀchain. The state can then be evolved oﬀchain without chain interaction in the
+all-honest case. By concurrently handling disputes in a shared contract, dispute resolution remains
+in O(∆) time, where ∆ is the settlement time for an onchain transaction. The oﬀchain protocol
+proceeds in phases of 4 asynchronous rounds where a leader coordinates the conﬁrmation of new
+transactions among the participants in the oﬀchain protocol. Similarly to Hydra, the protocol
+allows to add/remove funds from the oﬀchain contract while it is running.
+The protocol by Dziembowski et al. [18] is based on pairwise state channels and allows the
+instantiation of a multi-party state channel among any set of parties that are connected by paths
+of pairwise state channels—the instantiation of the multi-party channel does not require any inter-
+action with the mainchain. The oﬀchain protocol proceeds in phases of 4 synchronous rounds to
+conﬁrm new transactions without the need for a coordinating leader.
+The Hydra oﬀchain protocol is fully asynchronous; in the optimistic case, transactions are
+conﬁrmed in 3 (asynchronous) rounds independently of each other, and without having to involve a
+leader. A leader is only required for the resolution of transaction conﬂicts and for periodic “garbage
+collection” that allows the protocol to maintain state size independent of the size of the transaction
+history.
+In comparison to prior solutions cited above, Hydra provides faster conﬁrmation times in the
+oﬀchain protocol; this is an advantage enabled by the structural organization of transactions in
+the EUTxO model, whereas prior protocols are hindered by a monolithic state organization. An
+additional advantage over [31] and [18] is that those ﬁx the set of contracts that can be evolved in a
+given state channel at channel creation time; Hydra does not require such an a priori commitment:
+new contracts can be introduced in a head after creation in the native EUTxO language of the
+underlying blockchain. Another signiﬁcant diﬀerence to [18] is that their protocol calls for parties
+to lock funds on the mainchain on behalf of other parties—caused by asymmetries induced by
+the composition along paths of pairwise state channels, whereas in Hydra as well as in [31], the
+parties only need to lock funds on behalf of themselves. Finally, Hydra is isomorphic and thus
+reuses the existing smart contract system and code for oﬀchain computations. This is not the case
+for [31] and [18]. For example, if we consider the sample Solidity contract of [31], it would have
+to implement a state machine capable of executing EVM bytecode to achieve contract (system)
+reuse—and hence, isomorphic state channels.
+We note that there is also a large number of non-peer reviewed proposals for state-channel-based
+solutions such as [28, 15, 29, 3]. These proposals come with various degrees of formal speciﬁcation
+5
+
+and provable security guarantees and their systematization is outside of our current scope; it suﬃces
+to observe that none of them provides the isomorphism property or comes with a complete formal
+security analysis and an experimental evaluation.
+Two concepts related, but distinct, from state channels aresidechains (e.g., [7, 24, 26]) and non-
+custodial chains (e.g., [32, 27, 20, 4]), including plasma and rollups. Sidechains enable the transfer of
+assets between a mainchain and a sidechain via a pegging mechanism, with the mainchain protected
+from sidechain security failures by a “ﬁrewall property”; the sidechain has its own consensus rules
+and, contrary to a state channel, funds may be lost in case of a sidechain security collapse. Non-
+custodial chains, on the other hand, delegate mainchain transaction processing to an untrusted
+aggregator and are capable, as in state channels, to protect against a security failure. Nevertheless,
+the aggregator is a single-point-of-failure and its corruption, in a setting where a large number
+users are served by the same non-custodial chain, gives rise to the “mass-exit” problem (see e.g.,
+[20]); note that state channels, in contrast, can scale to a large number of users via state channel
+networks [21] without requiring many users per channel. We note ﬁnally that work in progress on
+optimistic rollups, reported in [4], claims a feature similar to our isomorphic property, nevertheless
+without the latency beneﬁts of our approach as their settlement still advances with the underlying
+mainchain.
+2 Preliminaries
+2.1 Multisignatures
+A multisignature scheme [25, 30] is a tuple of algorithms MS = ( MS-Setup,MS-KG,MS-AVK,
+MS-Sign,MS-ASig,MS-Verify) such that Π ←MS-Setup(1k) generates public parameters; with these
+in place, (vk,sk) ←MS-KG(Π) can be used to generate fresh key pairs. Then
+•σ←MS-Sign(Π,sk,m) signs a message m using key sk;
+• ˜σ←MS-ASig(Π,m, V,S) aggregates a set Sof signatures into a single, aggregate signature ˜σ.
+The algorithm avk ←MS-AVK(Π,V) aggregates a tuple Vof veriﬁcation keys vk into a single, aggre-
+gate veriﬁcation keyavk which can be used for veriﬁcation: MS-Verify(Π,avk,m, ˜σ) ∈{true,false}
+veriﬁes an aggregate signature under an aggregate veriﬁcation key. In the following, we often make
+the parameter Π implicit in the function calls for better readability.
+Intuitively, the security of a multisignature scheme guarantees that, if avk is produced from
+a tuple of veriﬁcation keys V via MS-AVK, then no aggregate signature ˜ σ can pass veriﬁcation
+MS-Verify(avk,m, ˜σ) unless all honest parties holding keys in Vsigned m. A full treatment appears
+in Appendix A.
+2.2 Extended UTxO model & state machines
+The basis for our fast isomorphic state channels is Bitcoin’s UTxO ledger model [6, 34]. It arranges
+transactions in a directed acyclic graph structure, thus making the available parallelism explicit:
+any two transactions that are not directly or indirectly dependent on each other can be processed
+independently.
+6
+
+(5, ν1)
+(1, ν2) ρ1ρ2
+(2, ν3)
+(6, ν4)
+(9, ν5)
+(3, ν6) (14, ν7)ρ3
+ρ4
+ρ5
+ρ6
+ρ7
+ρ8
+Figure 1: Example of a plain UTxO graph
+UTxO. Transactions in an UTxO ledger contain a set of inputs and outputs, where outputs
+lock an amount of cryptocurrency, such that only authorized inputs of subsequent transactions can
+connect and consume those funds. This arrangement results in graphs, such as the one in Figure 1,
+where the boxes represent transactions with (red) inputs to the left and (black) outputs to the
+right.
+Each output locks some cryptocurrency, which can be transferred via a subsequent transaction
+by consuming that output with a new input. The set of dangling (unconnected) outputs are the
+unspent transaction outputs (UTxOs) — there are two of those in Figure 1. In addition to the
+locked currency, each output also comes with a predicate ν, called its validator. In Figure 1, we
+use pairs (n,ν) to indicate that a given output locks n cryptocurrency with validator predicate ν.
+Where outputs carry validators, each input comes with a redeemer value ρ. To determine
+whether a given input of the currently validated transaction tx is permitted to connect to a, as
+of yet, unspent output, we determine whether the validator predicate ν of that output applies
+for the redeemer ρ; or more formally, we check that ν(ρ,σ) = true, where the validation context
+σ represents some properties of the transaction that the spending input belongs to, such as the
+transaction’s cryptographic hash value. For example, the validator may require the redeemer to be
+a signature on the transaction hash contained in the context σ for a speciﬁc key pair, such that
+only the owner of the private key can spend an output locked by that validator.
+Extended UTxO. The Extended UTxO Model (EUTxO) [13] preserves this structure, while
+adding support for more expressive smart contracts and, in particular, for multi-transaction state
+machines, which serve as the basis for the mainchain portion of the work presented here. This
+additional expressiveness is achieved by two changes to the plain UTxO scheme outlined before:
+•Outputs carry, in addition to a cryptocurrency value nand a validator ν, now also a datum δ,
+which can, among other things, be used to maintain the state of long running smart contracts.
+•The validation context σ is extended to contain the entire validated transaction tx as well as
+the UTxOs consumed by the inputs of that transaction.
+In this extended model, evaluation of the validator predicate implies checking ν(ρ,δ,σ ) = true.
+Besides maintaining contract state in δ, the fact that the validator can inspect the entire validated
+transaction tx through σenables validators to enforce that contract invariants are maintained across
+entire chains of transactions.
+7
+
+Although formal results about EUTxO are rather recent, extended UTxO models already form
+the basis for the smart-contract platforms of existing blockchains — in particular, Cardano [14]
+and Ergo [17]. Consequently, the Hydra head protocol as presented in this paper is of immediate
+practical relevance to these existing systems.
+User-deﬁned tokens. In addition to the basic EUTxO extension, we generalize the currency
+values recorded on the ledger from integral numbers to generalized user-deﬁned tokens [1]. Put
+simply (suﬃcient to understand the concepts in this paper), values are sets that keep track how
+many units of which tokens of which currency are available. For example, the value {Coin ↦→
+{Coin ↦→3},c ↦→{t1 ↦→1,t2 ↦→1}}contains 3 Coin coins (there is only one (fungible) token Coin for
+a payment currency Coin), as well as (non-fungible) tokens t1 and t2, which are both of currency c.
+Values can be added naturally, e.g.,
+{Coin ↦→{Coin ↦→3},c ↦→{t1 ↦→1,t2 ↦→1}}
++ {Coin ↦→{Coin ↦→1},c ↦→{t3 ↦→1}}
+= {Coin ↦→{Coin ↦→4},c ↦→{t1 ↦→1,t2 ↦→1,t3 ↦→1}}.
+In the following, ∅ is the empty value, and {t1,...,t n}:: c is used as a shorthand for {c↦→{t1 ↦→
+1,...,t n ↦→1}}.
+The EUTxO ledger consists oftransactions: Transactions are quintuples tx = (I,O, valForge,r,K)
+comprising a set of inputs I, a list of outputs O, values of forged/burned tokens valForge, a slot range
+r= (rmin,rmax), and a set of public keys K. Each input i∈I is a pair consisting of an output refer-
+ence out-ref (consisting of a transaction ID and an index identifying an output in the transaction)
+and a redeemer ρ (used to supply data for validation). Each output o ∈O is a triple ( val,ν,δ )
+consisting of a value val, a validator script ν, and a datum δ. The slot range r indicates the slots
+within which tx may be conﬁrmed and, ﬁnally, Kare the public keys under which tx is signed.
+In order to validate a transaction tx with input setI, for each output o= (val,ν,δ ) referenced by
+an i= (out-ref,ρ) ∈I, the corresponding validator ν is run on the following inputs: ν(val,δ,ρ,σ ),
+where the validation context σ consists of tx and all outputs referenced by some i∈I (not just o).
+Ultimately, tx is valid if and only if all validators return true.
+State Machines. A convenient abstraction for EUTxO smart contracts spanning a sequence
+of related transactions are state machines. Speciﬁcally, we adopt constraint emitting machines
+(CEMs) [13]. These are based on Mealy machines and consist of a set of states Scem, a set of inputs
+Icem, a predicate ﬁnalcem : Scem →Bool identifying ﬁnal states, and a step relation s i−→(s′,tx≡),
+which takes a stateson an input ito a successor states′under the requirements that the constraints
+tx≡are satisﬁed.
+We implement CEMs on a EUTxO ledger (the mainchain) by representing a sequence of CEM
+states as a sequence of transactions. Each of these transactions has got a state-machine input icem
+and a state-machine output ocem, where the latter is locked by a validator νcem, implementing the
+step relation. The only exceptions are the initial and ﬁnal state, which have got no state-machine
+input and output, respectively.
+More speciﬁcally, given two transactions tx and tx ′, they represent successive states under
+s i−→(s′,tx≡) iﬀ
+8
+
+i
+(s, i) ↦ (s′ , tx≡)
+s
+⋮⋮
+𝗏𝖺𝗅
+s′ 
+⋮⋮
+𝗏𝖺𝗅′ 
+˜ρ
+Figure 2: Transactions representing successive states in a CEM transition relation s
+i
+−→
+(s′,tx≡). Fields val and val′ are the value ﬁelds of the state-machine outputs and ˜ ρ is the
+additional data.
+•state-machine output ocem = ( val,νcem,s) of tx is consumed by the state-machine input
+i′
+cem = ( out-ref,ρ) of tx ′, whose redeemer is ρ = i (i.e., the redeemer provides the state-
+machine input) and
+•either ﬁnalcem(s′) = true and tx′has no state-machine output, or o′
+cem = (val′,νcem,s′) and
+tx′meets all constraints imposed by tx ≡.
+Sometimes it is useful to have additional data ˜ρ provided as part of the redeemer, i.e., ρ = (i,˜ρ).
+A state transition of the described type is represented by two connected transactions as shown in
+Fig. 2. For simplicity, state-machine inputs and outputs are not shown, with the exception of the
+value ﬁelds val and val′of the state-machine output.
+3 Protocol Overview
+The Hydra protocol provides functionality to lock a set of UTxOs on a blockchain, referred to as
+the mainchain, and evolve it inside a so-called oﬀchain head, independently of the mainchain. At
+any point, the head can be closed with the eﬀect that the locked set of UTxOs on the mainchain
+is replaced by the latest set of UTxOs inside the head. The protocol guarantees full wealth preser-
+vation: no generation of funds can happen oﬀchain, and no responsive honest party involved in a
+head can ever lose any funds other than by consenting to give them away.
+The advantage of head evolution from a liveness viewpoint is that, under good conditions, it
+can essentially proceed at network speed, thereby reducing latency and increasing throughput in
+an optimal way. At the same time, the head protocol provides the same smart-contract capabilities
+as the mainchain.
+To avoid overloading with technical details, the main body of the paper presents a simpliﬁed
+version of Hydra to convey the basic concepts and ideas of the new protocol. Also in the overview,
+we focus on the simpliﬁed protocol and outline the diﬀerences of the full protocol in Section 3.4. A
+detailed description of the simpliﬁed protocol is given in Sections 4– 6, and Appendix B. The full
+protocol is described in Appendix C.
+3.1 The big picture
+To create a head-protocol instance, any party may take the role of aninitiator and ask a set parties
+(including himself), the head members, to participate in the head by announcing the identities of
+the parties.
+9
+
+Each party then establishes pairwise authenticated channels to all other parties or—if this is
+not possible—aborts the protocol setup. 1
+The parties then exchange, via the pairwise authenticated channels, some public-key material.
+This public-key material is used both for the authentication of head-related onchain transactions
+that are restricted to head members (e.g., a non-member is not allowed to close the head) and for
+multisignature-based event conﬁrmation in the head.
+The initiator then establishes the head by submitting an initial transaction to the mainchain
+that contains the head parameters and forges special participation tokens identifying the head
+members by assigning each token to the public key distributed by the respective party during the
+the setup phase. The initial transaction also initializes a state machine (see Fig. 3) for the head
+instance that manages the “transfer” of UTxOs between mainchain and head.
+Once the initial transaction appears on the mainchain, establishing the initial state initial, each
+head member can attach a commit transaction, which locks (on the mainchain) the UTxOs that
+the party wants to commit to the head.
+The commit transactions are subsequently collected by the collectCom transaction causing a
+transition from initial to open. Once the open state is conﬁrmed, the head members start running
+the oﬀchain head protocol, which evolves the initial UTxO set (the union over all UTxOs committed
+by all head members) independently of the mainchain. For the case where some head members fail
+to post a commit transaction, the head can be aborted by going directly from initial to ﬁnal.
+The head protocol is designed to allow any head member at any point in time to produce,
+without interaction, a certiﬁcate for the current head UTxO set. Using this certiﬁcate, the head
+member may advance the state machine to the closed state.
+Once in closed, the state machine grants parties a contestation period, during which each party
+may (one single time) contest the closure by providing the certiﬁcate for a newer head UTxO
+set. Contesting leads back to the state closed. After the contestation period has elapsed, the
+state machine may proceed to the ﬁnal state. The state machine enforces that the outputs of the
+transaction leading to ﬁnal correspond exactly to the latest UTxO set seen during the contestation
+period.
+3.2 The mainchain state machine
+The mainchain part of the Hydra protocol fulﬁlls two principal functions: (1) it locks the mainchain
+UTxOs committed to the head while the head is active and (2) it facilitates the settlement of the
+ﬁnal head state back to the mainchain after the head is closed. In combination, these two functions
+eﬀectively result in replacing the initial head UTxO set by the ﬁnal head UTxO set on the mainchain
+in a manner that respects but does not persist the complete set of head transactions.
+The state machine (Fig. 3) implementing the mainchain protocol comprises the four states
+initial, open, closed, and ﬁnal, where the ﬁrst two realize the ﬁrst function (locking the initial UTxO
+set) and the second two realize the second function (settling the ﬁnal UTxO set on the mainchain).
+State machines inherently sequentialize all actions that involve the machine state. This simpliﬁes
+both reasoning about and implementing the protocol. However, steps that could otherwise be taken
+in parallel now need to be sequentialized, which might hurt performance. For the cases where this
+sequentialization would severely aﬀect protocol performance, we employ a (to our knowledge) novel
+1We generally assume that mechanisms for establishing pairwise authenticated channels are in place, e.g., by
+means of a public-key infrastructure.
+10
+
+Figure 3: Mainchain state diagram for the simple version of the Hydra protocol.
+technique to parallelize the progression of the state machine on the mainchain.
+We use this technique to parallelize the construction of the initial UTxO set of the head.
+Without parallelization, all n head members would have to post their commit transactions (their
+portion of the initial UTxO set) in sequence, requiring a linear chain of n transactions, each
+for one state transition at a time. Instead, we make the state machine consume all n commit
+transactions in a single state transition. In Fig. 3, we represent this in the following way: the
+transaction representing state initial connects to the transaction representing state open not just
+via the collectCom state transition, but also via a set of commit transactions (one for each head
+member).
+This requires some extra care. We want to ensure that each head member posts exactly one
+commit transaction and that the open transaction faithfully collects all commit transactions. We
+gain this assurance by issuing a single non-fungible token to each head member—we call this the
+participation token. This token must ﬂow through the commit transaction of the respective head
+member and the open transaction, to be valid, must collect the full set of participation tokens. We
+may regard the participation token as representing a capability and obligation to participate in the
+head protocol.
+3.3 The head protocol
+The head protocol starts with an initial set U0 of UTxOs that is identical to the UTxOs locked
+onchain.
+Transactions and local UTxO state. The protocol conﬁrms individual transactions in full
+concurrency by collecting and distributing multisignatures on each issued transaction separately.
+As soon as such a transaction is conﬁrmed, it irreversibly becomes part of the head UTxO state
+evolution—the transaction’s outputs are immediately spendable in the head, or can be safely trans-
+ferred back onchain in case of a head closure.
+Each party maintains their view of the local UTxO state L, which represents the current set of
+UTxOs evolved from the initial UTxO set U0 by applying all transactions that have been conﬁrmed
+so far in the head. As the protocol is asynchronous the parties’ views of the local UTxO state
+generally diﬀer.
+11
+
+Snapshots. The above transaction handling would be enough to evolve the head state. However,
+an eventual onchain decommit would have to transfer the full transaction history onchain as there
+would be no other way to evidence the correctness of the UTxO set to be restored onchain.
+To minimize local storage requirements and allow for an onchain decommit that is independent
+of the transaction history, UTxO snapshots U1,U2,... are continuously generated. For this, a
+snapshot leader requests his view of the conﬁrmed state Lto be multisigned as a new snapshot—
+the ﬁrst head snapshot corresponding to the initial state U0. A snapshot is considered conﬁrmed if
+it is associated with a valid multisignature.
+In contrast to transactions, the snapshots are generated sequentially. To have the new snapshot
+Ui+1 = Lmultisigned, the leader does not need to send his local state Ui+1, but only indicate, by
+hashes, the set of (conﬁrmed) transactions to be applied to Ui in order to obtain Ui+1.
+The other participants sign the snapshot as soon as they have (also) seen the transactions
+conﬁrmed that are to be processed on top of its predecessor snapshot: a party’s conﬁrmed state is
+always ahead of the latest conﬁrmed snapshot.
+As soon as a snapshot is seen conﬁrmed, a participant can safely delete all transactions that
+have already been processed into it as the snapshot’s multisignature is now evidence that this state
+once existed during the head evolution.
+Closing the head. A party that wants to close the head decommits his conﬁrmed state Lby
+posting, onchain, the latest seen conﬁrmed snapshot Uℓ together with those conﬁrmed transactions
+that have not yet been processed by this snapshot. During the subsequent contestation period,
+other head members can post their own local conﬁrmed states onchain.
+3.4 The full protocol and further aspects
+To improve on the basic protocol, we change the mainchain state machine (as described in Ap-
+pendix C) to include
+•incremental commits and decommits (adding UTxOs to or removing them from the head
+without closing),
+•optimistic one-step head closure without the need for onchain contestation,
+•pessimistic two-step head closure with an O(∆) contestation period, independent of n, where
+∆ is the onchain settlement time of a transaction, and
+•split onchain decommit of the ﬁnal UTxO set (in case it is too large to ﬁt into a single
+transaction).
+These further protocol aspects are summarized in Appendix D:
+•The handling of fees incentivizing parties to advance the head’s state machine on the main-
+chain.
+•The handling of time and timing issues in the (asynchronous) head protocol.
+•Transaction throttling in the head to avoid the head’s state becoming too large under pes-
+simistic conditions.
+12
+
+4 Protocol Setup
+In order to create a head-protocol instance, an initiator invites a set of participants {p1,..., pn}
+(himself being one of them) to join by announcing to them the protocol parameters: the list of
+participants, the parameters of the (multi-)signature scheme to be used, etc.
+Each party then establishes pairwise authenticated channels to all other parties.
+For some digital-signature scheme, each party pi generates a key pair (ki,ver,ki,sig) and sends his
+respective veriﬁcation key ki,ver to all other parties. This “standard” digital-signature scheme will
+be used to authenticate mainchain transactions that are restricted to members of the head-protocol
+instance.
+For the multisignature scheme (MS)—see Section 2.1—each party pi generates a key pair
+(Ki,ver,Ki,sig) ← MS-KG(Π)
+and sends his veriﬁcation key Ki,ver to all other parties.
+Each party then computes his aggregate key from the received veriﬁcation keys:
+Kagg := ← MS-AVK(Π,(Kj,ver)j∈[n]) .
+The multisignature scheme will be used for the oﬀchain conﬁrmation (and oﬀchain and onchain
+veriﬁcation) of head-protocol events.
+At the end of this initiation, each party pi stores his signing key and all received veriﬁcation
+keys for the signature scheme, (
+ki,sig, kver := (kj,ver)j∈[n]
+)
+,
+and his signing key, the veriﬁcation keys, and the aggregate veriﬁcation key for the multisignature
+scheme, (
+Ki,sig, Kver := (Kj,ver)j∈[n], Kagg
+)
+.
+If any of the above fails (or the party does not agree to join the head in the ﬁrst place), the
+party aborts the initiation protocol and ignores any further action. 2
+The initiator now posts the initial transaction onchain as described in Section 5.
+5 Mainchain
+Here we describe the details of the mainchain state machine (SM) controlling a Hydra head (see
+Fig. 3). For state transitions, a formal description of the conditions in tx ≡ is foregone in favor of
+the intuitive explanations in the text and the ﬁgures.
+Onchain veriﬁcation algorithms. The status of the head is maintained in a variableη, which is
+part of the SM state and updated by so-called onchain veriﬁcation (OCV) algorithms Initial, Close,
+Contest, and Final. In the context of the mainchain protocol, these OCV algorithms are intentionally
+kept as generic as possible; this keeps the mainchain SM compatible with many potential head-
+protocol variants. The concrete OCV algorithms for the head protocol speciﬁed in this paper are
+given in context of the head protocol itself as they depend on the speciﬁc head-protocol internals:
+2Of course, aborting the initiation can be achieved more gracefully by explicitly notifying the initiator about one’s
+non-participation. Techniques are even known to ﬁnish such an initiation in agreement among all parties [23].
+13
+
+𝗂𝗇𝗂𝗍𝗂𝖺𝗅,
+K𝖺𝗀𝗀, h𝖬𝖳, n, T
+⋮
+{p1}, ν𝗂𝗇𝗂𝗍𝖺𝗅, k1
+{pn}, ν𝗂𝗇𝗂𝗍𝖺𝗅, kn
+(r𝗆𝗂𝗇, r𝗆𝖺𝗑)
+commit Transaction
+∅
+Forge {p1, … , pn} :: 𝖼𝗂𝖽
+ρ
+⋮
+{p1} ∪ 𝗏𝖺𝗅′ , ν𝖼𝗈𝗆, U1
+𝗏𝖺𝗅, ν, δ Signed: k1
+: check that 
+1.  equals 
+concatenation of 
+all ref.ed outputs
+ν𝗌𝖾𝗍𝗎𝗉
+U1
+commited output o
+𝖼𝗂𝖽
+Figure 4: initial transaction (left) with commit transaction (right) attached and one of the
+locked outputs (center).
+veriﬁcation of head-protocol certiﬁcates and related onchain state updates. As such, the OCV
+algorithms can be seen as abstract mainchain algorithms implemented by the speciﬁc head protocol.
+Consequently, the OCV implementation for our head protocol is described in Section 6.3.1.
+Initial state. After the setup phase of Section 4, the head initiator posts an initial transaction
+(see Fig. 4). The initial transaction establishes the SM’s initial state (initial,Kagg,hMT,n,T ),where
+initial is a state identiﬁer, Kagg is the aggregated multisignature key established during the setup
+phase, hMT is the root of a Merkle tree for the signature veriﬁcation keys kver = (k1,...,k n) ex-
+changed during the setup phase (identifying the head members), nis the number of head members,
+and T is the length of the contestation period. The initial transaction also forges n participation
+tokens {p1,...,p n}:: cid, where the currency ID cid is given by the unique monetary-policy script
+consumed by the cid input. The script is unique as it is bound to an output and the ledger prevents
+double spending. Consequently, we can use cid as a unique identiﬁer for the newly initialized head.
+Crucially, the initial transaction has noutputs, where each output is locked by a validatorνinitial
+and the ith output has ki in its data ﬁeld. Validator νinitial ensures the following: either the output
+is consumed by
+1. an SM abort transaction (see below) or
+2. a commit transaction (identiﬁed by having validator νcom in its only output), and
+(a) the transaction is signed and the signature veriﬁes as valid with veriﬁcation key ki,
+(b) the data ﬁeld of the output of the commit transaction is Ui = makeUTxO(o1,...,o m),
+where the oj are the outputs referenced by the commit transaction’s inputs andmakeUTxO
+stores pairs (out-refj,oj) of outputs oj with the corresponding output reference out-refj.
+The general well-formedness and validity of the initial transaction is checked on the mainchain.
+The head members additionally check whether the head parameters match the parameters agreed
+on during the setup phase. In case of a mismatch the head opening is considered as failed.
+Committing outputs to a head. To lock outputs for a Hydra head, the ith head member will
+attach a commit transaction (see Fig. 4) to the ith output of the initial transaction. Validator νcom
+ensures that the commit transaction correctly records the partial UTxO set Ui committed by the
+party.
+14
+
+Collect: Initial State to Open
+𝗂𝗇𝗂𝗍𝗂𝖺𝗅,K𝖺𝗀𝗀,h𝖬𝖳,n,T 𝗈𝗉𝖾𝗇,K𝖺𝗀𝗀,η,h𝖬𝖳,n,T
+⋮
+𝖼𝗈𝗅𝗅𝖾𝖼𝗍𝖢𝗈𝗆
+commit transactions
+: check that 1.  is proof that  is contained in  2.
+tx≡π𝖬𝖳 kh𝖬𝖳η=𝖨𝗇𝗂𝗍𝗂𝖺𝗅(U1,…,Un)
+∅ {p1,…,pn}∪𝗏𝖺𝗅
+π𝖬𝖳
+⋮
+{p1},ν𝗂𝗇𝗂𝗍𝖺𝗅,k1
+{pn},ν𝗂𝗇𝗂𝗍𝖺𝗅,kn
+(r𝗆𝗂𝗇,r𝗆𝖺𝗑)
+…,ν𝖼𝗈𝗆,U1⋮
+…,ν𝖼𝗈𝗆,Un⋮
+(r′ 𝗆𝗂𝗇,r′ 𝗆𝖺𝗑)
+Forge {p1,…,pn}::𝖼𝗂𝖽 Signed: k′ 
+Initial checks: 1.  to  are in k1 kn h𝖬𝖳
+: check that 1.next transaction is collect oder abort SM 
+ν𝖼𝗈𝗆
+Figure 5: initial transaction (left) with collectCom transaction (right) and commit transactions
+(center).
+All commit transactions will in turn be collected by an SM transaction—either collectCom or
+abort (see below).
+Collecting commits. The SM transition from initial to open is achieved by posting the collect-
+Com transaction (see Fig. 5). All parameters Kagg, hMT, n, and T remain part of the state, but in
+addition, a value η←Initial(U1,...,U n) is stored in the state. The idea is that ηstores information
+about the initial UTxO set, which is made up of the individual UTxO sets Ui collected from the
+commit transactions, in order to verify head-status information later (see below).
+It is also required that all nparticipation tokens be present in the SM output of the collectCom
+transaction. This ensures that the collectCom transaction collects all ncommit transactions. Note
+that since νinitial does not allow an SM commit transaction to consume the outputs of the initial
+transaction, the only way to post the collectCom transaction is if each head member has posted a
+commit transaction.
+Finally, note that the transition requires a proof πMT that the signer k′ is in the Merkle Tree
+belonging to hMT, which ensures that only head members can post SM transactions. This will be
+the case for all transitions considered in this paper (and will not be pointed out any further).
+Aborting a head. The abort transaction (see Fig. 6) allows a party to abort the creation of a
+head in case some parties fail to post a commit transaction. The ﬁnal state does not contain any
+information (beyond its identiﬁer), but it is ensured that (1) the outputs U correspond to the union
+of all committed UTxO sets Ui and (2) all participation tokens are burned.
+Close transaction. In order to close a head, a head member may post the close transaction (see
+Fig. 7), which results in a state transition from the open state to the closed state. For a successful
+close, a head member must provide valid information ξ about (their view of) the current head
+state. This information is passed through OCV algorithm Close, resulting in a new OCV status
+η′ ←Close(Kagg,η,ξ ). OCV algorithm Close uses the previous OCV status η and Kagg to check
+the head information ξ. Note that if a check fails, Close may output ⊥, but in order for a close
+transaction to be valid, η′̸= ⊥is required.
+Once a close transaction has been posted, a contestation period begins which should last at
+least T slots. Hence, the last slot Tﬁnal of the contestation period is recorded in the state, and it is
+ensured that Tﬁnal ≥r′
+max + T.
+15
+
+Abort
+𝗂𝗇𝗂𝗍𝗂𝖺𝗅,
+K𝖺𝗀𝗀, h𝖬𝖳, n, T
+⋮
+𝖺𝖻𝗈𝗋𝗍
+{p1}, ν𝗂𝗇𝗍𝗂𝖺𝗅, k1
+{pn}, ν𝗂𝗇𝗍𝗂𝖺𝗅, kn
+(r𝗆𝗂𝗇, r𝗆𝖺𝗑)
+… , ν𝖼𝗈𝗆, U1⋮
+: check that 
+1.  is proof that  is 
+contained in  
+2.  where  
+over those who 
+committed
+tx≡
+π𝖬𝖳 k′ 
+h𝖬𝖳
+U = {Ui}i i
+∅
+π𝖬𝖳
+Forge {p1, … , pn} :: 𝖼𝗂𝖽
+: check that 
+1.  to  are in  
+2.
+tx≡
+k1 kn h𝖬𝖳
+{p1, … , pn} :: 𝖼𝗂𝖽
+𝖿𝗂𝗇𝖺𝗅
+∅
+⋮
+(r′ 
+𝗆𝗂𝗇, r′ 𝗆𝖺𝗑)
+Signed: k′ 
+U
+Burn {p1, … , pn} :: 𝖼𝗂𝖽
+}
+<latexit sha1_base64="WxxOLoH8qvPV+BjLCZ5YgtKmayM=">AAAB/XicdVDLSgNBEOz1GeMr6tHLYBA8hd0o6DHoxWMU84BkCbOT2WTIzO4y0yuEJfgDXvUPvIlXv8Uf8DucJHvQBAsaiqpuqqkgkcKg6345K6tr6xubha3i9s7u3n7p4LBp4lQz3mCxjHU7oIZLEfEGCpS8nWhOVSB5KxjdTP3WI9dGxNEDjhPuKzqIRCgYRSvddye9UtmtuDOQZeLlpAw56r3Sd7cfs1TxCJmkxnQ8N0E/oxoFk3xS7KaGJ5SN6IB3LI2o4sbPZp9OyKlV+iSMtZ0IyUz9fZFRZcxYBXZTURyaRW8q/ufhUC2kY3jlZyJKUuQRm4eHqSQYk2kVpC80ZyjHllCmhf2fsCHVlKEtrGiL8RZrWCbNasU7r1TvLsq167yiAhzDCZyBB5dQg1uoQwMYhPAML/DqPDlvzrvzMV9dcfKbI/gD5/MH32SV5A==</latexit>
+: check that 
+1. next transaction is 
+collect oder abort SM 
+ν𝖼𝗈𝗆
+commit transactions
+Figure 6: initial transaction (left) with abort transaction (right) and commit transactions
+(center).
+Close
+𝗈𝗉𝖾𝗇,K𝖺𝗀𝗀,η,h𝖬𝖳,n,T
+ 𝖼𝗅𝗈𝗌𝖾𝖽,K𝖺𝗀𝗀,η′ ,𝒞,h𝖬𝖳,n,T,T𝖿𝗂𝗇𝖺𝗅
+𝖼𝗅𝗈𝗌𝖾
+: check that 1.  is proof that  is contained in  2.  3.  4.
+tx≡π𝖬𝖳 k′ 
+h𝖬𝖳𝒞={k′ }T𝖿𝗂𝗇𝖺𝗅=r′ 𝗆𝖺𝗑+ Tη′ =𝖢𝗅𝗈𝗌𝖾(K𝖺𝗀𝗀,η,ξ)
+(r𝗆𝗂𝗇,r𝗆𝖺𝗑)
+Signed: k
+(r′ 𝗆𝗂𝗇,r′ 𝗆𝖺𝗑)
+Signed: k′ 
+{p1,…,pn}∪𝗏𝖺𝗅 {p1,…,pn}∪𝗏𝖺𝗅
+π𝖬𝖳,ξ
+⋮
+Figure 7: collectCom transaction (left) with close transaction (right).
+Finally, the SM state is extended by a set Cinitialized to the poster’s signing key, i.e., C←{ k′}.
+Cis used to ensure that no party posts more than once during the contestation period.
+Contestation. If the party ﬁrst closing a head posts outdated/incomplete information about the
+current state of the head, any other party may post a contest transaction (see Fig. 8), which causes
+a state transition from the closed state to itself. The transition handles update information ξ by
+passing it through OCV algorithm Contest, resulting in a new OCV status η′←Contest(Kagg,η,ξ ).
+OCV algorithm Contest uses the previous OCV status η and Kagg to check the update information
+ξ. Similarly to Close, Contest may output ⊥, but in order for a contest transaction to be valid
+η′̸= ⊥is required.
+The contest transaction is only valid if the old set Cof parties who have contested (or closed) so
+far does not yet include the poster, i.e., k′ /∈C. If this check passes, the set is extended to include
+the poster of the contest transaction, i.e., C′ ←C∪{ k′}. Furthermore, contest transactions may
+only be posted up until Tﬁnal, i.e., it is required that r′
+max ≤Tﬁnal.
+Observe that during the contestation period, up to n−1 contest transactions may be posted (of
+course, the parameter T has to be chosen large enough as to allow each head member to potentially
+post a close/contest transaction).
+Final state. Once the contestation phase is over, a head may be ﬁnalized by posting a fanout
+transaction, taking the SM from closed to ﬁnal. The fanout transaction must have outputs that
+correspond to the most recent head state. To that end, OCV predicateFinal checks the transaction’s
+16
+
+Contest
+𝖼𝗅𝗈𝗌𝖾𝖽,K𝖺𝗀𝗀,η′ ,𝒞′ ,h𝖬𝖳,n,T,T𝖿𝗂𝗇𝖺𝗅
+𝖼𝗈𝗇𝗍𝖾𝗌𝗍
+: check that 1.  is proof that  is contained in  2.  and  3.  4.
+tx≡π𝖬𝖳 k′ 
+h𝖬𝖳k′ ∉𝒞 𝒞′ =𝒞∪{k′ }η′ =𝖢𝗈𝗇𝗍𝖾𝗌𝗍(K𝖺𝗀𝗀,η,ξ)r′ 𝗆𝖺𝗑≤T𝖿𝗂𝗇𝖺𝗅
+(r′ 𝗆𝗂𝗇,r′ 𝗆𝖺𝗑)
+Signed: k′ 
+𝖼𝗅𝗈𝗌𝖾𝖽,K𝖺𝗀𝗀,η,𝒞,h𝖬𝖳,n,T,T𝖿𝗂𝗇𝖺𝗅
+(r𝗆𝗂𝗇,r𝗆𝖺𝗑)
+Signed: k
+{p1,…,pn}∪𝗏𝖺𝗅 {p1,…,pn}∪𝗏𝖺𝗅
+π𝖬𝖳,ξ
+ ′ 
+Figure 8: close/contest transaction (left); contest transaction (right)
+Fanout
+𝖿𝖺𝗇𝗈𝗎𝗍
+: check that 1.  is proof that  is contained in  2.  3.
+tx≡π𝖬𝖳 k′ 
+h𝖬𝖳𝖥𝗂𝗇𝖺𝗅(η,U )r′ 𝗆𝗂𝗇> T𝖿𝗂𝗇𝖺𝗅
+π𝖬𝖳 𝖿𝗂𝗇𝖺𝗅
+∅
+⋮
+(r′ 𝗆𝗂𝗇,r′ 𝗆𝖺𝗑)
+Signed: k′ 
+U
+Burn {p1,…,pn}: : 𝖼𝗂𝖽
+}
+<latexit sha1_base64="WxxOLoH8qvPV+BjLCZ5YgtKmayM=">AAAB/XicdVDLSgNBEOz1GeMr6tHLYBA8hd0o6DHoxWMU84BkCbOT2WTIzO4y0yuEJfgDXvUPvIlXv8Uf8DucJHvQBAsaiqpuqqkgkcKg6345K6tr6xubha3i9s7u3n7p4LBp4lQz3mCxjHU7oIZLEfEGCpS8nWhOVSB5KxjdTP3WI9dGxNEDjhPuKzqIRCgYRSvddye9UtmtuDOQZeLlpAw56r3Sd7cfs1TxCJmkxnQ8N0E/oxoFk3xS7KaGJ5SN6IB3LI2o4sbPZp9OyKlV+iSMtZ0IyUz9fZFRZcxYBXZTURyaRW8q/ufhUC2kY3jlZyJKUuQRm4eHqSQYk2kVpC80ZyjHllCmhf2fsCHVlKEtrGiL8RZrWCbNasU7r1TvLsq167yiAhzDCZyBB5dQg1uoQwMYhPAML/DqPDlvzrvzMV9dcfKbI/gD5/MH32SV5A==</latexit>
+𝖼𝗅𝗈𝗌𝖾𝖽,K𝖺𝗀𝗀,η,𝒞,h𝖬𝖳,n,T,T𝖿𝗂𝗇𝖺𝗅
+(r𝗆𝗂𝗇,r𝗆𝖺𝗑)
+Signed: k
+{p1,…,pn}∪𝗏𝖺𝗅
+Figure 9: close/contest transaction (left); fanout transaction (right)
+output set U against the information recorded in η. The fanout transaction is only valid if Final
+outputs true. Moreover, to ensure that the fanout transaction is not posted too early, r′
+min >Tﬁnal
+is required. Finally, all participation tokens must be burned.
+6 Simple Head Protocol Without Conﬂict Resolution
+This section describes the simpliﬁed version of the head protocol, and without conﬂict resolution,
+with the goal to demonstrate the protocol basics without overloading the presentation with too
+many details. Conﬂict resolution is added to the protocol in Appendix B, and the full protocol is
+sketched in Appendix C.
+We ﬁrst introduce a security deﬁnition for the head protocol in Section 6.1. The protocol
+machine is described in Section 6.2, the head-speciﬁc mainchain code in Section 6.3, and a security
+proof for the head protocol is given in Section 6.4.
+6.1 Security deﬁnition
+6.1.1 Protocol syntax
+The head-protocol syntax is HP = (Prot,Initial,Close,Contest,Final). The main component is the
+protocol machine Prot, an instance of which is run by every head member. The other algorithms
+are used for setup and onchain veriﬁcation and form the interface to the mainchain. In particular,
+•Σ ←generates global parameters,
+17
+
+•(Kver,Ksig) ←MS-KG(Σ) allows every head member to generate fresh public/private key
+material based on the global parameters,
+•Kagg ←MS-AVK(Σ,(Kver,i)i) aggregates public keys, and
+•Initial, Close, Contest, and Final are onchain veriﬁcation algorithms (cf. Section 5).
+The head-protocol machine Prot has the following interface to the environment:
+•input (init,i,K ver,Ksig,U0) is used to initialize the head protocol, for the party with index
+i, with a vector of public-key material Kver, private-key material Ksig, and an initial UTxO
+set U0;
+•input (new,tx) is used to submit a new transaction tx;
+•output (seen,tx) announces that transaction tx has been seen (by the party outputting the
+message);
+•output (conf,tx) announces that transaction tx has been conﬁrmed (in the view of the party
+outputting the message);
+•input (close) is used to initiate head closure (produces a certiﬁcate ξ); and
+•input (cont,η) is used to contest (produces a certiﬁcate ξ).
+6.1.2 Protocol security
+The security deﬁnition for the head protocol guarantees the following four, intuitively stated prop-
+erties:
+•Consistency: No two uncorrupted parties see conﬂicting transactions conﬁrmed.
+•Liveness: If all parties remain uncorrupted and the adversary delivers all messages, then
+every transaction becomes conﬁrmed at some point.
+•Soundness: The ﬁnal UTxO set accepted on the mainchain results from a set of seen trans-
+actions.
+•Completeness: All transactions observed as conﬁrmed by an honest party at the end of the
+protocol are considered on the mainchain.
+Experiment for security deﬁnition. The security properties above are captured by considering
+a random experiment that involves
+•an adversary A,
+•a network under full scheduling control of A, able to drop messages or delay them arbitrarily,
+•a setup phase,
+•nparties pi, corruptible by A, running the head protocol with the parameters from the setup
+phase and an initial UTxO set U0 chosen by A, and
+•an abstract mainchain (mostly) controlled by A.
+18
+
+The experiment ends once the mainchain state machine arrives in the ﬁnal state, and the
+adversary wins if certain conditions are not satisﬁed at the end of the experiment.
+In more detail, the experiment proceeds as follows:
+1. Global parameters Σ ←MS-Setup are generated, and Σ is passed to A.
+2. For each party pi, key material (Kver,i,Ksig,i) ←MS-KG(Σ) is generated, and the vector Kver
+of all public keys and Kagg ←MS-AVK(Σ,Kver) are passed to A.
+3. Each party pi’s protocol machine is initialized with ( init,i,K ver,Ksig,i,U0), where U0 is
+chosen by A.
+4. The adversary now gets to control inputs to parties (e.g., new transactions, close/contest
+requests) and sees outputs (e.g., seen and conﬁrmed transactions). The following bookkeeping
+takes place:
+•when an uncorrupted party pi outputs ξ upon close command, record (close,i,ξ );
+•when uncorrupted party pi outputs ξ upon (cont,η) command, record ( cont,i,η,ξ ).
+In “parallel” to the above, the experiment setsC,Hcont ←∅ and does the following to simulate
+the mainchain:
+(a) Initialize η←(U0,0,∅).
+(b) When A supplies ( i,ξ): if i is uncorrupted, ξ gets replaced by the ξ recorded in
+(close,i,ξ ) and Hcont ←Hcont ∪{i}. Then, η ←Close(Kagg,η,ξ ) and C ←C∪{ i}
+is computed. If Close rejects, everything in this step is discarded and the step repeated.
+(c) The adversary gets to repeatedly supply (i,ξ) for i /∈C; if iis uncorrupted, ξgets replaced
+by the ξ recorded in (cont,i,ξ ) and Hcont ←Hcont ∪{i}. Then, η←Contest(Kagg,η,ξ )
+and C←C∪{ i}is computed. If Contest rejects, everything in this step is discarded.
+(d) When the adversary supplies Uﬁnal, b←Final(η,Uﬁnal) is computed, and the experiment
+ends.
+Our protocol gives diﬀerent security guarantees depending on the level of adversarial corruption. It
+provides correctness independently of both, the number of corrupted head parties and the network
+conditions. But the guarantee that the protocol makes progress (i.e., that new transactions get
+conﬁrmed in the head) is only provided in the case that no head parties are corrupted and that the
+network conditions are good.
+To capture this diﬀerence, we distinguish:
+Active Adversary. An active adversary Ahas full control over the protocol, i.e., he is fully unre-
+stricted in the above security game.
+Network Adversary. A network adversary A∅does not corrupt any head parties, eventually delivers
+all sent network messages (i.e., does not drop any messages), and does not cause the close
+event. Apart from this restriction, the adversary can act arbitrarily in the above experiment.
+19
+
+Security events. Consider the following random variables:
+• ˆSi: the set of transactions tx for which party pi, while uncorrupted, output (seen,tx);
+•Ci: the set of transactions tx for which party pi, while uncorrupted, output (conf,tx);
+•Hcont: the set of (at the time) uncorrupted parties who produced ξupon close/contest request
+and ξ was applied to correct η (see above); and
+• H: the set of parties that remained uncorrupted.
+The security of the head protocol is captured by considering the following events, each corresponding
+to one of the security properties introduced above:
+•Consistency (Head): In presence of an active adversary, the following condition holds:
+For all i,j, U0 ◦(Ci ∪Cj) ̸= ⊥, i.e., no two uncorrupted parties see conﬂicting transactions
+conﬁrmed.
+•Liveness (Head): In presence of a network adversary the following condition holds: For
+any transaction tx input via ( new,tx), the following eventually holds: tx ∈⋂
+i∈[n] Ci ∨ ∀i:
+U0 ◦(Ci ∪{tx}) = ⊥, i.e., every party will observe the transaction conﬁrmed or every party
+will observe the transaction in conﬂict with his conﬁrmed transactions. 3
+•Soundness (Chain): In presence of an active adversary, the following condition is satisﬁed:
+∃˜S ⊆⋂
+i∈HˆSi : Uﬁnal = U0 ◦˜S, i.e., the ﬁnal UTxO set results from a set of seen transactions.
+•Completeness (Chain): In presence of an active adversary, the following condition holds:
+For ˜S as above, ⋃
+pi∈Hcont Ci ⊆˜S, i.e., all transactions seen as conﬁrmed by an honest party
+at the end of the protocol are considered.
+Note that our simpliﬁed protocol with conﬂict resolution and our full protocol in Appendices B
+and C achieve liveness in the above sense, but that our simpliﬁed protocolwithout conﬂict resolution
+in Section 6 only achieves a weaker notion of liveness, namely liveness in a
+Conﬂict-Free Execution: Let N= {tx |(new,tx)}the set of all transactions input to a new event
+during the execution of the head protocol. A head-protocol execution is conﬂict-free iﬀ
+U0 ◦N̸ = ⊥.
+Respectively, the liveness aspect of the simpliﬁed protocol without conﬂict resolution is captured
+by the following event, instead:
+•Conflict-Free Liveness (Head): In presence of a network adversary, a conﬂict-free execu-
+tion satisﬁes the following condition: For any transaction tx input via (new,tx), tx ∈⋂
+i∈[n] Ci
+eventually holds.
+6.2 Protocol machine
+The protocol machine Prot consists of a number of subroutines that handle inputs from the en-
+vironment (e.g., the client command to issue a new transaction for conﬁrmation, or the arrival
+of another party’s conﬁrmation request). The protocol is depicted in Figure 10. All relevant
+non-obvious notation is explained in the following paragraphs.
+3In particular, liveness expresses that the protocol makes progress under reasonable network conditions if no head
+parties get corrupted – implying that, given any guaranteed upper bound δ on message delivery delay, the worst-case
+transaction-conﬁrmation time is bounded in function of δ.
+20
+
+6.2.1 Local state representation
+Every party maintains local objects to represent transactions, snapshots, and his local head-UTxO
+set. These objects exist in two versions, a seen object has been signed by the party (the party has
+seen and approved the event); and a conﬁrmed object is associated with a valid multisignature (the
+party has received a valid multisignature on the object). A seen object X is denoted by ˆX and a
+conﬁrmed object by X.
+A party’s local protocol state consists of the multisignature veriﬁcation keys and its own signing
+key, of snapshot counters ˆs and s, and of variables
+• ˆUand U, keeping track of the most recent seen resp. conﬁrmed, snapshots,
+• ˆLand L, keeping track of recent seen resp. conﬁrmed UTxO sets, and
+• ˆT and T, the sets of seen resp. conﬁrmed, transactions that have not been considered by a
+snapshot yet.
+Variables ˆUand Ustore so-called snapshot objects, which are data structures keeping information
+about a snapshot. Speciﬁcally, a snapshot object Uhas the following structure:
+U.s snapshot number
+U.U corresponding UTxO set
+U.h hash of U
+U.T set of transactions relating this snapshot to its predecessor
+U.S signature accumulator (array of signatures)
+U.˜σ multisignature
+The function snObj(s,U,T ) initializes a snapshot object and is explained later.
+Similarly, ˆT and T store sets of transaction objects. A transaction object tx has the following
+structure:
+tx.i index of the party issuing transaction for certiﬁcation
+tx.tx transaction
+tx.h hash of tx
+tx.S signature accumulator (array of signatures)
+tx.˜σ multisignature.
+The function txObj(i,tx) initializes a transaction object by setting the appropriate ﬁelds to the
+passed values (including computing the hash of tx) and the remaining ﬁelds to ∅resp. ⊥.
+6.2.2 Three-round entity conﬁrmation
+Transactions and snapshots are conﬁrmed in an asynchronous 3-round process: 4
+•req: The issuer of a transaction or snapshot requests the entity to be signed by sending the
+entity description to every head member.
+4Note that, as a variant, this 3-round process (with linear communication in n) can be condensed to 2 rounds
+(with quadratic communication in n) by combining the last two rounds into an “all-to-all” signature notiﬁcation.
+This variant may be preferable for small n.
+21
+
+•ack: The head members acknowledge the entity be replying their signatures on the entity to
+the issuer.
+•conf: The issuer collects all signatures, combines the multisignature, and sends the multisig-
+nature to all head members.
+6.2.3 Code notation
+Code is depicted by view of a generic head party pi. We assume that a party only accepts mes-
+sages authenticated by its claimed sender (by use of the authenticated channels established during
+the setup phase)—unauthenticated messages are simply treated as unseen by the recipient. For
+simplicity, whenever a party pi sends a message to all head parties, it also sends the message to
+itself.
+For the transaction set ˆT (and similarly T), ˆT[h] denotes tx ∈ ˆT such that tx.h = h, i.e., the
+transaction object corresponding to the transaction with hash H(tx) = h.
+The ↓operator indicates the projection of an object onto a subset of its ﬁelds. For example,
+ˆT↓(h) denotes the set of hashes corresponding to the transactions in ˆT.
+The following notation is used to describe the application of transactions to a given UTxO set.
+•U′= U ◦tx assigns to U′the UTxO set resulting from applying transaction tx to UTxO set
+U. In case that the validation fails it returns U′= ⊥.
+•U′= U ◦T assigns to U′ the UTxO set resulting from applying all transaction in the trans-
+action set T to UTxO set U. In case that not all transactions can be applied it returns
+U′= ⊥.
+In the protocol routines of Fig. 10, byrequire(P), we express that predicate P must be satisﬁed
+for the further execution of a routine—while immediately terminated on¬P. By wait(P) we express
+a non-blocking wait for predicate P to be satisﬁed. On ¬P, the execution of the routine is stopped,
+queued, and reactivated as soon as P is satisﬁed. Finally, we assume the code executions of each
+routine to be atomic—excluding the blocks of code that may be put into the wait queue for later
+execution, in which case we assume the wait block to be atomic.
+6.2.4 Protocol ﬂow
+Initializing the head. Initially, by activation via the ( init) event, the parties store their mul-
+tisignature key material form the setup phase, ad set L= ˆL= U = ˆU = U0 where U0 is the
+initial UTxO set extracted from the η-state of the collectCom transaction (see Fig. 5). The initial
+transaction sets are empty, T = ˆT = ∅, and s= ˆs= 0.
+Conﬁrming new transactions.
+(new). At any time, by calling ( new,tx), a head party can (asynchronously) inject a new trans-
+action tx to the head protocol—initiating a 3-round conﬁrmation process for tx as described in
+Section 6.2.2. For this, the transaction must be well-formed ( valid-tx) and applicable to the current
+conﬁrmed local UTxO state: L◦tx ̸= ⊥. If the checks pass, a ( reqTx,tx) request is sent out to all
+parties.
+22
+
+Simpliﬁed Hydra Head Protocol Without Conﬂict Resolution
+on(init,i,Kver,Ksig,U0)from client
+V←Kver
+avk←MS-AVK(V)
+sk←Ksig
+ˆs,s←0
+ˆU,U←snObj(0,U0,∅)
+ˆL,L←U0
+ˆT,T ←∅
+on(new,tx)from client
+requirevalid-tx(tx) andL◦tx̸=⊥
+multicast(reqTx,tx)
+on(newSn)forpi
+requireleader(s+ 1) =iandˆU=U
+T←(maxTxos(T))↓(h)
+multicast(reqSn,s+ 1,T)
+on(close)from client
+return(U.U,U.s,U.˜σ,T↓(tx,˜σ))
+on(cont,η)from client
+(Uη,sη,Tη)←η
+ifs≤s
+U←Uη
+s←sη
+˜σ←ε
+else
+U←U.U
+s←s
+˜σ←U.˜σ
+T′←applicable(U,T↓(tx)∪Tη) \Tη
+ifU=Uη
+U←ε
+return
+(U,s,˜σ,{t∈T↓(tx,˜σ) |t.tx∈T′})
+on(reqTx,tx)frompj
+requirevalid-tx(tx)∧ˆL◦tx̸=⊥
+waitL◦tx̸=⊥
+h←H(tx)
+ˆT[h]←txObj(j,tx)
+ˆL←ˆL◦tx
+output(seen,tx)
+σi←MS-Sign(sk,h)
+send(ackTx,h,σi) topj
+on(ackTx,h,σj)frompj
+requireˆT[h].i=i
+requireˆT[h].S[j] =ε
+ˆT[h].S[j]←σj
+if∀k: ˆT[h].S[k]̸=ε
+˜σ←MS-ASig(h,V,ˆT[h].S)
+if˜σ̸=⊥
+multicast(confTx,h,˜σ)
+on(confTx,h,˜σ)frompj
+ifMS-Verify(avk,h,˜σ)
+tx←ˆT[h].tx
+L←L◦tx
+ˆT[h].˜σ←˜σ
+T[h]←ˆT[h]
+ˆT ←ˆT \ˆT[h]
+output(conf,tx)
+on(reqSn,s,T)frompj
+requires=s+ 1 andleader(s) =j
+waits= ˆsandT⊆T↓(h)
+ˆs←ˆs+ 1
+ˆU←snObj(ˆs,U.U,T)
+σi←MS-Sign(sk,ˆU.h∥ˆs)
+send(ackSn,ˆs,σi) topj
+on(ackSn,s,σj)frompj
+requires= ˆsandleader(s) =i
+requireˆU.S[j] =ε
+ˆU.S[j]←σj
+if∀k: ˆU.S[k]̸=ε
+˜σ←MS-ASig(ˆU.h∥s,V,ˆU.S)
+if˜σ̸=⊥
+multicast(confSn,s,˜σ)
+on(confSn,s,˜σ)frompj
+requires= ˆs̸=s
+ifMS-Verify(avk,ˆU.h∥ˆs,˜σ)
+s←s
+ˆU.˜σ←˜σ
+U←ˆU
+T ←T \ReachT(U.T)
+Figure 10: Head-protocol machine for the simple protocol without conﬂict resolution from the
+perspective of party pi.
+(reqTx). Upon receiving request ( reqTx,tx), a signature is only issued by a party pi if tx applies
+to his local seen UTxO state: ˆL◦tx ̸= ⊥. If this is the case, the party waits until his conﬁrmed
+UTxO state Lhas “caught up”: the signature is only delivered as soon as L◦ tx ̸= ⊥, i.e., a
+23
+
+transaction is only signed once it is applicable to the local conﬁrmed state.
+In case the preconditions are satisﬁed, a respective transaction object is allocated, initialized,
+and added to ˆT; ˆLis updated by applying tx, and ( seen,tx) is output; and, ﬁnally, a signature on
+the hash of tx, σ= MS-Sign(H(tx)), is delivered back to the transaction issuer by replying with an
+(ackTx,H(tx),σ).
+(ackTx). Upon receiving acknowledgment (ackTx,h,σ j), the transaction issuer stores the received
+signature in the respective transaction object. If a signature from each party has been collected, pi
+computes the multisignature ˜σ and, if valid, sends it to all parties in a ( confTx,h, ˜σ) message.
+(confTx). Upon receiving conﬁrmation ( confTx,h, ˜σ) from the transaction issuer, containing a
+valid multisignature, the multisignature is stored in the respective transaction object, Lis updated
+by applying tx, and the transaction object is moved from ˆT to T. Finally, (conf,tx) is output.
+Creating snapshots. In parallel to conﬁrming transactions, parties generate snapshots in a
+strictly sequential round-robin manner. We call the party responsible for issuing the ith snapshot
+the leader of the ith snapshot. The issuance frequency of the snapshots tunes a tradeoﬀ between
+the transaction space that has to maintained by the parties for storing conﬁrmed but snapshot-
+unprocessed transactions against the snapshot-communication overhead in the head protocol. As
+the information to be exchanged among the parties for snapshot conﬁrmation is small, such snap-
+shots can in principle be greedily issued as soon as the next snapshot leader sees a new conﬁrmed
+transaction.
+(newSn). On activation by (newSn), the snapshot leader veriﬁes whether ˆU= Uto ensure that he is
+not already in the process of snapshot creation. The leader pi then announces the transaction set T,
+the not yet snapshot-processed conﬁrmed transactions to be applied to compute the new snapshot.
+However, to reduce communication overhead, only the hashes of the maximal transactions of T
+are announced which are the transactions of T not referenced by another transaction in T. This
+maximal set is computed by functionT = maxTxos(T)↓(h). Finally the leader sends (reqSn,s+1,T)
+to all parties.
+(reqSn). Upon receiving request (reqSn,s,T ), party pi checks that sis the next snapshot number
+and that pj is responsible for leading its creation. Party pi then waits until the previous snapshot
+is conﬁrmed (s= ˆs) and all transactions referred in T are conﬁrmed.
+Only then, pi increments his seen-snapshot counter ˆ s, and allocates a new snapshot object
+calling function snObj that performs the following steps:
+1. It reconstructs the transaction set to be applied to the latest conﬁrmed snapshot by calling
+function ReachT(T) that computes all transactions in T reachable from the transactions (with
+hashes) in T by following the output references (the inverse of maxTxos); and
+2. computes the UTxO set of the new snapshot as ˆU.U ←U.U ◦ReachT(T), and
+3. computes the hash of ˆU.U and sets the ﬁelds for the snapshot number and the maximal
+transactions applied.
+24
+
+Finally, pi computes a signatureσi = MS-Sign(sk,H( ˆU)∥ˆs), and replies topj the message (ackSn,s,σi).5
+(ackSn). Upon receiving acknowledgment ( ackSn,s,σ j), the snapshot leader stores the received
+signature in the respective snapshot object. If a signature from each party has been collected, pi
+computes the multisignature ˜σ and, if valid, sends it to all parties in a ( confSn,h, ˜σ) message.
+(confSn). Upon receiving conﬁrmation (confSn,s, ˜σ) from the snapshot leader, containing a valid
+multisignature, pi stores the multisignature and updates s = s and U = ˆU. Finally, the set of
+conﬁrmed transactions is reduced by excluding the transactions that have been processed by U:
+T ←T \ReachT(U.T).
+Closing the head.
+(close). In order to close a head, a party causes the ( close) event which returns the latest
+conﬁrmed snapshot U.U, snapshot number U.s and the respective multisignature U.˜σ, together
+with the remaining conﬁrmed transactions T
+↓(tx,˜σ)
+(multisigned). These items form the certiﬁcate
+ξ to be posted onchain (see Section 6.3.2).
+(cont). In order to contest the current state closed on the mainchain, a party causes the (cont,η)
+event with input η being the latest observed head status that has been aggregated onchain for this
+head so far (by a sequence of close and contest transactions).
+The algorithm then computes “diﬀerential” data between the current onchain head status and
+the contester’s conﬁrmed view: the latest conﬁrmed snapshot (if newer than seen onchain) and the
+set of conﬁrmed transactions (in his view) not yet considered by the current state η. These items
+form the certiﬁcate ξ to be posted onchain (see Section 6.3.2).
+We only want to pass on the (multisigned) transactions in T
+↓(tx)
+\Tη that have not yet been
+processed by the latest snapshot U. This is achieved by applying function applicable that tests, for
+each transaction in tx ∈T
+↓(tx)
+∪Tη in appropriate order, whether U ◦tx ̸= ⊥is still applicable.
+Note that the transactions in Tη have to be considered in this process as some transactions in T
+may directly depend on them, and would otherwise not be detected to be applicable. As we only
+want to extract “diﬀerential” data, the transactions in Tη are ﬁnally removed again as they are
+already recorded in the (accumulative) η state.
+6.3 Head-speciﬁc mainchain functionality
+On an abstract level, as described in Section 5, mainchain and head functionality are clearly sepa-
+rated into events that happen onchain and events that happen in the head. In particular, network
+participants that are not members of the head protocol only observe mainchain events.
+Still, depending on the concrete implementation of the head certiﬁcation process (which our
+abstract description of the mainchain functionality is agnostic of), some mainchain functionality
+has to be adapted to the speciﬁc choice made for the head protocol. This concerns two aspects:
+5Note that no UTxO sets have to be exchanged in this process as the parties can locally compute a new snapshot
+by the given transaction hashes.
+25
+
+Hydra Protocol
+Mainchain Protocol                         𝗌𝗍𝖺𝗍𝖾𝗆𝖺𝖼𝗁𝗂𝗇𝖾
+Head Protocol 
+                                𝗉𝗋𝗈𝗍𝗈𝖼𝗈𝗅𝗆𝖺𝖼𝗁𝗂𝗇𝖾
+client
+chain
+messaging head
+messaging𝚊𝚋𝚜𝖮𝖢𝖵 𝚒𝚖𝚙𝚕𝖮𝖢𝖵𝚊𝚋𝚜𝖢𝖧𝖨 𝚒𝚖𝚙𝚕𝖢𝖧𝖨
+Figure 11: Hydra protocol components.
+Onchain veriﬁcation (OCV). The conﬁrmation of head events by means of the multisignature
+scheme must be veriﬁable onchain; and thus, the exact workings of head certiﬁcation must
+be known to the mainchain protocol. Now, given that the onchain portion of the mainchain
+protocol (i.e., state machine transition validation) is realized by EUTxO validator scripts,
+these scripts utilize the abstract interface of the OCV. Hence, we interpret the head OCV
+code as implementing the abstract mainchain OCV speciﬁcation for all network participants
+(Fig. 11).
+Chain/head interaction (CHI). Upon observing certain onchain events, a head member’s main-
+chain functionality must interact with the head protocol. For instance, this is the case, when a
+head member observes the closing of the head on the mainchain. The mainchain functionality
+must then query the head protocol to know whether a contest transaction must be posted.
+6.3.1 Onchain veriﬁcation (OCV)
+Recall that the mainchain functionality was generically described it terms of η, the latest head
+state as known onchain, and ξ, a certiﬁcate posted by a head member to update η by delivering
+head-conﬁrmed information.
+We shortly recapitulate the abstract workings of OCV. After the processing of the collectCom
+transaction, the initial UTxO set is stored as η in association of the open state. Later, a party pi
+can
+•produce a certiﬁcate ξ accepted by Close(·) to close out the head and make (his view of) the
+current head-UTxO set available on the mainchain, and,
+•given the current state η on the mainchain, produce a certiﬁcate ξ accepted by Contest(η,·)
+to contest a closure and supply an updated view of the head-UTxO set to the mainchain.
+Finally, the function Final checks the UTxO set in the transaction that moves the state machine
+into its ﬁnal state against the information stored in η.
+We now instantiate the respective onchain veriﬁcation (OCV) functionality for the head protocol
+given in this section—with its speciﬁc way of certifying head states (see Fig. 12).
+Initial. The entire initial UTxO set U0 is composed from the ncommitted UTxO sets Up1 ,...,U pn,
+and returned as η= (U0,0,∅).
+26
+
+Algorithms for Onchain Veriﬁcation
+Initial(Up1,...,Upn)
+return(Up1 ∪···∪Upn,0,∅)
+Close(Kagg,η,ξ)
+(U,s,˜σ,T) ←ξ
+if ∃(txi,˜σi) ∈T:
+¬MS-AVerify(Kagg,H(txi),˜σi)
+return⊥
+if s= 0
+(U,·,·) ←η
+else if¬MS-AVerify(Kagg,H(U)∥s,˜σ)
+return⊥
+if U◦T↓(tx)=⊥
+return⊥
+return(U,s,T↓(tx))
+Contest(Kagg,η,ξ)
+(Uη,sη,Tη) ←η
+(U,s,˜σ,T) ←ξ
+if ∃(txi,˜σi) ∈T: ¬MS-AVerify(Kagg,H(txi),˜σi)
+return⊥
+if s≤sη
+UN←Uη
+else
+UN←U
+if ¬MS-AVerify(Kagg,H(U)∥s,˜σ) return⊥
+Tη←applicable(UN,Tη)
+if UN◦(Tη∪T↓(tx)) =⊥
+return⊥
+return(UN,s,Tη∪T↓(tx))
+Final(η,U)
+(Uη,sη,Tη) ←η
+return(U=Uη◦Tη)
+Figure 12: The algorithms used by the state machine for onchain veriﬁcation.
+Close. The state machine uses the onchain veriﬁcation (OCV) algorithm Close to verify the infor-
+mation submitted by the party.
+Recall that, when a pi receives the close command, it simply outputs as certiﬁcate the snap-
+shot number, the UTxO set, and the multisignatures corresponding to the most recent conﬁrmed
+snapshot U as well as all conﬁrmed transactions in T which have not yet been considered in U,
+along with the corresponding multisignatures.
+OCV function Close (see Figure 12) veriﬁes all multisignatures in ξ = (U,s, ˜σ,T ), i.e., those of
+H(U)∥sand the transactions in T, and ensures that the transactions in T can be applied to U (or,
+in case of s= 0, to U0). The algorithm then outputs the new state η′= (U,s,T ↓(tx)).
+Contest. The state machine uses the OCV algorithm Contest to verify the “diﬀerential” data
+submitted by a contesting party.
+Recall that, when a pi receives the command ( cont,η) for η = ( Uη,sη,Tη), he supplies his
+latest snapshot U.U if it is newer than Uη, and those conﬁrmed transactions that have not yet been
+considered by the latest snapshot. In case that Uη is newer than the own snapshot, the transactions
+yet to be delivered can be found by trying to apply them (together withTη) to Uη—as those already
+considered by Uη can no longer be applied; this computation is performed by function applicable.
+Similarly to the close case, OCV function Contest, given ξ = (U,s, ˜σ,T ), ﬁrst checks all signa-
+tures.
+In case that the provided snapshot U is newer than the snapshot Uη from the onchain state η,
+the set Tη is reduced to those transactions that are still applicable to the newer of both snapshots,
+UN.
+Finally, it is ensured that Tη ∪T↓(tx) can be applied to the newest of both snapshots, and the
+27
+
+Chain/Head Interaction
+on(clientTx,tx)
+head.(new,tx)
+on(clientClose)
+ξ←head.(close)
+chain.postTx(close,ξ)
+on(chainInitial)
+requireKchainagg =Ksetupagg
+requirehMT=HMerkle(kver)
+chain.postTx(commit,U)
+on(chainInitialTimeOut)
+if (all members committed)
+chain.postTx(collectCom)
+else
+chain.postTx(abort)
+on(chainCollectCom)
+(U0,·,·) ←Initial(Up1,...,Upn)
+head.(init,i,Kver,Ksig,i,U0)
+on(chainClose)
+η′= (U′,s′,T′) ←chain.Close(Kagg,η,ξ)
+ξ= (U,s,˜σ,T) ←head.(cont,η′)
+if s>s′ ∨T̸=∅
+chain.postTx(contest,ξ)
+on(chainContest)
+η′= (U′,s′,T′) ←chain.Contest(Kagg,η,ξ)
+ξ= (U,s,˜σ,T) ←head.(cont,η′)
+if s>s′ ∨T̸=∅
+chain.postTx(contest,ξ)
+on(chainClosedTimeOut)
+chain.postTx(fanout)
+Figure 13: Chain/head interaction: Additional mainchain actions for head members.
+new (aggregate) state η′= (UN,s,T η ∪T↓(tx)) is output.
+Final. Given η= (Uη,sη,Tη) and U, Final checks that U = Uη ◦Tη.
+6.3.2 Chain/head interaction (CHI)
+In Fig. 13, we summarize that part of the Hydra mainchain functionality that interacts with the
+head member (client) and the head protocol.
+Routine clientTx handles the client’s request to issue a head transaction by delegating the
+request to the head protocol. Routine clientClose handles the client’s request to close the head.
+It gathers a certiﬁcate for the current local state from the head protocol, and posts this certiﬁcate
+onchain.
+Routine chainInitial gets triggered on seeing the head’sinitial transaction onchain. It veriﬁes
+the parameters recorded in the initial transaction against the parameters gathered during the setup
+phase described in Section 4: in particular, the aggregate multisignature key must match, and hMT
+must be the Merkle-tree hash of the gathered veriﬁcation keys kver. If successful, the client’s UTxO
+set is committed onchain.
+Routine chainInitialTimeOut gets triggered once the initial commit period has expired. It
+then either posts a collectCom transaction containing all committed UTxO sets—in case that all
+head members committed a UTxO set—or an abort transaction otherwise.
+Routine chainCollectCom gets triggered on seeing the head’s collectCom transaction onchain.
+It computes, into U0, the set of committed UTxOs, and initializes the head protocol.
+Routines chainClose and chainContest get triggered by observing the head’sclose and contest
+transactions, respectively. They compare the latest onchain state ηto the party’s own head state by
+28
+
+calling the head protocol’s cont function to obtain a certiﬁcate ξ for a diﬀerential onchain update
+to represent the portions of the local state not yet considered by η. If necessary, a corresponding
+contest transaction is posted onchain.
+Routine chainClosedTimeOut gets triggered once the contestation period has expired. It then
+posts a fanout transaction containing the ﬁnal UTxO set.
+6.4 Security proof
+This section proves that the head protocol presented in Section 6 satisﬁesConsistency, Conflict-
+Free Liveness, Soundness, and Completeness. The proof proceeds by establishing several
+invariants that facilitate proving these properties. Throughout the proof, the assumption is made
+that at most n−1 head members are corrupted. Moreover, assume no signatures are forged and no
+hashes collide; these events occur with negligible probability only. Consider the following random
+variables:
+•SNj: the UTxO set corresponding to jth snapshot, i.e., the set that gets thejth multisignature
+on snapshots (SN0 = U0);
+• ˜Tj: the transaction set corresponding to SN j, formally deﬁned via ˜T0 = ∅, and ˜Tj := ˜Tj−1 ◦
+ReachT(T) where T is the set proposed in ( reqSn,j,T );
+•Cchain: keeps track of “transactions on chain” and is deﬁned as follows: upon (successful) close
+resp. contest with ξ for η, let Cchain ←˜Ts∪T, where (·,s,T ) is the output of Close(Kagg,η,ξ )
+resp. Contest(Kagg,η,ξ );
+•SNcur,i: latest conﬁrmed snapshot as seen by party pi.
+Lemma 1 (Consistency). The basic head protocol satisﬁes the Consistency property.
+Proof. Observe that Ci ∪Cj ⊆ ˆSi since no transaction can be conﬁrmed without every honest
+party signing oﬀ on it. Since parties do not sign conﬂicting transactions, U0 ◦ˆSi ̸= ⊥. Thus,
+U0 ◦(Ci ∪Cj) ̸= ⊥
+Invariant 1. Consider a conﬂict-free execution of the basic head protocol in presence of a network
+adversary. Then, for any transaction tx input to the protocol via (new) the following holds with
+respect to any parties pi and pj:
+∀t0 : L
+(t0)
+i ◦tx ̸= ⊥⇒∃ T ≥t0∀t≥T : L
+(t)
+j ◦tx ̸= ⊥ ∨tx ∈C
+(t)
+j
+where the superscript ·(t) indicates the time when the respective variable is evaluated.
+Proof. Assume that party pi sees tx at time t0 and L
+(t0)
+i ◦tx ̸= ⊥. By conﬂict-freeness and full
+delivery we get that, eventually, each partypj holds C
+(t)
+j ⊇C
+(t0)
+i . By this time t, either L
+(t)
+j ◦tx ̸= ⊥
+or tx ∈C
+(t)
+j (as we have conﬂict-freeness, and C
+(t)
+j ⊆N).
+Lemma 2 (Conﬂict-Free Liveness). The basic head protocol achieves Conflict-Free live-
+ness.
+29
+
+Proof. We demonstrate that a transaction tx issued by a player pi will eventually be conﬁrmed by
+every player pj. By conﬂict-freeness, in ( new,tx) we have that Li ◦tx ̸= ⊥.
+Assume that tx /∈Cj, i.e., that pj has not seen tx conﬁrmed yet. As soon as pj enters (or gets
+reactivated from the wait queue) (reqTx,tx) under the condition Lj◦tx ̸= ⊥(eventually guaranteed
+by Invariant 1), by conﬂict-freeness, also ˆLj ◦tx ̸= ⊥holds, and pj acknowledges the transaction.
+Thus, every pj eventually acknowledges the transaction, and tx ∈∩i∈[n]Ci.
+Invariant 2. Consider an arbitrary uncorrupted party pi. Let ˜T be the set corresponding to
+SNcur,i. Then, ˜T∪Ti = Ci, where Ti is the set T of pi.
+Proof. Observe that the invariant is trivially satisﬁed at the onset of the protocol’s execution.
+Furthermore, each time a new transaction is conﬁrmed via confTx, both Ti and Ci grow by the
+newly conﬁrmed transaction, while ˜T remains unchanged.
+The only other time one of the sets ˜T, Ti, or Ci change is when a new snapshot is conﬁrmed
+via confSn. In such a case, note that Ci stays the same while any transaction removed from Ti is
+considered by the new snapshot and thus added to ˜T. Hence, the invariant is still satisﬁed.
+Invariant 3. ˜T0 ⊆˜T1 ⊆˜T2 ⊆... .
+Proof. Let pi be an honest party. It is easily seen that the set of transactions considered by a new
+snapshot always includes the set considered by the previous snapshot since the set of transactions
+T in a reqSn satisﬁes that SNcur,i ◦ReachTi(T) ̸= ⊥, (this is implied by Invariant 2).
+Invariant 4. Cchain grows monotonically (w.r.t. ⊆).
+Proof. Consider operation Contest(Kagg,η,ξ ) and let η = (Uη,sη,Tη) and ξ = (U,s, ˜σ,T ). Note
+that before the operation Cchain = ˜Tsη ∪Tη. Consider now the set T∗ in the output ( ·,·,T∗) of
+Contest. Note that after the operation Cchain = ˜Ts ∪T∗. Observe that:
+•Since s≥sη, Invariant 3 implies that a transaction tx ∈˜Tsη is also in ˜Ts.
+•If a transaction tx ∈Tη is not in T∗, then s > sη and the transaction is consumed by the
+snapshot with number s, i.e., tx ∈˜Ts.
+Hence, Cchain grows monotonically.
+Invariant 5. For all i∈Hcont, Ci ⊆Cchain.
+Proof. Take any honest party pi and let ˜s be the current snapshot number at pi, i.e., SNcur,i = ˜T˜s.
+Recall that, by Invariant 2, Ci = ˜T˜s∪Ti. Consider a close or contest operation by pi as well as the
+output (U,s,T ∗) of Contest, and observe that after the operation Cchain = ˜Ts∪T∗. By Invariant 3,
+˜T˜s ⊆˜Ts and, by a similar argument as in the proof of Invariant 4, if tx ∈Ti is not in T∗, it must
+be in ˜Ts. Hence, Ci ⊆Cchain. Furthermore, since Cchain grows monotonically (Invariant 4), the
+invariant remains satisﬁed.
+Invariant 6. For all uncorrupted parties pi, ⋃
+j∈[n] Cj ⊆ˆSi.
+Proof. Honest parties will only output (conf,tx) if there exists a valid multisignature for tx, which
+implies that each honest party output ( seen,tx) just before they signed tx.
+Invariant 7. For any j, ˜Tj ⊆⋂
+i∈HCi.
+30
+
+Proof. Only transactions that have been seen as conﬁrmed by all honest parties can ever be included
+in a conﬁrmed snapshot.
+Invariant 8. Cchain ⊆⋂
+i∈HˆSi.
+Proof. Let η= (U,s,T ). Observe that Cchain = ˜Ts ∪T. Consider a transaction tx ∈Cchain.
+•If tx ∈˜Ts, then tx ∈⋂
+i∈HCi ⊆⋂
+i∈HˆSi by Invariants 7 and 6.
+•If tx ∈T, then tx ∈⋂
+i∈HˆSi since no transaction can be conﬁrmed without being seen by all
+honest parties.
+Lemma 3 (Soundness). The basic head protocol satisﬁes the Soundness property.
+Proof. Let η= (U,s,T ) be the value of η just before applying Final(η,Uﬁnal). Clearly, the only set
+Uﬁnal that will be accepted by Final is U0 ◦( ˜Ts∪T). By deﬁnition ˜Ts∪T = Cchain. Soundness now
+follows from Invariant 8.
+Lemma 4 (Completeness). The basic head protocol satisﬁes the Completeness property.
+Proof. Follows from Invariant 5 and an argument similar to that in the proof of Lemma 3.
+7 Experimental Evaluation
+We will now investigate the performance of the Hydra protocol in terms of both latency (transac-
+tion settlement time) and throughput (rate of transaction processing, TPS), using timing-accurate
+simulations. The simulations will demonstrate that Hydra is optimal in achieving fast transac-
+tion settlement, and we employ baselines to systematically gain insight into the transaction-rate
+performance characteristics of the protocol.
+In order to determine how quickly transactions settle in Hydra, and at which rate they can be
+processed, we have to consider the following factors:
+Opening and closing of a head. This consists of creating and submitting the commit/decommit
+transactions, and waiting until they are conﬁrmed to be in the chain.
+The performance of the head protocol. Given a geographical distribution and CPU/network
+capacity of the head nodes, how long does it take to exchange the messages that lead to transactions
+and snapshots being conﬁrmed?
+Limitations on in-ﬂight transactions. When a player wants to send two transactions, where
+one uses the change from the other, they have to defer sending the second transaction until they
+have conﬁrmation for the ﬁrst. Furthermore, players may want to prevent an excessive number of
+conﬁrmed, but not snapshotted transactions to keep decommits smaller. Together, this limits the
+number of in-ﬂight (submitted but not yet conﬁrmed) transactions that any one node can have.
+31
+
+The value at risk. To minimize this, players may wait for some transactions to be conﬁrmed
+before sending more transactions, further limiting the number of in-ﬂight transactions.
+Since the time for opening and closing a head is largely dependent on the underlying layer-
+one protocol and can be amortized over the head’s lifetime, we do not cover this aspect in our
+simulations. Furthermore, to simplify the simulations, we model the eﬀect of a ﬁnite UTxO by
+directly limiting the number of in-ﬂight transactions per node. Thus, we focus the simulations on
+the execution of the head protocol, as speciﬁed in Fig. 10.
+7.1 Methodology
+The experimental setup involves a ﬁxed set of nodes, with a speciﬁed network bandwidth per
+node and geographic location of each node that determines the network latency between each pair
+of nodes. Each node submits transactions with a speciﬁed transaction concurrency c: it sends
+c transactions as fast as its resources allow, and then sends another one whenever one of the
+transactions it sent previously gets conﬁrmed. This controls the number of inﬂight transactions to
+be c per node. Snapshots are performed regularly: nodes take turns to produce snapshots, and
+whenever the current leader has at least one conﬁrmed transaction, it will create a snapshot with
+all the conﬁrmed transactions it knows about.
+In order to properly gauge the simulation results, we compare it to baseline scenarios that are
+suﬃciently simple to facilitate optimistic performance limits exactly. We derive those limits by
+considering each sequence of events that has to happen in order for a number of transactions to
+be conﬁrmed, and summing up the time for each event in those sequences. In particular, we have
+three resources that potentially limit the transaction rate:
+1. The CPU capacity at each node determines how fast transactions can be validated, and
+signatures be created or veriﬁed;
+2. The inbound and outbound network bandwidth limits how many message bytes can be received
+and sent by each node in a given time;
+3. Each message between two nodes is delayed by the network latency between those nodes.
+Depending on the conﬁguration of the system, the most utilized of these resources will limit the
+transaction rate. This is an idealization: in a real execution of a protocol, contention eﬀects will
+cause even the scarcest resource to be blocked and idle occasionally. We thus expect experimental
+results to be bounded by the baselines, and interpret the diﬀerence as the impact of contention
+eﬀects. We consider the following baselines:
+Universal Baseline: Full Trust. To quantify the price we pay for consensus in Hydra, we
+compare our simulations with a scenario where we assume perfect trust between all participants;
+i.e., we only distribute the knowledge on transactions, without trying to achieve consensus. In
+this scenario, nodes submit transactions (after checking that they are valid). Other nodes just
+acknowledge that they have seen them (without validating or signing them). We still consider the
+eﬀect of having a ﬁnite transaction concurrency.
+This baseline sets an upper limit for the transaction throughput of any protocol that distributes
+and validates transactions in a distributed system. Furthermore, for any consensus protocol, we
+should expect some additional overhead (which might or might not reduce the actual throughput
+in diﬀerent regions of the parameter space).
+32
+
+Hydra Unlimited. This scenario resembles the head protocol, but executed under ideal cir-
+cumstances, ignoring contention eﬀects as described above. In contrast to a real execution of the
+protocol, where the snapshot size is an emergent property depending on how fast transactions
+are conﬁrmed, in the baseline, we can directly control how many transactions are contained in a
+snapshot.
+Sprites Unlimited. In order to compare to prior work, we also include a baseline according to
+an optimal execution of the oﬀ-chain protocol from [31]. A deciding diﬀerence to the head protocol
+is that in Sprites, all nodes send their inputs to a leader, which collates them and collects signatures
+for a whole batch of transactions. Compared to Hydra, this batching reduces the demand on CPU
+time and number of messages, since less signatures have to be performed and shared, at the expense
+of additional network roundtrips and higher network bandwidth usage at the current leader node,
+which has to send the batch of all transactions to every other node.
+infinite concurrency finite concurrency
+0.1 1.0 10.0 0.1 1.0 10.0
+100
+1000
+bandwidth [Mbit/s]
+transaction throughput [tx/s]
+Baseline Hydra Unlimited Sprites Unlimited Universal
+Snapshot size 1 2 5 10 infinite
+Figure 14: Example baselines scenarios, for ﬁnite and inﬁnite transactions concurrency.
+We show examples of baselines in Fig. 14. We draw the diﬀerent baseline scenarios using
+diﬀerent colours. For the Hydra Unlimited case, we have multiple lines, depending on the number
+of transactions in each snapshot; the more transactions are bundled in any one snapshot, the lower
+the overhead per transaction.
+The left panel shows the limit of inﬁnite transaction concurrency. In that case, the network
+roundtrip time can be perfectly amortised and is not a limiting factor. The resulting transaction
+rate has a knee shape: it is linear in the network bandwidth as long as that is the limiting factor,
+and turns constant once the limit from CPU time dominates. Comparing the Hydra Unlimited
+and Universal baselines, we see that there is some diﬀerence in the low bandwidth region, which
+is due to the multisignatures being sent in Hydra. In the region where CPU time is relevant, the
+diﬀerence is more pronounced, due to the computational cost of multisignatures. Looking at the
+Sprites Unlimited baseline, we see the tradeoﬀ in batching transactions: the computational work is
+signiﬁcantly reduced, by signing just a single large batch of transactions 6. This comes at the cost
+of increasing the network traﬃc at the leader node, which has to send every transaction to every
+6In the limit of inﬁnite transaction concurrency, we take the batch size in Sprites to be unlimited as well.
+33
+
+other node. Note that in this picture, we only used a cluster of three nodes; for larger clusters, the
+demand on the leader node’s network bandwidth would be even higher.
+To get a more realistic picture, let us turn to the right panel. Here, we have a ﬁnite transaction
+concurrency, and the network roundtrip time is large enough to become the limiting factor (instead
+of CPU time) once we have enough bandwidth. Comparing Hydra Unlimited to the Universal line,
+we see that both ﬂatten at about 580 TPS. The limit from network latency is the same for both
+baselines, since the number of roundtrips to conﬁrm a transaction is the same (the messages are
+larger for Hydra Unlimited, but this only places a higher demand on the bandwidth). Interestingly,
+if we make a snapshot for each single transaction, we are still limited by CPU power, but as soon
+as we only make a snapshot every other transaction, the overhead from producing snapshots is
+small enough to not matter, compared to the limit from network latency. In this picture, the
+Sprites Unlimited baseline is well below the others. The demands on bandwidth – particularly, the
+network bandwidth of the leader node – is much larger than for the other protocols, and bundling
+transactions centrally before sending them to each node requires an additional roundtrip.
+Note that devising an unlimited baseline for a given protocol, and comparing it to a universal
+baseline or those of other protocols, is not only valuable for evaluating an implementation, but also
+as a tool to predict possible performance during the protocol design phase.
+7.2 Implementation
+In the following, we will describe how we implemented the simulations for the head protocol. The
+implementation is available at https://github.com/input-output-hk/hydra-sim .
+We model the head nodes using concurrent threads which exchange the protocol messages from
+Fig. 10 via channels. We use the io-sim library [2], which allows us to write concurrent code, and
+then either execute it directly as threads in the Haskell runtime system, or run the same code in a
+simulation of the runtime system. The latter yields an execution trace of the code very quickly, as
+it delays a thread by just increasing a number representing the thread’s clock, instead of actually
+pausing the thread. As we describe below, the simulations make heavy use of thread delays, so this
+allows us to perform simulations much more quickly. We can also manually insert trace points at
+relevant points in the protocol (such as when a transaction is conﬁrmed). Measuring, for instance,
+the conﬁrmation time for a message, can then be done by simply subtracting timestamps of the
+events “transaction is submitted” ( new) and “transaction is conﬁrmed” ( confTx).
+Cryptographic Operations. Instead of using real cryptographic functions for multisignatures,
+we use mock functions that do not perform any calculations, but instead allow for a tunable delay
+of the thread that is performing the operation.
+Message Propagation. Before being sent across the network, each message has to be serialized
+and pass the networking interface, which takes time linear in the message size. So the event of
+a message being sent by a node does not correspond to a single point in time, but rather to a
+time interval. We take that into account by modeling each message by its leading and trailing
+edge. The time distance between leading and trailing edge—the serialization delay —of a message
+is determined by its size and the bandwidth of the node’s networking interface. We capture this with
+a parameter S, giving the delay per byte. Furthermore, we take into account that the networking
+interface can only start sending the next message after the trailing edge of the previous message
+has been sent. When the network is suﬃciently busy, this can be a point of contention.
+34
+
+We model the network by a delayGbetween each message edge leaving the sending node and its
+arrival at the target node. The parameter G is determined by the distance between the two nodes
+and is independent of message size. 7 We use real data measured between Amazon Web Services
+data centers.
+Once the leading edge of a message reaches the receiving node, we put its incoming networking
+interface into a busy state, for a time given by the size of the message and the bandwidth of this
+node. Finally, when the trailing edge is received, the message contents is placed into the local
+inbox, so that the node can start acting on the message.
+If we only consider a single message, this model will just lead to a delay of the whole message
+determined by G, the message size, and S of the slower node. But once we have multiple messages
+in the system, it also correctly accounts for the contention at the outgoing and incoming connection
+points. The contention introduces variance, since messages may or may not have to wait at either
+end of the network.
+Simulation optimizations. We applied two reﬁnements that optimize the performance without
+changing the security of the protocol. First, when submitting a new transaction via new, a node
+will validate the transaction, and then send reqTx to every party, including itself. Every party,
+upon receiving reqTx, will then validate the transaction again. For the sending node, this is not
+necessary (it just validated the same transaction), so we skip the second validation on the same
+node. Second, the speciﬁcation of the protocol states that handlers are executed strictly one after
+the other. Avoiding concurrency in this way simpliﬁes the analysis of the protocol. But there is one
+case where we can safely perform actions in parallel: upon receiving reqTx (and similarly reqSn),
+a node will validate the transaction or snapshot against its local state, and, if appropriate, sign it
+and reply. The action of signing does not access the state of the node, so we can safely perform it
+concurrently with handling subsequent events.
+These are fairly trivial changes, that any concrete implementation would apply, so we felt it
+was appropriate to reﬂect them in our simulations, as well as in the baselines.
+7.3 Experimental Results
+We performed experiments for three clusters with diﬀerent geographic distributions of nodes: alocal
+deployment of three nodes within the same AWS region, a continental deployment across multiple
+AWS regions on the same continent (Ireland, London, and Frankfurt), and a global deployment
+(Oregon, Frankfurt, and Tokyo). For each of those clusters, we measured the dependency of conﬁr-
+mation time and transaction throughput on bandwidth and transaction concurrency, and compare
+with the baselines described above. The numerical results depend on a number of parameters that
+we set, representing the time that elementary operations within the protocol take. We use the
+settings described below.
+Transaction size. We use two representative transaction types: (1) simple UTxO transactions
+with two inputs and two outputs, whose size is 265 bytes, and (2) script transactions containing
+larger scripts of 10 kbytes. We use transaction references of 32 bytes. For each message, we allow
+for a protocol-level overhead of 2 bytes.
+7The messages in the Hydra protocol are small enough to ignore TCP window eﬀects that would introduce a
+dependency on the message size.
+35
+
+●
+●
+●
+●
+●
+● ● ●
+●
+●
+●
+●
+● ● ● ●
+●
+● ● ● ● ● ● ●
+●
+●
+●
+●
+●
+● ● ●
+●
+●
+●
+●
+●
+● ● ●
+●
+●
+● ● ● ● ● ●
+●
+●
+●
+●
+●
+● ● ●
+●
+●
+●
+●
+●
+● ● ●
+●
+●
+●
+● ● ● ● ●
+Concurrency 1 Concurrency 5 Concurrency 10
+LocalContinentalGlobal
+0.1 1.0 10.00.1 1.0 10.00.1 1.0 10.0
+100
+1000
+100
+1000
+10
+100
+bandwidth [Mbit/s]
+transaction throughput [tx/s]
+Baseline Hydra Unlimited Sprites Unlimited Universal
+Snapshot size 1 2 infinite
+Figure 15: Transaction rates for the Hydra head protocol, compared with the baseline scenarios.
+Simple UTxO transactions with 2 inputs and 2 outputs.
+Transaction validation time. This is the CPU time that a single node will expend in order to
+check the validity of a transaction. We use conservative values here: 0.4 ms for simple transactions,
+and 3 ms for script transactions.
+Time for multisignature operations. We performed benchmarks for the multisignature scheme [11]
+resulting in the following estimates: 0 .15 ms for MS-Sign, 0 .01 ms for MS-ASig, and 0 .85 ms for
+MS-AVerify.
+Transaction throughput. Figs. 15 and 16 display results for ordinary UTxO and script trans-
+actions, respectively. The diﬀerent rows correspond to the diﬀerent geographical setups of the
+clusters, while the columns diﬀer in transaction concurrency.
+As expected, the Universal baseline consistently gives the highest transaction rate. For Hydra
+Unlimited, we see three baselines, for diﬀerent snapshot sizes (depicted by dotted, dashed, and
+solid lines). In some cases, they coincide. Those are the conﬁgurations where we are limited by
+the network latency: performing snapshots increases the demand on CPU time and bandwidth (for
+36
+
+●
+●
+●
+●
+●
+●
+●
+●
+● ●
+●
+● ● ● ●
+●
+●
+●
+● ●
+●
+●
+●
+● ●
+●
+● ● ● ●
+●
+●
+● ● ●
+●
+●
+● ● ●
+●
+●
+● ● ●
+Concurrency 1 Concurrency 5 Concurrency 10
+LocalContinentalGlobal
+10 10 10
+100
+100
+10
+100
+bandwidth [Mbit/s]
+transaction throughput [tx/s]
+Baseline Hydra Unlimited Sprites Unlimited Universal
+Snapshot size 1 2 infinite
+Figure 16: Transaction rates for the Hydra head protocol, compared with the baseline scenarios.
+Script transactions.
+the additional signatures and messages), but it does not increase the number of sequential network
+roundtrips that have to be performed to conﬁrm transactions (the messages for snapshots and for
+transactions propagate through the network concurrently).
+Comparing the Universal and Hydra Unlimited baselines, we see that they are identical whenever
+the transaction rate is limited by the network latency. That can be explained since the diﬀerence
+between the two baselines diﬀer only in their demand for CPU time (for creating and validating
+signatures) and bandwidth (for sending signatures). Note that for script transactions (Fig. 16), the
+demands on CPU are higher anyway, so that the additional cost for the multisignatures generally
+has a much lower impact on the transaction rate.
+Looking at the Sprites Unlimited baseline, we observe the eﬀect of batching via a central leader:
+the leader needs to send all transactions to every other node, and so its networking interface is
+frequently a bottleneck. Also, we see the additional roundtrip between the leader and every other
+node reducing the TPS whenever the network latency is the limiting resource. But when we have
+enough concurrency to form large batches, and get to the region where we are limited by CPU
+time, the savings by signing batches instead of individual transactions become apparent, and the
+37
+
+Concurrency 1 Concurrency 5 Concurrency 10
+0.1 1.0 10.00.1 1.0 10.00.1 1.0 10.0
+0.01
+0.10
+1.00
+bandwidth [Mbits/s]
+transaction confirmation time [s]
+Node Location
+●
+Frankfurt
+Figure 17: Conﬁrmation times for simple UTxO transactions, in a cluster located in one AWS
+region. From panel to panel, we increase the transaction concurrency. The theoretically minimal
+conﬁrmation time is represented by a dashed line.
+Sprite baseline nearly reaches the Universal one.
+Comparing the experimental results with the Hydra Unlimited baseline, we see that in most
+cases, the simulation of the protocol approximates the optimal curve quite well. We only get
+sizeable diﬀerences for low concurrency and insuﬃcient bandwidth.
+Regarding snapshots, the ﬁgures reveal that performing snapshots has a negligible impact on
+the transaction rate: apart from the regions where bandwidth is the limit, the baselines for diﬀerent
+snapshot sizes only diﬀer when we are CPU bound, which requires enough transaction concurrency
+to amortize the network latency. But for large concurrency, we also get large snapshots, so the
+overhead from snapshots per transaction is small.
+Transaction conﬁrmation times. One aspect where Hydra really shines is fast settlement:
+as soon as all parties have signed a transaction, and the sending node has aggregated a valid
+multisignature, this multisignature provides a guarantee that the transaction can be included into
+the ledger of the layer-one system. We can derive a minimal conﬁrmation time by adding up the
+times for validating a transaction two times (once at the issuing node, once at every other node),
+sending the reqTx and ackTx messages across the longest path in the network, and creating and
+validating the aggregate signature.
+Fig. 17 illustrates the conditions under which we achieve minimal conﬁrmation time. In the
+ﬁrst panel, we have a transaction concurrency of one. We see that, with enough bandwidth, we get
+very close to the minimal validation time, indicated by the line. In the other panels, we increase
+the concurrency. While this increases the total transaction throughput by sending transactions in
+parallel, individual transactions are more likely to be slowed down by congestion in the networking
+interfaces. Hence, conﬁrmation time and its spread increase.
+In clusters across diﬀerent regions, the conﬁrmation time generally depends on which node
+sent the transaction. For example, in Fig. 18, we see that the transactions from Oregon tend to
+get conﬁrmed faster than those from Frankfurt or Tokyo. This is because conﬁrmation requires a
+roundtrip to the farthest peer, and Frankfurt and Tokyo are farther away from one another than
+38
+
+Concurrency 1 Concurrency 5 Concurrency 10
+10 10 10
+0.1
+1.0
+bandwidth [Mbits/s]
+transaction confirmation time [s]
+Node Location
+● ●
+Frankfurt/Tokyo Oregon
+Figure 18: As Fig. 17, but for script transactions in a cluster spanning the AWS regions Oregon,
+Frankfurt, and Tokyo. Here, the minimal conﬁrmation time depends on which node is sending
+the transaction, so we have two optimal lines.
+either of them is from Oregon.
+We see that even for script transactions and a globally distributed network, we consistently
+achieve settlement well below half a second if we provide enough bandwidth.
+Larger clusters. In addition to three node clusters, we have also evaluated how the results
+depend on cluster size by running simulations with clusters of up to 100 nodes (located in the same
+AWS region):
+•The transaction rates of a larger cluster are close to those for a three-node cluster. This is
+due to the fact that the amount of computation per node per transaction does not depend
+on the number of participants 8.
+•The bandwidth needed at each node to reach the maximal transaction rate does depend on
+the cluster size. This is not surprising, since each node needs to communicate with more
+peers.
+•For the same reason, the conﬁrmation time of transactions increases with the cluster size.
+Note that these simulations still use a communication pattern where everyone sends messages to
+everyone, which is not optimal for large clusters. Instead, we ought to construct a graph to broadcast
+messages, keeping the number of peers for direct communication small for each participant. An
+advantage of the Hydra approach is that we can easily have diﬀerent versions of the head protocol,
+or diﬀerent implementations of the same head protocol, optimized for diﬀerent cluster sizes.
+8Note that aggregating signatures and verifying an aggregate signature do depend on the number of participants.
+However, this does not impact the transaction rates in our simulations, for three reasons: i) we assume that we
+aggregate the veriﬁcation keys once at the beginning of the head protocol, and only perform veriﬁcation against
+the already computed aggregate veriﬁcation key during the protocol, ii) even for 100 participants, combining the
+signatures is quicker than producing a single signature, iii) combining signatures is performed concurrently with the
+rest of the protocol (see Section 7.2).
+39
+
+7.4 Discussion
+Due to the way that consensus is achieved by getting conﬁrmations from every participant, we
+consistently achieve subsecond settlement, even for globally distributed heads. When we allocate
+suﬃcient networking resources, and choose a low concurrency, we do get optimal conﬁrmation
+times.
+Regarding transaction throughput, more importantly than raw numbers are the comparisons
+with the theoretical limits from the baselines scenarios:
+•We saw that we do not pay a signiﬁcant cost for creating snapshots, neither in terms of
+transaction throughput, nor in terms of conﬁrmation time. This is a crucial point: compared
+to other state channel protocols, Hydra utilizes the UTxO parallelism to avoid having to
+sequentialize transactions. Snapshots are necessary for that approach, since otherwise, the
+decommit transactions would become unwieldy. Seeing that snapshots do not slow down the
+protocol in any signiﬁcant way thus validates the design of Hydra.
+•Comparing the Universal baseline, Hydra Unlimited, and the experimental results, we see
+that we approach the theoretical limits in regions where we can expect to. When the cost
+of achieving consensus via multisignatures is dominated by network roundtrip times and
+transaction validation, we get close to the Universal scenario. We see sizeable deviations
+from Hydra Unlimited only when we have low transaction concurrency and bandwidth.
+Besides demonstrating Hydra’s capability to perform eﬃciently, the simulations also allow op-
+erators to get a handle on the network bandwidth they should provide in order not to impact the
+head performance. They also show that there is a tradeoﬀ between total transaction throughput
+and individual transaction settlement time when increasing concurrency.
+7.5 A note on transaction throughput
+We can see that the maximal transaction throughput rates achieved in the experiments (for simple
+transactions) is at around 800 transactions per second. This limit is a consequence of the assumed
+transaction validation time of 0 .4 ms, and the veriﬁcation of a multisignature, for which we allow
+0.85 ms. Consequently, each transaction requires 1 .25 ms of CPU time at each node 9, so we are
+limited to 800 transactions per second.
+There are straightforward ways to increase the throughput in a live system:
+•The most eﬃcient way to scale a system with Hydra is to run multiple parallel heads. By
+running n heads, we achieve n times the throughput of a single head.
+Note that for many use cases, a single head will only be used by participants in a constrained
+geographic region, allowing an eﬃcient local or continental setup.
+•For increasing the throughput of a single head, one can invest in more capable hardware to
+speed up transaction validation and signature veriﬁcation.
+•In the experiments, every node processes transactions sequentially. But it is possible to
+perform large parts of the transaction validation, and also all of the signature veriﬁcation, in
+parallel for multiple transactions, using multiple cores on each node. This optimization can
+also improve the throughput of a single head.
+9Note that as described in Section 7.2, we create the multisignature in a dedicated thread.
+40
+
+8 Acknowledgments
+Aggelos Kiayias was supported in part by EU Project No.780477, PRIVILEDGE. We want to thank
+Duncan Coutts and Neil Davies for advice on technical aspects of the simulations, and Neil Davies
+for providing the measurements of round trip times between diﬀerent AWS regions.
+References
+[1] Extended UTXO-2 model. https://github.com/hydra-supplementary-material/eutxo-
+spec/blob/master/extended-utxo-specification.pdf.
+[2] The io-sym library. https://github.com/input-output-hk/ouroboros-network/tree/
+master/io-sim, https://github.com/input-output-hk/ouroboros-network/tree/
+master/io-sim-classes.
+[3] The Connext Network. https://docs.connext.network/en/latest/background/
+architecture.html.
+[4] John Adler. The why’s of optimistic rollup. https://medium.com/@adlerjohn/the-why-s-
+of-optimistic-rollup-7c6a22cbb61a , November 2019.
+[5] Ian Allison. Ethereum’s Vitalik Buterin explains how state channels address privacy and
+scalability. International Business Times , 2017.
+[6] Nicola Atzei, Massimo Bartoletti, Stefano Lande, and Roberto Zunino. A formal model of
+Bitcoin transactions. In Financial Cryptography and Data Security - 22nd International Con-
+ference, FC 2018, Nieuwpoort, Cura¸ cao, February 26 - March 2, 2018, Revised Selected Papers,
+pages 541–560, 2018.
+[7] Adam Back, Matt Corallo, Luke Dashjr, Mark Friedenbach, Gregory Maxwell, Andrew Miller,
+Andrew Poelstra, Jorge Tim´ on, and Pieter Wuille. Enabling blockchain innovations with
+pegged sidechains, 2014.
+[8] Mihir Bellare and Gregory Neven. Multi-signatures in the plain public-key model and a general
+forking lemma. In Ari Juels, Rebecca N. Wright, and Sabrina De Capitani di Vimercati, editors,
+ACM CCS 2006 , pages 390–399. ACM Press, October / November 2006.
+[9] Bitcoin Wiki. Payment channels. Wiki article, accessed 2019-11-06.
+[10] Guy E. Blelloch. Programming parallel algorithms. Communications of the ACM , 39:85–97,
+1996.
+[11] Alexandra Boldyreva. Threshold signatures, multisignatures and blind signatures based on
+the gap-Diﬃe-Hellman-group signature scheme. In Yvo Desmedt, editor, PKC 2003, volume
+2567 of LNCS, pages 31–46. Springer, Heidelberg, January 2003.
+[12] Dan Boneh, Manu Drijvers, and Gregory Neven. Compact multi-signatures for smaller
+blockchains. In Thomas Peyrin and Steven Galbraith, editors, ASIACRYPT 2018, Part II ,
+volume 11273 of LNCS, pages 435–464. Springer, Heidelberg, December 2018.
+41
+
+[13] Manuel M. T. Chakravarty, James Chapman, Kenneth MacKenzie, Orestis Melkonian,
+Michael Peyton Jones, and Philip Wadler. The extended UTxO model. In 4th Workshop
+on Trusted Smart Contracts , 2020. http://fc20.ifca.ai/wtsc/WTSC2020/WTSC20_paper_
+25.pdf.
+[14] Manuel M. T. Chakravarty, Roman Kireev, Kenneth MacKenzie, Vanessa McHale, Jann
+M¨ uller, Alexander Nemish, Chad Nester, Michael Peyton Jones, Simon Thompson, Re-
+becca Valentine, and Philip Wadler. Functional blockchain contracts. https://iohk.io/
+en/research/library/papers/functional-blockchain-contracts/, May 2019.
+[15] Jeﬀ Coleman, Liam Horne, and Li Xuanji. Counterfactual: Generalized state channels, 2018.
+[16] Christian Decker and Roger Wattenhofer. A fast and scalable payment network with bit-
+coin duplex micropayment channels. In Symposium on Self-Stabilizing Systems , pages 3–18.
+Springer, 2015.
+[17] Ergo Developers. Ergo: A resilient platform for contractual money. https://ergoplatform.
+org/docs/whitepaper.pdf, May 2019.
+[18] Stefan Dziembowski, Lisa Eckey, Sebastian Faust, Julia Hesse, and Kristina Host´ akov´ a. Multi-
+party virtual state channels. In Annual International Conference on the Theory and Applica-
+tions of Cryptographic Techniques, pages 625–656. Springer, 2019.
+[19] Stefan Dziembowski, Lisa Eckey, Sebastian Faust, and Daniel Malinowski. Perun: Virtual
+payment hubs over cryptocurrencies. In 2019 IEEE Symposium on Security and Privacy (SP) ,
+pages 106–123. IEEE, 2019.
+[20] Stefan Dziembowski, Grzegorz Fabia´ nski, Sebastian Faust, and Siavash Riahi. Lower bounds
+for oﬀ-chain protocols: Exploring the limits of plasma. Cryptology ePrint Archive, Report
+2020/175, 2020. https://eprint.iacr.org/2020/175.
+[21] Stefan Dziembowski, Sebastian Faust, and Kristina Host´ akov´ a. General state channel net-
+works. In Proceedings of the 2018 ACM SIGSAC Conference on Computer and Communica-
+tions Security, pages 949–966. ACM, 2018.
+[22] Ethereum. Patricia tree, 2019. Github Repository.
+[23] Matthias Fitzi, Daniel Gottesman, Martin Hirt, Thomas Holenstein, and Adam Smith. De-
+tectable byzantine agreement secure against faulty majorities. In Aleta Ricciardi, editor, 21st
+ACM PODC, pages 118–126. ACM, July 2002.
+[24] P. Gaˇ zi, A. Kiayias, and D. Zindros. Proof-of-stake sidechains. In2019 2019 IEEE Symposium
+on Security and Privacy (SP) , pages 677–694, Los Alamitos, CA, USA, may 2019. IEEE
+Computer Society.
+[25] Kazuharu Itakura and Katsuhiro Nakamura. A public-key cryptosystem suitable for digital
+multisignatures. NEC Research & Development , (71):1–8, 1983.
+[26] Aggelos Kiayias and Dionysis Zindros. Proof-of-work sidechains. IACR Cryptology ePrint
+Archive, 2018:1048, 2018.
+42
+
+[27] Georgios Konstantopoulos. Plasma cash: Towards more eﬃcient plasma constructions, 2019.
+[28] Jeremy Longley and Oliver Hopton. Funfair technology roadmap and discussion, 2017.
+[29] ScaleSphere Foundation Ltd. Celer network: Bring internet scale to every blockchain, 2018.
+[30] Silvio Micali, Kazuo Ohta, and Leonid Reyzin. Accountable-subgroup multisignatures: Ex-
+tended abstract. In Michael K. Reiter and Pierangela Samarati, editors, ACM CCS 2001 ,
+pages 245–254. ACM Press, November 2001.
+[31] Andrew Miller, Iddo Bentov, Surya Bakshi, Ranjit Kumaresan, and Patrick McCorry. Sprites
+and state channels: Payment networks that go faster than lightning. In International Confer-
+ence on Financial Cryptography and Data Security , pages 508–526. Springer, 2019.
+[32] J. Poon and V. Buterin. Plasma: Scalable autonomous smart contracts. http://plasma.io/
+plasma.pdf.
+[33] Joseph Poon and Thaddeus Dryja. The bitcoin lightning network: Scalable oﬀ-chain instant
+payments, 2016.
+[34] Joachim Zahnentferner. An abstract model of UTxO-based cryptocurrencies with scripts.
+IACR Cryptology ePrint Archive , 2018:469, 2018.
+43
+
+A Security of Multisignature Schemes
+For convenience, our deﬁnition of a multisignature scheme given in Section 2 diﬀers from the stan-
+dard one in e.g. [8] by assuming the existence of separate algorithms MS-Sign and MS-ASig and
+postulating that the way to produce a multisignature is that each party creates a local signature via
+MS-Sign and these are then exchanged and combined using MS-ASig. This is no important devia-
+tion, as typical modern multisignature schemes (including the one we use in our simulations [11])
+satisfy this pattern. Below we present a standard deﬁnition of multisignature security from [8, 12],
+tailored to this special case.
+A secure multisignature scheme needs to satisfy two properties: completeness and unforgeability.
+Completeness. For any n, Π ←MS-Setup(1k) and ( vki,ski) ←MS-KG(Π) for i = 1,...,n , for
+any message m if we have σi ←MS-Sign(Π,ski,m), ˜σ ←MS-ASig(Π,m, {vki}n
+i=1,{σi}n
+i=1), and
+avk ←MS-AVK(Π,{vki}n
+i=1), then MS-Verify(Π,˜σ,m, avk) = true.
+Unforgeability. This property is deﬁned by a three-stage game:
+1. Setup. The challenger runs Π ←MS-Setup(1k), generates the challenge key pair ( vk∗,sk∗) ←
+MS-KG(Π) and runs the adversary A(Π,vk∗).
+2. Signing queries. Ais allowed to make signing queries on any message m, i.e., Ahas access
+to the signing oracle MS-Sign(Π,sk∗,·).
+3. Output. Finally, Aoutputs a multisignature forgery ˜σ∗, a message m∗and a set of veriﬁcation
+keys V∗. Awins if vk∗∈V∗, Amade no signing queries on m∗, and
+MS-Verify(Π,MS-AVK(Π,V∗),m∗,˜σ∗) = true .
+We say that Ais a ( τ,q,ε )-forger for a multisignature scheme MS = (MS-Setup,MS-KG,MS-AVK,
+MS-Sign,MS-ASig,MS-Verify) if it runs in time τ, makes qsigning queries, and wins the above game
+with probability at least ε. MS is (τ,q,ε )-unforgeable if no ( τ,q,ε )-forger exists.
+B Simple Head Protocol with Conﬂict Resolution
+This section explains the diﬀerences between the basic head protocol from Section 6 and the head
+protocol with conﬂict resolution; it also contains a corresponding security proof.
+B.1 Description of the protocol
+The head protocol with conﬂict resolution (CR) works much like the basic head protocol, except
+that snapshots are also used to resolve conﬂicts among transactions. In the basic protocol, since
+parties do not sign conﬂicting transactions, such conﬂicts would have to be settled on the mainchain
+even if no head members are corrupted.
+In the CR version of the head protocol (cf. Figure 19), each head member pi additionally
+maintains a set ˆRof known transactions that conﬂict with a set TR ⊆ ˆT of transactions already
+signed by pi. In the (likely) event that transactions in ˆRhave also been signed oﬀ on by at least
+one party, no transaction in TR ∪ ˆRcan ever become conﬁrmed with the basic conﬁrmation ﬂow
+44
+
+Simpliﬁed Hydra Head Protocol With Conﬂict Resolution
+on(init,i,Kver,Ksig,U0)from clientV←Kveravk←MS-AVK(V)sk←Ksig
+ˆs,s←0ˆU,U←snObj(0,U0,∅)ˆL,L←U0ˆT,T,ˆR←∅
+on(new,tx)from clientrequirevalid-tx(tx) andL◦tx̸=⊥multicast(reqTx,tx)
+on(newSn)forpi
+requireleader(s+ 1) =iandˆU=U
+T←(maxTxos(T))↓(h)
+TR←(conﬂict-tx(ˆT,ˆR))↓(h)
+R←ˆR↓(h)
+multicast(reqSn,s+ 1,T,TR,R)
+on(close)from client
+return(U.U,U.s,U.˜σ,T↓(tx,˜σ))
+on(cont,η)from client(Uη,sη,Tη)←ηifs≤sU←Uη
+s←sη
+˜σ←εelseU←Us←s˜σ←U.˜σ
+T′←applicable(U,T↓(tx)∪Tη)\Tη
+ifU=Uη
+U←ε
+return(U,s,˜σ,{t∈T↓(tx,˜σ)|t.tx∈T′})
+on(reqTx,tx)frompj
+requirevalid-tx(tx)∧tx/∈ˆT ∪ˆRifˆL◦tx =⊥ˆR←ˆR∪{txObj(j,tx)}elseh←H(tx)ˆT[h]←txObj(j,tx)ˆL←ˆL◦txwaitL◦tx̸=⊥output(seen,ˆT[h])σi←MS-Sign(sk,h)send(ackTx,h,σi) topj
+on(ackTx,h,σj)frompj
+requireˆT[h].i=irequireˆT[h].S[j] =εˆT[h].S[j]←σj
+if∀k:ˆT[h].S[k]̸=ε˜σ←MS-ASig(h,V,ˆT[h].S)if˜σ̸=⊥multicast(confTx,h,˜σ)
+on(confTx,h,˜σ)frompj
+tx←ˆT[h].txifMS-Verify(avk,h,˜σ)ifL◦tx̸=⊥∧ˆU◦tx̸=⊥L←L◦txˆT[h].˜σ←˜σT[h]←ˆT[h]ˆT ←ˆT \ˆT[h]output(conf,tx)
+on(reqSn,s,T,TR,R)frompj
+requires=s+ 1 andleader(s) =j
+waits= ˆsandT⊆T↓(h)andTR∪R⊆(ˆT ∪ˆR)↓(h)
+˜TR←(ˆT ∪ˆR)[TR]˜R←(ˆT ∪ˆR)[R]require∀tx∈˜TR:conﬂict(˜R∪{tx})require∀tx∈˜R:conﬂict(˜TR∪{tx})require¬conﬂict(T ∪˜TR)ˆs←ˆs+ 1forallh∈ˆR↓(h)∩TRdooutput(seen,ˆR[h])ˆR←ˆR\{tx∈ˆT ∪ˆR|conﬂict(tx,˜TR)}ˆT ←(ˆT ∪˜TR)\˜RˆU←snObj(ˆs,U.U,T,TR)ˆL←L◦ˆTσi←MS-Sign(sk,ˆU.h∥ˆs)send(ackSn,ˆs,σi) topj
+on(ackSn,s,σj)frompj
+requires= ˆsandleader(s) =irequireˆU.S[j] =εˆU.S[j]←σj
+if∀k:ˆU.S[k]̸=ε˜σ←MS-ASig(ˆU.h∥s,V,ˆU.S)if˜σ̸=⊥multicast(confSn,s,˜σ)
+on(confSn,s,˜σ)frompj
+requires= ˆs̸=sifMS-Verify(avk,ˆU.h∥ˆs,˜σ)s←sˆU.˜σ←˜σU←ˆUforallh∈U.TRdooutput(conf,(ˆT ∪ˆR)[h])L←L◦U.(TR)↓(tx)
+T ←T \ReachT(U.T)ˆT ←ˆT \U.TR
+Figure 19: Head-protocol machine with conﬂict resolution from the perspective of party pi.
+based on multisignatures on transactions. To avoid this, whenever pi is snapshot leader, pi also
+includes the sets of (hashes of) the transactions in TR and R← ˆRin a reqSn message (in addition
+to the set T of already conﬁrmed transactions not included in any snapshot so far).
+45
+
+The remainder of the snapshot process is changed (as compared to the basic protocol) to ensure
+that transactions in TR become conﬁrmed and transactions in Rare discarded. Speciﬁcally, a party
+pi receiving a snapshot request reqSn ﬁrst waits until he learns all transactions referenced by the
+sets TR and R received from the snapshot leader pj. (Observe that parties may have diﬀerent
+local sets ˆT and ˆR.) It then ensures that these sets are legitimate in that transactions in TR and
+R indeed conﬂict. Furthermore, it checks that transactions in TR do not conﬂict with already
+conﬁrmed transactions. If these checks pass, pi updates his sets ˆT and ˆRto match those of the
+snapshot leader pj. Function snObj—in addition to the snapshot number, the UTxO set of the
+previous snapshot, and the set T of maximal conﬁrmed transactions—now also takes as input the
+set TR, and computes the UTxO set for the new snapshot ˆUas10
+ˆU.U ←U.U ◦(ReachT(T) ∪TR) .
+Party pi ﬁnally signs H( ˆU.U)∥ˆs and sends the signature to the snapshot leader pj.
+The rest of the snapshot process is very similar to the one in the basic protocol, except that in
+confSn, (conf,tx) is output for transactions referenced by TR; these transactions are also removed
+form the set ˆT and the execution of reqTx is stopped and discarded for all transactions conﬂicting
+with TR (such executions would be stuck in the wait command forever).
+Observe that if at least one party is corrupted, the CR version of the head protocol now allows
+the adversary to create multisigned transactions that conﬂict with transactions conﬁrmed via the
+snapshot process. This occurs if an honest party pi signs a snapshot that includes in the set TR
+(sent by the snapshot leader) a transaction tx ′ in pi’s ˆRset: tx ′ being in ˆRmeans that pi has
+already signed oﬀ on a transaction tx in conﬂict with tx ′. This results in a race condition between
+the following two events:
+•pi receives a multisignature of tx via confTx;
+•pi signs oﬀ on the snapshot that includes tx ′.
+Crucially, only one of these events must occur. To that end, in reqSn a party checks that the set
+TR does not conﬂict with already conﬁrmed transactions (in the fourth require statement) and
+that (conf,tx) is only output before pi signs the new snapshot (the check ˆU◦ tx ̸= ⊥), i.e., if the
+multisignature for tx arrives after the snapshot was signed, pi will simply drop it. Note that, in
+case the above require fails for an honest party, snapshot production will stall as this snapshot
+will never get conﬁrmed. However, in this case, the head can be safely closed since the snapshot
+leader is corrupted.
+B.2 Security proof
+Consider the random variables deﬁned at the beginning of Section 6.4. The proof proceeds along
+similar lines as that of the basic protocol with the additional consideration of the fact that diﬀerent
+(honest) parties might sign oﬀ transactions that conﬂict with each other due to race conditions.
+Lemma 5 (Consistency). The head protocol with CR satisﬁes the Consistency property.
+10Recall that ReachT (T) returns the transactions in T reachable (by following output references) from the trans-
+actions (with hashes) in T.
+46
+
+Proof. Consider an arbitrary uncorrupted party pi and a transaction tx for which pi outputs
+(conf,tx). Assume there exists a party pj such that tx conﬂicts with some tx ′∈Cj. Consider the
+following cases:
+•Both tx and tx′were conﬁrmed via confTx. This cannot happen since that would imply that
+honest parties signed reqTx messages for conﬂicting transactions.
+•Transaction tx was conﬁrmed via confTx and tx′ via confSn. This cannot happen since it
+would imply that pi signed a snapshot conﬂicting with tx ′before outputting (conf,tx).
+•Both tx and tx′were conﬁrmed via confSn. This cannot happen since transactions conﬁrmed
+via snapshots are checked for conﬂicts by a party before it signs the snapshot.
+Invariant 9 (Snapshot-leader fault detection). If for any honest party, during (confTx), it
+holds that L◦tx = ⊥or ˆU◦ tx = ⊥then there is a faulty party.
+Proof. If L◦ tx = ⊥then there must have been a snapshot leader who signed tx but resolved
+a conﬂict of tx in favor of another transaction—against tx against the rule to prefer the signed
+transaction. This behavior is faulty. The case ˆU◦ tx = ⊥implies faulty behavior of the current
+snapshot leader in the same way.
+Invariant 10 (Eventual mutual C inclusion). Consider the presence of a network adversary.
+Then, given Ci of party pi at any point in time, any party pj will eventually have Cj ⊇Ci.
+Proof. Any transaction added to Ci during (confSn) will eventually be (or has been) added to Cj
+as the only guard in ( confSn) relates to signature veriﬁcation.
+Any transaction tx added toCi during (confTx) will eventually trigger (or has already triggered)
+a respective ( confTx) for party pj, and by the assumption that all parties are honest and by
+Invariant 9, tx ∈Cj holds eventually.
+In the following lemma we establish that, under control of a network adversary, new snapshots
+continue being produced and conﬁrmed. This property is not only required for the proof of liveness
+but also demonstrates that old transactions can eventually be deleted.
+Lemma 6 (Snapshot Liveness). Under presence of a network adversary, for any s >0, a
+snapshot with snapshot number s eventually gets conﬁrmed.
+Proof. We have to demonstrate that for any snapshot number s and party pi, the following condi-
+tions eventually hold when pi enters the respective event-handler instance ( reqSn,s,T,T R,R):
+(1) T ⊆T
+↓(h)
+∧ TR ∪R⊆( ˆT ∪ˆR)↓(h)
+(2) ∀tx ∈˜TR : conﬂict( ˜R∪{tx}) ∧ ∀tx ∈˜R: conﬂict( ˜TR ∪{tx})
+(3) ¬conﬂict(T ∪˜TR)
+47
+
+On (1), T ⊆T
+↓(h)
+part. As the snapshot leader chooses T ⊆T
+↓(h)
+in (newSn) (and T ⊆C), by
+Invariant 10, every party pi will eventually observe T ⊆T
+↓(h)
+i ⊆Ci.
+On (1), TR ∪R⊆( ˆT∪ ˆR)↓(h) part. After entering ( newSn), all transactions in tx ∈TR ∪R will
+eventually have triggered (reqTx,tx) implying that TR ∪R⊆( ˆT ∪ˆR)↓(h).
+On (2). As shown above, we have that TR ∪R⊆( ˆT ∪ˆR)↓(h). Once that condition is satisﬁed
+then also ∀tx ∈˜TR : conﬂict( ˜R∪{tx}) ∧ ∀tx ∈ ˜R: conﬂict( ˜TR ∪{tx}) by honesty of the snapshot
+leader and the way he has to pick TR and R during (newSn).
+On (3). If conﬂict(T∪ ˜TR) then the snapshot leader resolved a conﬂict in favor of a transaction
+tx ∈˜TR such that conﬂict(T∪{ tx}) implying that he also signed a transaction that conﬂicts tx, in
+contradiction to the assumption that he is honest.
+Invariant 11 (Local transaction liveness). Under presence of a network adversary, con-
+sider any transaction tx issued by a party pi via (new). Then, eventually, either tx ∈ Ci, or
+conﬂict(tx,Ci).
+Proof. After (new,tx), pi will eventually process tx by ( reqTx,tx), and tx ∈ ˆT
+·
+∪ ˆR(symmetric
+diﬀerence). Assume that never tx ∈Ci which, by assumption that all parties are honest and by
+Invariant 9, implies that tx ∈ ˆRj of at least one party pj. Consider the next snapshot produced by
+pj. Since tx ∈ ˆRj, there is a transaction tx ′∈ˆTj with conﬂict({tx,tx′}) that he adds to TR, and by
+Lemma 6, eventually tx′∈Ck for every party pk.
+Lemma 7 (Liveness). The head protocol satisﬁes Liveness.
+Proof. By local transaction liveness and Invariant 10.
+Invariant 12. Let ˜T be the set corresponding to SNcur,i. Then, ˜T∪Ti = Ci, where Ti is the
+(random variable corresponding to the) set T of pi.
+Proof. Fix some party pi. Observe that the invariant is trivially satisﬁed at the onset of the
+protocol’s execution. Furthermore, each time a new transaction is conﬁrmed via confTx, both Ti
+and Ci grow by the newly conﬁrmed transaction, while ˜T remains unchanged.
+The only other time one of the sets ˜T, Ti, and Ci change is when a new snapshot is conﬁrmed
+via confSn. In such a case, note that
+•any transaction removed from Ti is considered by the new snapshot and thus added to ˜T,
+and
+•any transaction added to Ci is also considered by the new snapshot and thus added to ˜T.
+Hence, the invariant is still satisﬁed.
+Invariant 13. ˜T0 ⊆˜T1 ⊆˜T2 ⊆... .
+Proof. Let pi be an honest party. It is easily seen that the set of transactions considered by a new
+snapshot always includes the set considered by the previous snapshot since the set of transactionsT
+and TR in a reqSn satisfy that SNcur,i◦(ReachTi(T)∪TR) ̸= ⊥, (this is implied by Invariant 12).
+Invariant 14. If tx ∈Ci ∩Cchain, it will remain there.
+48
+
+Proof. Consider operation Contest(Kagg,η,ξ ) and let η = (Uη,sη,Tη) and ξ = (U,s, ˜σ,T ). Note
+that Cchain = ˜Tsη ∪Tη holds before the operation. Consider now the set T∗ in the output ( ·,·,T∗)
+of Contest. Note that after the operation Cchain = ˜Ts ∪T∗. Observe that:
+•Since s≥sη, Invariant 13 implies that a transaction tx ∈˜Tsη is also in ˜Ts.
+•If a transaction tx ∈Tη is not in T∗but in Ci, then s>s η and the transaction is consumed
+by the snapshot with number s, i.e., tx ∈ ˜Ts. This is due to the fact that honest parties do
+not sign snapshots contradicting conﬁrmed transactions.
+Invariant 15. For all i∈Hcont, Ci ⊆Cchain.
+Proof. Take any honest partypi and let ˜sbe the current snapshot number atpi, i.e., SNcur,i = U0◦˜T˜s.
+Recall that, by Invariant 12, Ci = ˜T˜s ∪Ti. Consider a close or contest operation by pi as well as
+the output ( U,s,T ∗) of Contest, and observe that Cchain = ˜Ts ∪T∗ holds after the operation. By
+Invariant 13, ˜T˜s ⊆ ˜Ts and, by a similar argument as in the proof of Invariant 14, if tx ∈Ti is not
+in T∗, it must be in ˜Ts. Hence, Ci ⊆Cchain. Furthermore, by Invariant 14, the invariant remains
+satisﬁed.
+Invariant 16. Ci ⊆ˆSi.
+Proof. Honest parties will only output (conf,tx) if there exists a valid multisignature for tx, which
+implies that each honest party output ( seen,tx) just before they signed tx.
+Invariant 17. ˜Tj ⊆⋂
+i∈HCi.
+Proof. Only transactions that have been seen conﬁrmed by all honest parties can ever be included
+in a snapshot.
+Invariant 18. Cchain ⊆⋂
+i∈HˆSi.
+Proof. Let η= (U,s,T ). Observe that Cchain = ˜Ts ∪T. Consider a transaction tx ∈Cchain.
+•If tx ∈˜Ts, then tx ∈⋂
+i∈HCi ⊆⋂
+i∈HˆSi by Invariants 17 and 16.
+•If tx ∈T, then tx ∈⋂
+i∈HˆSi since no transaction can be conﬁrmed without being seen by all
+honest parties.
+Lemma 8. The head protocol with CR satisﬁes the Soundness property.
+Proof. Let η= (U,s,T ) be the value of η just before applying Final(η,Uﬁnal). Clearly, the only set
+Uﬁnal that will be accepted by Final is U0 ◦( ˜Ts∪T). By deﬁnition ˜Ts∪T = Cchain. Soundness now
+follows from Invariant 18.
+Lemma 9. The head protocol with CR satisﬁes the Completeness property.
+Proof. The lemma follows from Invariant 15 and an argument similar to that in the proof of
+Lemma 8.
+49
+
+⋯
+𝗂𝗇𝗂𝗍𝗂𝖺𝗅
+⋯
+⋯
+𝗈𝗉𝖾𝗇
+⋯
+𝖼𝗅𝗈𝗌𝖾𝖽 𝗇𝖾𝗐𝖾𝗌𝗍𝖲𝖭
+𝖿𝗂𝗇𝖺𝗅
+⋯
+𝖺𝖻𝗈𝗋𝗍
+𝖼𝗈𝗅𝗅𝖾𝖼𝗍𝖧𝖳𝖼𝗈𝗅𝗅𝖾𝖼𝗍𝖲𝖭𝖼𝗅𝗈𝗌𝖾
+𝖼𝗈𝗅𝗅𝖾𝖼𝗍𝖢𝗈𝗆
+⋯
+⋯
+⋯
+⋯
+⋯⋯
+𝖿𝗂𝗇𝖺𝗅𝗂𝗓𝖾
+⋯
+⋯
+𝗌𝗉𝗅𝗂𝗍
+Ideas: 
+- close: provide hash of SN 
+- newerSN: can provide newer SN 
+- allocate: take newest SN and provide hanging txs 
+- addTxs: provide missing hanging txs 
+- fanout: compute hash of ﬁnal UTxO set 
+- split: provide particular part of ﬁnal UTxO set
+𝗂𝗇𝖼𝗋𝖾𝗆𝖾𝗇𝗍/𝖽𝖾𝖼𝗋𝖾𝗆𝖾𝗇𝗍
+commit txs
+SN txs HT txs
+Figure 20: Mainchain state diagram with (a) incremental commits and decommits, (b) opti-
+mistic ﬁnalize, and (c) parallel contestation phase.
+C Full Mainchain State Machine
+This section outlines the following additions to the basic protocol:
+•Incremental commits and decommits: These allow head members, while the head is open, to
+(1) commit new UTxOs to the head and (2) remove UTxOs from the head.
+•An optimistic ﬁnalization procedure: If all head members agree to close a head, this procedure
+allows for a single-transaction head ﬁnalization.
+•A more eﬃcient way to close a head: For the cases where the head is closed due to a slow
+network and/or corrupted head members, this procedure allows to close the head with a short
+contestation period. Moreover, the new closure procedure is designed in a way that keeps the
+size of the mainchain transactions small.
+The state diagram corresponding to the full mainchain state machine (SM) is depicted in Figure 20.
+The transactions used to implement the above features are explained in Section C.1 and make
+use of additional on-chain veriﬁcation (OCV) algorithms Increment, Decrement, Finalize, Snapshot,
+ValidSN, ValidHT, and Fanout as well as modiﬁed Close and Final. The additional OCV algorithms
+as well as changes to the head protocol are explained in Section C.3, after deﬁning a variant of
+so-called Merkle-Patricia trees in Section C.2.
+C.1 New mainchain transactions
+C.1.1 Incremental (de)commits
+In the basic protocol, UTxOs can only be committed to a head before it reaches the open state.
+Once the head is running, no additional UTxOs can be added to it. Similarly, the only way of
+freeing up UTxOs in the head and make them available for spending on the mainchain is to close
+50
+
+Increment
+𝗈𝗉𝖾𝗇,K𝖺𝗀𝗀,η,h𝖬𝖳,n,T 𝗈𝗉𝖾𝗇,K𝖺𝗀𝗀,η′ ,h𝖬𝖳,n,T𝗂𝗇𝖼𝗋𝖾𝗆𝖾𝗇𝗍
+: check that 1.  is proof that  is contained in  2.  where  are added UTxOs
+tx≡π𝖬𝖳 k′ 
+h𝖬𝖳η=𝖨𝗇𝖼𝗋𝖾𝗆𝖾𝗇𝗍(η,U)U
+(r𝗆𝗂𝗇,r𝗆𝖺𝗑)
+Signed: k
+(r′ 𝗆𝗂𝗇,r′ 𝗆𝖺𝗑)
+Signed: k′ 
+{p1,…,pn}∪𝗏𝖺𝗅 {p1,…,pn}∪𝗏𝖺𝗅′ 
+π𝖬𝖳
+ρ
+𝗏𝖺𝗅′ ′ ,ν,δ
+⋮commited output o
+Figure 21: collectCom/increment/decrement transaction (left) with increment transaction
+(right).
+Decrement
+𝗈𝗉𝖾𝗇,K𝖺𝗀𝗀,η,h𝖬𝖳,n,T 𝗈𝗉𝖾𝗇,K𝖺𝗀𝗀,η′ ,h𝖬𝖳,n,T𝖽𝖾𝖼𝗋𝖾𝗆𝖾𝗇𝗍
+: check that 1.  is proof that  is contained in  2.
+tx≡π𝖬𝖳 k′ 
+h𝖬𝖳η=𝖣𝖾𝖼𝗋𝖾𝗆𝖾𝗇𝗍(K𝖺𝗀𝗀,ξ,U)
+(r𝗆𝗂𝗇,r𝗆𝖺𝗑)
+Signed: k
+(r′ 𝗆𝗂𝗇,r′ 𝗆𝖺𝗑)
+Signed: k′ 
+{p1,…,pn}∪𝗏𝖺𝗅 {p1,…,pn}∪𝗏𝖺𝗅′ 
+U}
+<latexit sha1_base64="WxxOLoH8qvPV+BjLCZ5YgtKmayM=">AAAB/XicdVDLSgNBEOz1GeMr6tHLYBA8hd0o6DHoxWMU84BkCbOT2WTIzO4y0yuEJfgDXvUPvIlXv8Uf8DucJHvQBAsaiqpuqqkgkcKg6345K6tr6xubha3i9s7u3n7p4LBp4lQz3mCxjHU7oIZLEfEGCpS8nWhOVSB5KxjdTP3WI9dGxNEDjhPuKzqIRCgYRSvddye9UtmtuDOQZeLlpAw56r3Sd7cfs1TxCJmkxnQ8N0E/oxoFk3xS7KaGJ5SN6IB3LI2o4sbPZp9OyKlV+iSMtZ0IyUz9fZFRZcxYBXZTURyaRW8q/ufhUC2kY3jlZyJKUuQRm4eHqSQYk2kVpC80ZyjHllCmhf2fsCHVlKEtrGiL8RZrWCbNasU7r1TvLsq167yiAhzDCZyBB5dQg1uoQwMYhPAML/DqPDlvzrvzMV9dcfKbI/gD5/MH32SV5A==</latexit>
+π𝖬𝖳,ξ
+⋮ ⋮
+(r𝗆𝗂𝗇,r𝗆𝖺𝗑)
+Figure 22: collectCom/increment/decrement transaction (left) with decrement transaction
+(right).
+the head. Incremental commits and decommits allow arbitrary UTxOs to be added and removed
+from the head, respectively, while the head is open.
+Incremental commit. In order to add UTxOs to the head, a head member may post an in-
+crement transaction (cf. Figure 21), causing a state transition from open to itself. The increment
+transaction can have any number of inputs (but at least one) that consume the newly committed
+outputs. Let U be the set of such outputs o; OCV function Increment processes this information
+and outputs an updated head status η′←Increment(η,U).
+Incremental decommit. A head member wishing to make UTxOs inside the head available
+on the mainchain posts a decrement transaction (cf. Figure 22), again causing a transition from
+open to itself. The decrement transaction can have any number of outputs (but at least one)
+that make the newly decommitted outputs available on the mainchain. Let U be the set of such
+outputs; OCV function Decrement processes this information along with a certiﬁcate ξ created by
+the head members to permit the decommit operation. Decrement outputs an updated head status
+η′←Decrement(Kagg,η,ξ,U ); it may also output ⊥, but in order for a close transaction to be valid
+η′̸= ⊥is required.
+C.1.2 Optimistic head closure
+If all head members agree that a head should be closed, the close/contestation phase can be foregone,
+and, by posting a ﬁnalize transaction (cf. Figure 23), the head SM can be made to go from the open
+51
+
+⋮
+Finalize
+𝗈𝗉𝖾𝗇,K𝖺𝗀𝗀,η,h𝖬𝖳,n,T 𝖿𝗂𝗇𝖺𝗅𝗂𝗓𝖾π𝖬𝖳,ξ
+(r𝗆𝗂𝗇,r𝗆𝖺𝗑)
+Signed: k
+{p1,…,pn}∪𝗏𝖺𝗅
+: check that 1.  is proof that  is contained in  2.
+tx≡π𝖬𝖳 k′ 
+h𝖬𝖳𝖥𝗂𝗇𝖺𝗅𝗂𝗓𝖾(η,ξ,U)
+𝖿𝗂𝗇𝖺𝗅
+∅
+(r′ 𝗆𝗂𝗇,r′ 𝗆𝖺𝗑)
+Signed: k′ 
+U
+Burn {p1,…,pn}::𝖼𝗂𝖽
+}
+<latexit sha1_base64="WxxOLoH8qvPV+BjLCZ5YgtKmayM=">AAAB/XicdVDLSgNBEOz1GeMr6tHLYBA8hd0o6DHoxWMU84BkCbOT2WTIzO4y0yuEJfgDXvUPvIlXv8Uf8DucJHvQBAsaiqpuqqkgkcKg6345K6tr6xubha3i9s7u3n7p4LBp4lQz3mCxjHU7oIZLEfEGCpS8nWhOVSB5KxjdTP3WI9dGxNEDjhPuKzqIRCgYRSvddye9UtmtuDOQZeLlpAw56r3Sd7cfs1TxCJmkxnQ8N0E/oxoFk3xS7KaGJ5SN6IB3LI2o4sbPZp9OyKlV+iSMtZ0IyUz9fZFRZcxYBXZTURyaRW8q/ufhUC2kY3jlZyJKUuQRm4eHqSQYk2kVpC80ZyjHllCmhf2fsCHVlKEtrGiL8RZrWCbNasU7r1TvLsq167yiAhzDCZyBB5dQg1uoQwMYhPAML/DqPDlvzrvzMV9dcfKbI/gD5/MH32SV5A==</latexit>
+Note: ﬁnalize can also split UTxOs if needed
+⋮
+Figure 23: collectCom/increment/decrement transaction (left) with ﬁnalize transaction (right).
+state to the ﬁnal state right away. The ﬁnal transaction must have outputs that correspond to the
+ﬁnal head state as agreed upon by the parties. To that end, OCV predicate Finalize(η,Kagg,U,ξ )
+checks the transaction’s output set U against a special certiﬁcate ξ provided by the redeemer and
+the information recorded in η. The certiﬁcate ξ consists of a multisigned value h||“ﬁnal”, where
+h is the hash of the ﬁnal UTxO set. The ﬁnalize transaction is only valid if Final outputs true.
+Moreover, all participation tokens must be burned.
+C.1.3 Eﬃcient contestation phase
+Recall that in the simple protocol, in order to terminate a head, some party p ﬁrst posts a close
+transaction, which also contains information about the current head state. In a subsequent se-
+quential contestation phase, each party is given the opportunity to supply more recent information
+in case p’s information was outdated or p is corrupted. In the worst case, this process requires
+a sequence of n mainchain transactions. In order to avoid this issue, a more involved parallel
+contestation phase can be used to close out a head.
+This parallel contestation phase is tailored to the actual head protocol in use (cf. Section 6) in
+that it ﬁrst collects—in parallel—proposals for the most recent snapshot and thereafter—also in
+parallel—so-called hanging transactions, which are the conﬁrmed head transactions that have not
+yet been considered by a snapshot. The reason for executing a head closure in two steps is that
+collecting snapshots ﬁrst prevents a corrupted head member from posting a very old snapshot along
+with a large number of hanging transactions.
+Thus, to close a head, a close transaction is posted by some head member. The close transac-
+tion has n outputs—one for each head member—to which SN transactions can be attached. An
+SN transaction allows a head member to post (information about) the newest snapshot to the
+mainchain. The subsequent transaction, the collectSN transaction, collects all SN transactions
+and picks the most recent snapshot. It has n outputs as well, to which each party may attach a
+HT transaction. Each HT transaction allows a head member to post (information about) hanging
+transactions. Finally, the collectHT transaction collects all HT transactions and determines the
+ﬁnal UTxO set. The collectHT transaction also determines how to spilt the ﬁnal UTxO set and
+provides suﬃciently many outputs forsplit transactions to be attached, where eachsplit transaction
+has as outputs a subset of the ﬁnal UTxO set.
+52
+
+Close
+𝗈𝗉𝖾𝗇,K𝖺𝗀𝗀,η,h𝖬𝖳,n,T
+𝖼𝗅𝗈𝗌𝖾𝖽,K𝖺𝗀𝗀,η′ ,h𝖬𝖳,n,T,T𝗇𝖾𝗐𝖾𝗌𝗍𝖲𝖭
+𝖼𝗅𝗈𝗌𝖾
+: check that 1.  is proof that  is contained in  2.  3.  to  are in  4.
+tx≡π𝖬𝖳 k′ 
+h𝖬𝖳(η′ ,β′ 1,…,β′ n)=𝖢𝗅𝗈𝗌𝖾(η,ξ)k1 kn h𝖬𝖳T𝗌𝗇𝖺𝗉𝗌𝗁𝗈𝗍=r′ 𝗆𝖺𝗑+T
+𝗏𝖺𝗅
+π𝖬𝖳
+(r𝗆𝗂𝗇,r𝗆𝖺𝗑)
+Signed: k
+⋮
+{p1},ν𝖼𝗅𝗈𝗌𝖾𝖽,(k1,β′ 1)
+{pn},ν𝖼𝗅𝗈𝗌𝖾𝖽,(kn,β′ n)
+(r′ 𝗆𝗂𝗇,r′ 𝗆𝖺𝗑)
+Signed: k′ 
+{p1,…,pn}∪𝗏𝖺𝗅
+Information in  allows to check SN proposals immediately (as opposed to only upon allocate)
+β′ i
+⋮
+Figure 24: collectCom/increment/decrement transaction (left) with close transaction (right).
+NewerSN Txs
+{p1},ν𝖲𝖭,ξ1
+Signed: k1
+: check that 1.  or 1.next transaction is allocate SM 
+ν𝖼𝗅𝗈𝗌𝖾𝖽𝖵𝖺𝗅𝗂𝖽𝖭𝖲𝖭(β1,ξ1,ρ1)
+ρ1
+𝖼𝗅𝗈𝗌𝖾𝖽,K𝖺𝗀𝗀,η,h𝖬𝖳,n,T,T𝗇𝖾𝗐𝖾𝗌𝗍𝖲𝖭 𝗏𝖺𝗅
+⋮
+{p1},ν𝖼𝗅𝗈𝗌𝖾𝖽,(k1,β1)
+{pn},ν𝖼𝗅𝗈𝗌𝖾𝖽,(kn,βn)
+(r𝗆𝗂𝗇,r𝗆𝖺𝗑)
+Signed: k : check that 1.next transaction is allocated SM 
+ν𝗇𝖾𝗐𝖾𝗋𝖲𝖭
+SN transaction
+Figure 25: close transaction (left) with SN transaction (right).
+Initiating head closure. In order to close a head, a head member may post theclose transaction
+(cf. Figure 24), which results in a state transition from the open state to the closed state. Compared
+to the basic protocol, the poster is not required to provide any information about the status of the
+head at this point. Instead, the close transaction has noutputs locked by validator νclosed. The ith
+output has (ki,β′
+i) in its data ﬁeld, where k1,...,k n are the public keys that are hashed in hMT and
+the β′
+i contain information required by OCV algorithmValidSN to verify the SN transactions posted
+(see below). Speciﬁcally, they are created by OCV algorithm ( η′,β′
+1,...,β ′
+n) ←Close(Kagg,η),
+which is also allowed to update the head status. Observe that the close transaction also places the
+n participation tokens in the outputs.
+Validator νclosed ensures the following: either the output is consumed by
+1. an SM collectSN transaction (see below) or
+2. an SN transaction (identiﬁed by having validator νSN in its only output), and
+(a) the transaction is signed by ki,
+(b) OCV algorithm ValidSN(β′
+i,ξi,ρi) returns true, where ξi and ρi—in the SN transac-
+tion’s output data ﬁeld resp. redeemer—contain snapshot information (see below and
+Figure 25).
+Once a close transaction has been posted, an SN-posting period begins which should last at
+least T slots. Hence, the last slot TnewestSN of said period is recorded in the state, and it is ensured
+that TnewestSN ≥r′
+max + T.
+53
+
+Collect
+𝗇𝖾𝗐𝖾𝗌𝗍𝖲𝖭,K𝖺𝗀𝗀,η,h𝖬𝖳,n,T,T𝖿𝗂𝗇𝖺𝗅
+𝖼𝗈𝗅𝗅𝖾𝖼𝗍𝖲𝖭
+: check that 1.  is proof that  is contained in  2.  3.  4.
+tx≡π𝖬𝖳 k′ h𝖬𝖳(η′ ,β′ 1,…,β′ n)=𝖲𝗇𝖺𝗉𝗌𝗁𝗈𝗍(η,ξ1,…,ξn)r′ 𝗆𝗂𝗇≥T𝗌𝗇𝖺𝗉𝗌𝗁𝗈𝗍T𝖿𝗂𝗇𝖺𝗅=r′ 𝗆𝖺𝗑+T
+π𝖬𝖳
+⋮
+{p1},ν𝗇𝖾𝗐𝖾𝗌𝗍𝖲𝖭,β′ 1
+{pn},ν𝗇𝖾𝗐𝖾𝗌𝗍𝖲𝖭,β′ n
+(r′ 𝗆𝗂𝗇,r′ 𝗆𝖺𝗑)
+Signed: k′ 
+𝖼𝗅𝗈𝗌𝖾𝖽,η,K𝖺𝗀𝗀,h𝖬𝖳,n,T,T𝗇𝖾𝗐𝖾𝗌𝗍𝖲𝖭 𝗏𝖺𝗅
+⋮
+{p1},ν𝖼𝗅𝗈𝗌𝖾𝖽,(k1,β1)
+{pn},ν𝖼𝗅𝗈𝗌𝖾𝖽,(kn,βn)
+(r𝗆𝗂𝗇,r𝗆𝖺𝗑)
+Signed: k
+…,ν𝖲𝖭,ξ1⋮
+Information in  allows to check hangingTxs txs immediately (as opposed to only upon collect)
+β′ i
+𝗏𝖺𝗅SN transactions
+Figure 26: collectSN transaction (left) with collectHT transaction (right) and HT transactions
+(center).
+Providing snapshot information. In an SN transaction (cf. Figure 25), a party simply provides
+information about their most recent snapshot in the redeemer ρ and the output data ﬁeld ξ; ρ
+contains data only relevant to verify the SN transaction itself, whereas ξ contains information
+relevant for the SM. Speciﬁcally, ξ contains h||s, where h is the hash and s the number of the
+newest snapshot, and ρ contains a multisignature on h||s. All SN transactions are collected by an
+SM collectSN transaction.
+Collecting snapshot information. The collectSN transaction (cf. Figure 26) causes the SM to
+transition from closed to newestSN. The OCV function Snapshot is responsible for collecting the
+values ξi provided in the SN transactions and computing a new head state η′as (η′,β′
+1,...,β ′
+n) ←
+Snapshot(Kagg,η,ξ 1,...,ξ n), where the β′
+i have a purpose similar to that of the β′
+i in the close
+transaction.
+The collectSN transaction has n outputs, each locked by validator νnewestSN, which ensures the
+following: either the output is consumed by
+1. an SM collectHT transaction (see below) or
+2. a hangingTx transaction (identiﬁed by having validator νHT in its only output), and
+(a) the transaction is signed by ki,
+(b) OCV algorithm ValidHT(β′
+i,ξi,ρi) returns true, where ξi and ρi contain information
+about hanging transactions (cf. Figure 27).
+Once a collectSN transaction has been posted, a hangingTx-posting period begins which should
+last at least T slots. Hence, the last slot Tﬁnal of said period is recorded in the state, and it is
+ensured that Tﬁnal ≥r′
+max + T.
+Providing hanging transactions. In an HT transaction (cf. Figure 27), a party simply provides
+information about hanging transactions not included in the most recent snapshot provided during
+the snapshot phase. As with SN transactions, this information is split between the redeemer and
+the output data ﬁeld. All HT transactions are collected by an SM collectHT transaction.
+54
+
+HangingTxs Txs
+{p′ 1},ν𝖧𝖳,ξ1ρ1
+𝗇𝖾𝗐𝖾𝗌𝗍𝖲𝖭,K𝖺𝗀𝗀,η,h𝖬𝖳,n,T,T𝖿𝗂𝗇𝖺𝗅 𝗏𝖺𝗅
+⋮
+{p1},ν𝗇𝖾𝗐𝖾𝗌𝗍𝖲𝖭,β1
+{pn},ν𝗇𝖾𝗐𝖾𝗌𝗍𝖲𝖭,βn
+(r𝗆𝗂𝗇,r𝗆𝖺𝗑)
+Signed: k
+: check that 1.  or 1.next transaction is ﬁnal SM 
+ν𝖺𝗅𝗅𝗈𝖼𝖵𝖺𝗅𝗂𝖽𝖧𝖳𝗑𝗌(β1,ξ1,ρ1)
+: check that 1.next transaction is ﬁnal SM 
+ν𝗁𝖺𝗇𝗀𝗂𝗇𝗀𝖳𝗑𝗌
+HT transaction
+Figure 27: collectSN transaction (left) with HT transaction (right).
+Collect
+𝗇𝖾𝗐𝖾𝗌𝗍𝖲𝖭,K𝖺𝗀𝗀,η,h𝖬𝖳,n,T,T𝖿𝗂𝗇𝖺𝗅
+𝖼𝗈𝗅𝗅𝖾𝖼𝗍𝖧𝖳
+: check that 1.  is proof that  is contained in  2.  3.
+tx ≡π𝖬𝖳 k′ h𝖬𝖳(𝗏𝖺𝗅i,βi)ℓi= 1←𝖥𝖺𝗇𝗈𝗎𝗍(η,ξ1,…,ξn)r′ 𝗆𝗂𝗇≥T𝖿𝗂𝗇𝖺𝗅
+𝗏𝖺𝗅
+π𝖬𝖳,𝖺𝗎𝗑
+…,ν𝖧𝖳,ξ1⋮
+⋮
+{p1},ν𝗇𝖾𝗐𝖾𝗌𝗍𝖲𝖭,β1
+{pn},ν𝗇𝖾𝗐𝖾𝗌𝗍𝖲𝖭,βn
+(r𝗆𝗂𝗇,r𝗆𝖺𝗑)
+Signed: k
+𝖿𝗂𝗇𝖺𝗅
+∅
+⋮
+(r′ 𝗆𝗂𝗇,r′ 𝗆𝖺𝗑)
+Signed: k′ 
+Burn {p1,…,pn}
+𝗏𝖺𝗅′ 1,ν𝖿𝗂𝗇𝖺𝗅,β′ 1
+𝗏𝖺𝗅′ ℓ,ν𝖿𝗂𝗇𝖺𝗅,β′ ℓ
+HT transactions
+Figure 28: close transaction (left) with collectSN transaction (right) and SN transactions
+(center).
+Collecting hanging transactions. The collectHT transaction (cf. Figure 28) collects all the
+information ξi provided by the HT transactions in order to compute the ﬁnal UTxO set (i.e., the
+UTxO set resulting from applying all hanging transactions to the newest snapshot) and to determine
+how to partition the UTxO set intoℓcomponents (in order to avoid posting large transactions on the
+mainchain). Speciﬁcally, the OCV function Fanout takes as input keyKagg, η, auxiliary information
+aux in the redeemer, and the values ξi and computes ( val′
+i,β′
+i) for i = 1,...,ℓ , where val′
+i is the
+value in the ith partition and β′
+i is used to validate the corresponding split transaction. The ﬁnal
+transaction must also burn the participation tokens p1,...,p n and may only be posted after the
+HT phase is completed, i.e., only when r′
+min ≥Tﬁnal.
+Splitting the ﬁnal UTxO set. The task of split transactions (cf. Figure 29) is to make the
+UTxOs in a particular partition (as determined by Fanout) available for consumption on the main-
+chain. To verify that this is done correctly, validator νﬁnal runs OCV predicate Final(βi,Ui), where
+Ui is the set of outputs of the split transaction.
+C.2 UTxO sets and Merkle-Patricia Trees
+The head protocol and OCV algorithms for the full Hydra protocols make use of a variant of so-
+called Merkle-Patricia Trees (MPTs) [22]. Hydra’s MPTs store a set of D outref/output pairs
+55
+
+Split Txs
+: check that 
+1.
+ν𝖿𝗂𝗇𝖺𝗅
+𝖥𝗂𝗇𝖺𝗅(η1, U1)
+𝖿𝗂𝗇𝖺𝗅
+∅
+⋮
+(r𝗆𝗂𝗇, r𝗆𝖺𝗑)
+Signed: k
+Burn {p1, … , pn}
+𝗏𝖺𝗅1, ν𝖿𝗂𝗇𝖺𝗅, β1
+𝗏𝖺𝗅ℓ, ν𝖿𝗂𝗇𝖺𝗅, βℓ ⋮ U1
+}
+<latexit sha1_base64="WxxOLoH8qvPV+BjLCZ5YgtKmayM=">AAAB/XicdVDLSgNBEOz1GeMr6tHLYBA8hd0o6DHoxWMU84BkCbOT2WTIzO4y0yuEJfgDXvUPvIlXv8Uf8DucJHvQBAsaiqpuqqkgkcKg6345K6tr6xubha3i9s7u3n7p4LBp4lQz3mCxjHU7oIZLEfEGCpS8nWhOVSB5KxjdTP3WI9dGxNEDjhPuKzqIRCgYRSvddye9UtmtuDOQZeLlpAw56r3Sd7cfs1TxCJmkxnQ8N0E/oxoFk3xS7KaGJ5SN6IB3LI2o4sbPZp9OyKlV+iSMtZ0IyUz9fZFRZcxYBXZTURyaRW8q/ufhUC2kY3jlZyJKUuQRm4eHqSQYk2kVpC80ZyjHllCmhf2fsCHVlKEtrGiL8RZrWCbNasU7r1TvLsq167yiAhzDCZyBB5dQg1uoQwMYhPAML/DqPDlvzrvzMV9dcfKbI/gD5/MH32SV5A==</latexit>
+split Transaction
+Figure 29: collectHT transaction with split transaction.
+(out-ref,o) in such a way that
+•(determinism) the set D deﬁnes the tree (i.e., the order of insertions and removals have no
+eﬀect on the tree’s shape),
+•(hashing) a tree can be hashed—i.e., a so-called root hash can be computed—in such a way
+that it is computationally hard to ﬁnd two trees (or, equivalently, two sets D and D′) with
+the same hash,
+•(membership proofs) membership of a pair ( out-ref,o) in the tree can be veriﬁed using the
+root hash and auxiliary information aux of size O(log |D|),
+•(removing and adding) given a root hash hroot corresponding to a set D and sets R⊆D and
+Awith A∩D= ∅, the root hash corresponding to D\R∪Acan be computed from hroot and
+auxiliary information aux of size O(log |D|), and
+•(splitting) given any number B, a tree corresponding to D can be split into subtrees corre-
+sponding to disjoint sets D1,...,D ℓ (for some ℓ) with D1 ∪... ∪Dℓ = D such that
+– the elements of each Di have size at most B bits, and
+– the root hashes and total values corresponding to each Di can be computed using the
+root hash hroot of D and auxiliary information aux of size B.11
+Deﬁning MPTs. MPTs used by Hydra have alphabet size A = 16. The MPT corresponding
+to a set D is deﬁned via algorithm MPT-Build in Figure 30. Note that outrefs take on the role
+of “keys” and outputs o that of “values.” MPTs are deﬁned recursively, where the root node
+node = (pre,H,S,V ) of the tree corresponding to D with D> 1 has the following ﬁelds:
+•Preﬁx: The ﬁeld pre stores the common preﬁx of all the keys found in D.
+•Children: The array H stores the hashes of all A children nodes, where H[i] = ⊥if the
+corresponding child is not present. The ith child of node is the root of the MPT containing
+all elements corresponding to the set D′′computed as follows:
+11Observe that this only works if the trees do not exceed a certain maximum size.
+56
+
+1. Let the set D′ be the set obtained by removing the preﬁx pre from every key out-ref in
+every pair (out-ref,o) ∈D; this is denoted ( pre,D′) ←CP(D) in Figure 30.
+2. Let D′′ be the set obtained by additionally removing the character i from each out-ref;
+this is denoted by Proj(D′,i) in Figure 30.
+•Size: For each i ∈[A], S[i] records the combined size of the leaves of the subtree at the ith
+child. The combined size of all leaves innode’s subtree isSum(S), where Sum(S) = ∑
+i∈[A] S[i].
+•Value: For each i ∈[A], V[i] records the value of the subtree at the ith child. The value of
+node’s subtree is Sum(V), where Sum(V) = ∑
+i∈[A] V[i].
+N[·]←ε
+MPT-Build(D)
+if|D|>1
+(pre,D′)←CP(D)
+H[·],S[·],V[·]←ε
+fori∈[A]
+(H[i],S[i],V[i])←MPT-Build(Proj(D′,i))
+node←(pre,H,S,V)
+h←H(node)
+N[h]←node
+return(h,Sum(S),Sum(V))
+else if|D|= 1
+{(pre,o)}←D
+leaf←(pre,o)
+h←H(leaf)
+N[h]←leaf
+(val,·,·)←o
+return(h,Size(leaf),val)
+else
+return(⊥,0,∅)
+Figure 30: Recursive procedure to build an
+MPT from a set D of outref/output pairs
+(out-ref,o). The algorithm stores the nodes
+in the array N indexed by their hashes and
+returns the hash of the root node as well as
+total size and value of the entire tree.
+Leaf nodes leaf = ( pre,o) correspond to a single-
+element D= {(pre,o)}. Their size is given bySize(leaf),
+and their value is val, where o= (val,ν,δ ).
+Hashing. The hash of an MPT is simply the hash of
+its root node.
+Membership proofs. To provide a proof that some
+out-ref appears in an MPT with root hash hroot, it suf-
+ﬁces to provide as auxiliary information aux the nodes
+on the path from the root to the leaf containing o.
+The corresponding veriﬁcation function is denoted by
+MPT-VfyMemb(h,out-ref,aux).
+Removing and adding. Similarly to membership
+proofs,
+•for removing a pair (out-ref,o) from an MPT with
+root hash hroot, the new root hash can be com-
+puted if given as auxiliary information aux the
+nodes on the path from the root to the node
+deleted, where, in cases where that node only has
+one sibling, that sibling has to be provided as
+well;
+•for adding a pair (out-ref,o) to an MPT with root
+hash hroot, the new root hash can be computed if
+given as auxiliary information aux the nodes on
+the path from the root to the node where out-ref
+diverges from the preﬁx traversed.
+In order to remove an entire set R ⊆D of outref/output pairs and subsequently add a set A
+with A∩D = ∅(which is what happens when a transaction is applied to a UTxO set), the above
+operations can simply be concatenated, producing a combined auxiliary string aux. The function
+that computes the new root hash h′
+root from the old root hash hroot, the sets R and A, and aux is
+denoted by h′
+root ←MPT-CompRA(hroot,R,A, aux).
+57
+
+Splitting. To split, as described above, a tree with nodesN, ﬁrst, each node node = (pre,H,S,V )
+whose subtree has leaves with combined size ∑
+iS[i] >B is added to a list split (indexed by node
+hashes), which is referred to as the split frontier. Then, every node node /∈split with a parent in
+the split frontier is the root of a subtree corresponding to one of the subsets Di. This way, the
+combined size of all elements in each Di is at most B (as otherwise, node would be in the split set).
+Denote these root nodes by node1,..., nodeℓ and call them split nodes.
+In order to compute the hashes h1,...,h ℓ and values val1,..., valℓ of the split nodes from the
+hash hroot of the root node of the entire tree, aux consists simply of the the split frontier split (which
+includes said hashes and values).
+Finally, for each split node nodei, deﬁne the split preﬁx prei to be the common preﬁx of all
+outrefs in Di. The split preﬁx will be needed to compute the hashes hi given the sets Di: hi is
+obtained by computing the MPT corresponding to Di, but by removing prei from the preﬁx pre in
+the resulting root node before hashing it.
+The function computing the above values is denoted by
+(h1,...,h ℓ,val1,..., valℓ,pre1,..., preℓ) ← MPT-CompSpl(hroot,B, aux) .
+C.3 Head protocol and on-chain veriﬁcation
+In order to be used with the improved SM (cf. Figure 20), some small changes have to be made in
+the head protocol. This section summarizes these changes and describes on a high level how the
+OCV functions can be implemented to work with the improved SM.
+Merkle-Patricia trees, UTxO sets and transactions. The head protocol and the OCV
+algorithms can be implemented in such a way that—apart from split transactions—only hashed
+information about snapshots and hanging transactions needs to be posted. That way, Hydra
+mainchain transactions remain small even if the head UTxO set becomes large or there are many
+hanging transactions.
+Recall that a UTxO is simply a pairu= (out-ref,o) of outref and output. The full head protocol
+maintains the current UTxO set by storing all UTxOs in an MPT as shown in Section C.2. When
+creating new snapshots, parties sign the root hash of the MPT (instead of a plain hash of the UTxO
+set).
+Note that applying a transaction to a UTxO set always involves removing some UTxOs and
+adding some new ones. Thus, evolving the hash corresponding to a UTxO set to include a new
+transaction involves simple remove and add operations on the MPT.
+To keep HT transactions small (see below), when conﬁrming a transaction tx = (I,O, valForge,r,
+K), tx is hashed by computing
+H(ID(tx),out-ref1,..., out-refw,o1,...,o w′,hrest) ,
+where
+•ID(tx) is the ID of tx as per the ledger rules,
+•I = {i1,...,i w}and ij = (out-refj,ρj),
+•O= (o1,...,o w′), and
+•hrest = H(ρ1,...,ρ w,valForge,r,K) is the hash of the rest of the transaction.
+58
+
+For MPT proofs of membership/insertion/deletion, this way of hashing allows to provide only the
+ID ID(tx), the output references in I, the outputs O, and the hash hrest, which are usually much
+shorter than the entire transaction.
+Onchain veriﬁcation functions. Using these MPTs, the OCV functions for the eﬃcient de-
+commit can be implemented as follows:
+•η′←Initial(U1,...,U n) computes the MPT corresponding to the union of the UTxO sets Ui
+and stores the hash in the output η′.
+•(η′,β′
+1,...,β ′
+n) ←Close(η) leaves η′= η unchanged and puts Kagg into each β′
+i.
+•ValidSN(β,ρ,ξ ) uses Kagg (stored in β) to verify the multisignature (stored in ρ) on the MPT
+hash and snapshot number (stored in ξ). The algorithm returns true if and only if the
+signature veriﬁes and the snapshot number is greater than 0.
+•(η′,β′
+1,...,β ′
+n) ←Snapshot(η,ξ1,...,ξ n) simply picks theξi with the highest snapshot number
+and stores the corresponding MPT root hash in η′. Each output β′
+i consists of Kagg as well
+as said hash. Note that if all ξi are empty (because no party posted a valid SN transaction),
+the initial hash (still in η) computed in Initial is used.
+•ValidHT(β,ρ,ξ ) is somewhat more involved. Recall that this validator checks an HT trans-
+action, via which some party posts hanging transactions—in ξ—along with corresponding
+multisignatures and proofs—in ρ—showing that these transactions were conﬁrmed in the
+head and can be applied to the most recent snapshot, whose hash hSN is stored in β.
+Hanging transactions tx = (I,O, valForge,r,K) are provided via the values
+˜tx = ( ID(tx),out-ref1,..., out-refw,o1,...,o w′,hrest)
+as deﬁned above. For each such transaction, ValidHT computes h←H( ˜tx) and checks, using
+Kagg (stored in β), that ρ contains a valid multisignature on h.
+Once all transactions have been authenticated, ValidHT now processes them in topological
+order and checks for each transaction tx that
+– either there is an out-refi = ( txID,txIdx) in tx such that txID refers to a previously
+processed transaction, or
+– there is an MPT membership proofaux in ρsuch thatMPT-VfyMemb(hSN,out-refi,aux) =
+true for some out-refi in tx.
+Note that since transactions are multisigned, it suﬃces to check a single outref to ensure that
+tx is not old (i.e., not already consumed by the newest snapshot).
+•(β1,...,β ℓ,val1,..., valℓ) ← Fanout(η,aux,ξ1,...,ξ n) has two tasks: First, it must collect
+hanging transactions (stored in variables ξi) and compute, using the hash hSN (stored in η) of
+the most recent snapshot and auxiliary information aux1 (stored in aux), the hash hﬁnal of the
+ﬁnal UTxO set; this can be done by means of the functionMPT-CompRA. Second, it must take
+auxiliary information aux2 (stored in aux) and compute the split (h1,...,h ℓ,val1,..., valℓ,pre1,
+..., preℓ) ←MPT-CompSpl(hﬁnal,B, aux2). Each βi is set to ( hi,prei).
+•Final(βj,Uj) simply hashes Uj and checks if it matches ηj.
+59
+
+D Further Protocol Aspects
+D.1 Funding state-machine progress
+In order for the mainchain state machine (SM) of the Hydra protocol to progress, head members
+need to post the corresponding transactions; this is true for both the simpliﬁed and the full protocol.
+However, head members might decide to wait for other head members to post these transactions
+in order to save on fees. It may, therefore, be necessary to oﬀer rewards for posting some SM
+transactions or, at the very least, to allocate funds to cover the incurred fees.
+The following examples outline how rewards could be awarded for some of the SM transactions.
+In general, however, it is up to the head members to decide the exact reward policy when the head
+is being established:
+•initial: Generally, there is no need to oﬀer rewards for posting the initial transaction, for the
+will of the initiator to open the head should suﬃce.
+•commit: A party willing to participate in the head will post its commit transaction. Thus,
+there is no need to allocate any rewards for it.
+•collectCom: Since only one collectCom transaction is posted, a party may wait to see if other
+head members post the transaction ﬁrst, which delays the progress of the head SM. Hence,
+one should incentivize the posting of collectCom transactions.
+•abort: If a head fails to be established due to missing commit transactions, the remaining
+head members have an incentive to abort the head. However, the incentive may be stronger
+for parties who require the locked funds immediately. Therefore, it makes sense to reward
+the party posting the abort transaction.
+Similar arguments can be made forclose, contest, and fanout transactions as well as for transactions
+of the full Hydra SM.
+All the funds for rewards are pre-allocated in the commit transactions, which can be enforced
+by the initial transaction. In order to do so, the required rewards must be estimated in advance.
+This requires, in particular, upper bounds on the size of the head UTxO set, the maximum number
+of hanging transactions etc. These quantities can be made explicit as head parameters.
+Transactions that take the head SM to its ﬁnal state (e.g., abort or fanout) will make sure that
+surplus funds will be appropriately redistributed.
+D.2 Time handling in the head protocol
+Recall that each transaction contains a tupler= (rmin,rmax) that speciﬁes the slot range [rmin,rmax]
+wherein the transaction must be included in the ledger to be valid. Time-critical concepts such as
+timed commitments are based on this construct.
+In the mainchain, it is easy to agree on whether a transaction was included in the ledger within
+a given slot range by verifying whether the slot of its containing block lies in that slot range; and
+this fact will become irrevocably conﬁrmed once the block lies suﬃciently deep in the blockchain.
+In contrast, the conﬁrmation process in the head is asynchronous, and we require a diﬀerent
+mechanism to make this decision. We thus establish the rule that a party may only sign a transaction
+60
+
+if it has seen that transaction during its included slot range r; overall, this implies that a conﬁrmed
+transaction has been seen by all honest parties “on time.” 12
+Now, a party may not learn about conﬁrmation until after the slot range expired, but this is
+not fundamentally diﬀerent than on the mainchain.
+Conﬂict resolution. A problem arises with conﬂict resolution (CR) when multiple transactions
+with ﬁnite slot ranges ( rmax <∞) compete for redeeming the same UTxO. Such a conﬂict cannot
+always be settled by our standard CR mechanism, as a snapshot leader including his favored
+transaction tx, in general, cannot know whether tx has been (or will be) accepted on time; and if
+not, the snapshot would have to be rejected, and the head would have to be closed.
+To avoid head closure due to snapshot rejection in the case of this (typically rare) event we
+modify CR in two ways.
+Firstly, for CR, the snapshot leader includes only the subset of the transactionsTR (c.f. Sec. B.1)
+that have a safe amount of time left before deadline expiry. Then, a head with only honest partic-
+ipants only has to be closed under extremely bad network conditions.
+Secondly, we need a mechanism to handle expired transactions that have been seen, but possibly
+not conﬁrmed. Assume that a party p signed a transaction txA but does not get it conﬁrmed until
+after the transaction’s deadline rmax; hence, p does, at this point, not know whether the transaction
+txA will eventually be conﬁrmed — as some participants may have received txA too late. If at
+this point a second, conﬂicting transaction txB gets published and p is the snapshot leader, it has
+to make a choice for which it has insuﬃcient information: it must reject if txA is conﬁrmed (for
+consistency), but sign txB if txA is unconﬁrmed (for liveness).
+To avoid such decisions, we extend the snapshot mechanism as follows. The snapshot leader
+includes into its snapshot an obituary set of transactions that it sees as expired and only partially
+conﬁrmed. If any party is in possession of a multisignature for a transaction in the obituary set,
+it resurrects this transaction by including its multisignature into the snapshot it produces during
+its next turn as a snapshot leader. After a full cycle of snapshot round robin, we can thus safely
+accept such a transaction as conﬁrmed if a multisignature was added during that cycle, or reject it
+as expired if no multisignature was delivered.
+D.3 Transaction throttling
+An adversarial leader could stall the snapshot production while still allowing new transactions to
+get conﬁrmed. To prevent that such an attack grows the stored transaction history beyond limits,
+the size of all snapshot-unprocessed transactions may only grow to a given limit. As long as this
+limit is reached, no new transactions are conﬁrmed (or, alternatively, the head is closed once the
+limit is reached).
+12Note that, although our head protocol is asynchronous, we can still rely on roughly synchronized clocks among
+the head participants (for example, by observing the mainchain)—as we already need to make this assumption to
+safely handle contestation periods during the closing of a head.
+61

@@ -1,0 +1,201 @@
+morpheus_briefing_task:
+  description: >
+    As Morpheus, receive a mission on the topic of "{topic}".
+    Your task is to analyze the request, determine the most appropriate agents and task flow,
+    and generate a composable micro-crew that includes at least a researcher and analyst.
+    Assign roles with clear rationale, ensuring that tasks are interdependent when appropriate.
+  expected_output: >
+    A JSON or Markdown plan listing the selected agents, assigned tasks, and justification for each role.
+    The plan should describe the order of operations and dependencies between tasks.
+  agent: morpheus
+
+research_task:
+  description: >
+    Conduct foundational research on {topic} including:
+    1. Core definitions and background
+    2. Current relevance (as of {current_year})
+    3. Recent developments or applications
+    4. Key stakeholders or debates
+  expected_output: >
+    A structured document with 5-7 bullet-pointed insights on {topic}, citing credible sources.
+  agent: researcher
+  context: []
+
+reporting_task:
+  description: >
+    Using the output from the research_task, develop an expanded, structured report covering:
+    1. Executive summary
+    2. Thematic sections with explanatory detail
+    3. Implications and recommendations
+  expected_output: >
+    A professional markdown report with headings, citations, and a conclusion that builds on the research.
+  context:
+    - research_task
+  agent: reporting_analyst
+
+morpheus_wrapup_task:
+  description: >
+    Reflect on the mission regarding {topic}, synthesizing key findings into a public-friendly final wrap-up.
+    Your goal is to inspire, inform, and credit the agents whose work led to this insight.
+  expected_output: >
+    Compose a poetic summary with:
+    1. A thematic opening using metaphor or symbolism tied to {topic}
+    2. A distilled summary of 3-5 key findings (in clear, narrative form)
+    3. A call to action
+    4. Named attribution of contributing agents and their roles
+    5. Tone: accessible, dreamlike, civic-spirited
+  agent: morpheus
+  context:
+    - reporting_task
+
+curriculum_development_task:
+  description: >
+    Design a curriculum for {topic}, integrating:
+    1. Learning outcomes aligned with accreditation standards
+    2. Bloom's Taxonomy, UDL, and CRT principles
+    3. Weekly module overviews and lesson suggestions
+  expected_output: >
+    A curriculum packet including a syllabus, weekly plan, learning objectives, and suggested activities.
+  agent: curriculum_developer
+  context: []
+
+content_accuracy_check_task:
+  description: >
+    Verify all factual claims in the educational materials about {topic}.
+    Ensure academic rigor by cross-referencing with scholarly sources.
+  expected_output: >
+    Annotated content with citations, a summary of corrections, and a confidence score per section.
+  agent: content_verifier
+  context: []
+
+visual_content_generation_task:
+  description: >
+    Turn educational content about {topic} into visual learning materials.
+    Suggested formats: infographics, slide decks, animation storyboards.
+  expected_output: >
+    A multimedia set: 2 infographics, 1 slide deck outline, and any creative notes.
+  agent: visual_creator
+  context: []
+
+governance_analysis_task:
+  description: >
+    Analyze a Cardano governance proposal related to {topic}.
+    Break down its intent, implications, risks, and alignment with community values.
+  expected_output: >
+    A governance brief including a neutral explanation and potential decision paths for voters.
+  agent: governance_analyst
+
+web3_onboarding_task:
+  description: >
+    Create a beginner-friendly onboarding guide about {topic} in Web3 and Cardano.
+    Include wallet setup, staking, and dApp interaction steps.
+  expected_output: >
+    A visual + textual walkthrough with glossary, screenshots, and action items.
+  agent: blockchain_educator
+
+academic_research_task:
+  description: >
+    Collect peer-reviewed and scholarly literature on {topic}.
+    Summarize key debates, methodologies, and future questions.
+  expected_output: >
+    An annotated bibliography with summaries and a synthesis section highlighting research gaps.
+  agent: research_assistant
+  context: []
+
+revision_task:
+  description: >
+    Improve a written piece on {topic} for clarity, coherence, and correctness.
+    Ensure formatting and citation compliance.
+  expected_output: >
+    A polished manuscript and editorial notes for the author.
+  agent: writing_coach
+
+crypto_tax_task:
+  description: >
+    Identify tax considerations around crypto transactions tied to {topic}.
+    Provide clear summaries for CPA-ready documentation.
+  expected_output: >
+    A categorized tax summary and simplified report with compliance recommendations.
+  agent: tax_navigator
+
+grants_discovery_task:
+  description: >
+    Find current grants related to innovation or education in {topic}.
+    Match them to institutional or organizational goals.
+  expected_output: >
+    A list of 5-10 grants with key dates, eligibility criteria, and draft proposal outlines.
+  agent: grants_specialist
+
+student_support_task:
+  description: >
+    Create a personalized support plan for students struggling with {topic}.
+    Suggest tailored interventions and key academic resources.
+  expected_output: >
+    A student success roadmap and curated list of resources.
+  agent: student_ally
+
+faculty_training_task:
+  description: >
+    Design a faculty training plan for improving pedagogy related to {topic}.
+    Align with modern teaching technologies and inclusive frameworks.
+  expected_output: >
+    A workshop agenda with learning outcomes, toolkits, and materials.
+  agent: faculty_coach
+
+assessment_task:
+  description: >
+    Create a mock self-study report and assessment dashboard for institutional review of {topic} programs.
+  expected_output: >
+    A formatted self-study document and a summary dashboard of metrics.
+  agent: accreditation_liaison
+
+data_analytics_task:
+  description: >
+    Analyze available data related to {topic}. Identify patterns and predict trends.
+  expected_output: >
+    A report with charts, graphs, and strategic data insights.
+  agent: data_scientist
+
+ai_toolkit_task:
+  description: >
+    Suggest AI tools for enhancing education, research, or communication related to {topic}.
+    Include integration guidance.
+  expected_output: >
+    A tool list with pros/cons and an implementation checklist.
+  agent: ai_integrationist
+
+innovation_roadmap_task:
+  description: >
+    Map a digital transformation strategy for {topic}, identifying key technologies and risks.
+  expected_output: >
+    A 1-page roadmap with milestones, resource needs, and mitigation strategies.
+  agent: digital_strategist
+
+community_campaign_task:
+  description: >
+    Develop a community engagement campaign centered on {topic}.
+    Include strategy, sample assets, and outreach guidance.
+  expected_output: >
+    A communications plan and content toolkit.
+  agent: community_builder
+
+dei_strategy_task:
+  description: >
+    Conduct an equity audit and develop a DEI improvement strategy for {topic}.
+  expected_output: >
+    A DEI report with key findings, recommendations, and training resources.
+  agent: dei_advocate
+
+sustainability_task:
+  description: >
+    Propose environmentally sustainable practices and educational tools for {topic}.
+  expected_output: >
+    A sustainability guide and implementation recommendations.
+  agent: sustainability_planner
+
+wellness_initiative_task:
+  description: >
+    Suggest wellness-focused strategies related to {topic} that support students and staff.
+  expected_output: >
+    A wellness initiative proposal with data, resources, and delivery model.
+  agent: wellness_guide

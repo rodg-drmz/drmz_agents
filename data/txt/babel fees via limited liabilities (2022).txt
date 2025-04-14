@@ -1,0 +1,1340 @@
+arXiv:2106.01161v2  [cs.CR]  8 Apr 2022
+Babel Fees via Limited Liabilities
+Manuel M. T. Chakravarty 1, Nikos Karayannidis 2, Aggelos Kiayias 3,4, Michael
+Peyton Jones 5, and Polina Vinogradova 6
+1 IOHK, Utrecht, The Netherlands manuel.chakravarty@iohk.io
+2 IOHK, Athens, Greece nikos.karagiannidis@iohk.io
+3 IOHK, Edinburgh, Scotland
+4 University of Edinburgh, Edinburgh, Scotland akiayias@inf.ed.ac.uk
+5 IOHK, London, England michael.peyton-jones@iohk.io
+6 IOHK, Ottawa, Canada polina.vinogradova@iohk.io
+Abstract. Custom currencies (ERC-20) on Ethereum are wildly pop-
+ular, but they are second class to the primary currency Ether . Custom
+currencies are more complex and more expensive to handle tha n the pri-
+mary currency as their accounting is not natively performed by the un-
+derlying ledger, but instead in user-deﬁned contract code. Furthermore,
+and quite importantly, transaction fees can only be paid in E ther.
+In this paper, we focus on being able to pay transaction fees i n cus-
+tom currencies. We achieve this by way of a mechanism permitt ing short
+term liabilities to pay transaction fees in conjunction with oﬀers of cus-
+tom currencies to compensate for those liabilities. This en ables block
+producers to accept custom currencies in exchange for settl ing liabilities
+of transactions that they process.
+We present formal ledger rules to handle liabilities together with the
+concept of babel fees to pay transaction fees in custom currencies. We
+also discuss how clients can determine what fees they have to pay, and we
+present a solution to the knapsack problem variant that bloc k producers
+have to solve in the presence of babel fees to optimise their p roﬁts.
+1 Introduction
+Custom currencies, usually following the ERC-20 standard, are oneof the most
+popular smart contracts deployed on the Ethereum blockchain. Th ese currencies
+are however second class to the primary currency Ether. Custom tokens are not
+natively traded and accounted for by the Ethereum ledger; instea d, part of the
+logic of an ERC-20 contract replicates this transfer and accountin g functional-
+ity. The second class nature of custom tokens goes further, tho ugh: transaction
+processing and smart contract execution fees can only be paid in Et her — even
+by users who have got custom tokens worth thousands of dollars in their wallets.
+The above two limitations and the disadvantages they introduce see m hard
+to circumvent. After all, it seems unavoidable that custom tokens m ust be issued
+by a smart contract and interacting with a smart contract require s fees in the
+primary currency. Still, recent work addressing the ﬁrst limitation, showed that
+it can be tackled: by introducing native custom tokens (see e.g., [6]) it is possible
+
+2 M. M. T. Chakravarty et al.
+to allow custom tokens to reuse the transfer and accounting logic that is already
+part of the underlying ledger. This is achieved without the need for a global reg-
+istry or similar global structure via the concept of token bundles in combination
+with token policy scripts that control minting and burning of custom tokens.
+Nevertheless, even with native custom tokens, transaction fees still need to be
+paid in the primary currency of the underlying ledger.
+To the best of our knowledge the only known technique to tackle the second
+limitation is in the context of Ethereum: the Ethereum Gas Station Network
+(GSN)7. The GSN attempts to work around this inability to pay fees with cust om
+tokens by way of a layer-2 solution, where a network of relay serve rs accepts fee-
+less meta-transactions oﬀ-chain and submits them, with payment, to the Ether-
+eum network. In return for this service, the GSN may accept paym ent in other
+denominations, such as custom tokens. Meta-transactions have the downside
+that in order to remove trust from intermediaries, custom infrast ructure in every
+smart contract that wants to accept transactions via the GSN is n eeded. This has
+the serious downside that GSN users are only able to engage with the subset of
+the ledger state that explicitly acknowledges the GSN network. Bey ond reducing
+the scope of GSN transactions, this introduces additional complex ity on smart
+contract development including the fact that participating smart c ontracts must
+be pre-loaded with funds to pay the GSN intermediaries for their ser vices.
+Motivated by the above, we describe a solution that lifts this second limita-
+tion of custom tokens entirely and without requiring any modiﬁcation to smart
+contract design. More speciﬁcally, we introduce the concept of babel fees, where
+fee payment is possible in any denomination that another party value s suﬃciently
+to pay the actual transaction fee in the primary currency. Our re quirements for
+babel fees go beyond what GSN oﬀers and are summarized as follows : (1) par-
+ticipants that create a babel fee transaction should be able to cre ate a normal
+transaction, which will be included in the ledger exactly as is (i.e., no nee d for
+meta-transactions or specially crafted smart contract infrastr ucture) and (2) the
+protocol should be non-interactive in the sense that a single messa ge from the
+creator of a transaction to the participant paying the fee in the pr imary currency
+should suﬃce. In other words, we want transaction creation and s ubmission to be
+structurally the same for transactions with babel fees as for reg ular transactions.
+Our implementation of babel fees is based on a novel ledger mechanis m, which
+we call limited liabilities. These are negative token amounts (debt if you like) of
+strictly limited lifetime. Due to the limited lifetime of liabilities, we prevent a ny
+form of inﬂation (of the primary currency and of custom tokens).
+Transactions paid for with babel fees simply pay their fees with prima ry
+currency obtained by way of a liability. This liability is combined with custo m
+tokens oﬀered to any party that is willing to cover the liability in exchan ge for
+receiving the custom tokens. In the ﬁrst instance, this allows block producers to
+process transactions with babel fees by combining them with a seco nd fee paying
+transaction that covers the liability and collects the oﬀered custom tokens. More
+generally, more elaborate matching markets can be set up.
+7 https://docs.opengsn.org/
+
+Babel Fees via Limited Liabilities 3
+We describe native custom tokens and liabilities in the context of the U TXO
+ledger model. However, our contribution is more general and we ske tch in Ap-
+pendix C how it can be adapted for an account-based ledger. In sum mary, this
+paper makes the following contributions:
+– We introduce the concept of limited liabilities as a combination of nega-
+tive values in multi-asset token bundles with batched transaction pr ocessing
+(Section 2).
+– We introduce the concept of babel fees on the basis of limited liabilities as
+a means to pay transaction fees in tokens other than a ledger’s prim ary
+currency (Section 2).
+– We present formal ledger rules for an UTXO multi-asset ledger with lim ited
+liabilities (Section 3).
+– We present a concrete spot market scheme for block producers t o match
+babel fees (Section 4).
+– We present a solution to the knapsack problem that block producer s have
+to solve to maximise their proﬁt in the presence of babel fees (Sect ion 5).
+We discuss related work in Section 6.
+2 Limited liabilities in a Multi-Asset Ledger
+To realise babel fees by way of liabilities, we require a ledger that supports
+multiple native assets — i.e., a number of tokens accounted for by the ledger’s
+builtin accounting. Moreover, one of these native tokens is the primary currency
+of the ledger. The primary currency is used to pay transaction fee s and may
+have other administrative functions, such as staking in a proof-of -stake system.
+2.1 Native custom assets
+To illustrate limited liabilities and Babel fees by way of a concrete ledgermodel,
+we use the UTXO ma ledger model [6] — an extension of Bitcoin’s unspent trans-
+action output (UTXO) model to natively support multiple assets. 8 For reference,
+we list the deﬁnitions of that ledger model in Appendix A, with the exce ption
+of the ledger rules that we discuss in the following section. To set the stage, we
+summarise the main points of the ledger model deﬁnitions in the followin g.
+We consider a ledger l to be a list of transactions [ t1, . . . , t n]. Each of these
+transactions consists of a set of inputs is, a list of outputs os, a validity interval
+vi, a forge ﬁeld valueforge, a set of asset policy scripts ps, and a set of signatures
+sigs. Overall, we have
+t = ( inputs : is, outputs : os, validityInterval : vi,
+forge : valueforge, scripts : ps, sigs : sigs)
+8 The UTXO ma ledger model is in-production use in the Cardano blockchain .
+
+4 M. M. T. Chakravarty et al.
+The inputs refer to outputs of transactions that occur earlier onthe ledger —
+we say that the inputs spend those outputs. The outputs, in turn, are pairs of
+addresses and values: ( addr : a, value : v), where addr is the hash of the public
+key of the key pair looking that output and value is the token bundle encoding the
+multi-asset value carried by the output. We don’t discuss script-loc ked outputs
+in this paper, but they can be added exactly as described in [5].
+Token bundles are, in essence, ﬁnite maps that map an asset ID to a quantity
+— i.e., to how many tokens of that asset are present in the bundle in qu estion.
+The asset ID itself is a pair of a hash of the policy script deﬁning the as set’s
+monetary policy and a token name, but that level of detail has no re levance to
+the discussion at hand. Hence, for all examples, we will simply use a ﬁn ite map
+of assets or tokens to quantities — e.g., {wBTC ↦→0.5, MyCoin ↦→5, nft ↦→1}
+contains 0 .5 wrapped Bitcoin, ﬁve MyCoin and one nft.
+The forge ﬁeld in a transaction speciﬁes a token bundle of minted (positive)
+and burned (negative) tokens. Each asset occurring in the forge ﬁeld needs to
+have its associated policy script included in the set of policy scripts ps. Moreover,
+the sigs ﬁelds contains all signatures signing the transaction. These signat ures
+need to be suﬃcient to unlock all outputs spent by the transaction ’s inputs is.
+Finally, the validity interval speciﬁes a time frame (in an abstract unit of ticks
+that is dependent on the length of the ledger) in which the transact ion may be
+admitted to the ledger.
+We call the set of all outputs that (1) occur in a transaction in ledge r l and
+(2) are not spent by any input of any transaction in l the ledger’s UTXO set —
+it constitutes the ledger’s state.
+2.2 Limited liabilities
+In a UTXO, the value for a speciﬁc token in a token bundle is always positive. In
+other words, the value component of a UTXO is always a composition o f assets.
+It cannot include a debt or liability. We propose to locally change that.
+Liabilities We call a token in a token bundle that has a negative value a liability.
+In other words, for a token bundle value and asset a, if value(a) < 0, the bundle
+value includes an a-liability.
+Transaction batches In order to prevent liabilities appearing on the ledger
+proper, we do not allow the state of a fully valid ledger to contain UTXO s
+whose value includes a liability. We do, however, permit the addition of m ultiple
+transactions at once to a valid ledger, as long as the resulting ledger is again fully
+valid; i.e., it’s UTXO set is again free of liabilities. We call a sequence of mult iple
+transactions ts, which are being added to a ledger at once, a transaction batch.
+A transaction batch may include transaction outputs with liabilities as long as
+those liabilities are resolved by subsequent transactions in the same batch.
+
+Babel Fees via Limited Liabilities 5
+Consider the following batch of two transactions:
+t1 = ( inputs : is,
+outputs : [( addr : ∅, value : {T1 ↦→−5, T2 ↦→10}),
+(addr : κ1, value : {T1 ↦→5})],
+validityInterval : vi, forge : 0 , scripts : {}, sigs : sigs)
+t2 = ( inputs : {(outputRef : ( t1, 0), key : ∅), iT1 },
+outputs : [( addr : κ2, value : {T2 ↦→10})],
+validityInterval : vi, forge : 0 , scripts : {}, sigs : sigs′)
+The ﬁrst output of transaction t1 may be spend by anybody ( addr = ∅). It
+contains both a liability of −5T1 and an asset of 10 T2. The second transaction
+t2 spends that single output of t1 and has a second input iT1 , which we assume
+consumes an output containing 5 T1, which is suﬃcient to cover the liability.
+Overall, we are left with 5 T1 exposed in t1’s second output and locked by κ1
+as well as 10 T2, which t2 exposes in its single output, locked with the key κ2.
+Both transactions together take a fully valid ledger to a fully valid ledg er as the
+liability is resolved within the transaction batch.
+We have these two facts: (a) we have one transaction resolving th e liability
+of another and (b) liabilities are not being permitted in the state of a f ully
+valid ledger. Consequently, transaction batches with internal liabilit ies are either
+added to a ledger as a whole or all transactions in the batch are reje cted together.
+This in turn implies that, in a concrete implementation of liabilities in a ledge r
+on a blockchain, the transactions included in one batch always need t o go into
+the same block. A single block, however, may contain several comple te batches.
+Pair production Liabilities in batches enable us to create transactions that
+temporarily (i.e., within the batch) inﬂate the supply of a currency. F or example,
+consider a transaction t with two outputs o1 and o2, where o1 contains 5000 T
+and o2 contains −5000T . While value is being preserved, we suddenly do have a
+huge amount of T at our disposal in o1. In loose association with the somehow
+related phenomenon in quantum physics, we call this pair production — the
+creation of balancing positive and negative quantities out of nothing .
+As all liabilities are conﬁned to one batch of transactions only, this do es not
+create any risk of inﬂation on the ledger. However, in some situation s, it can still
+be problematic as it may violate invariants that an asset’s policy script tries to
+enforce. For example, imagine that T is a role token [5] — i.e., a non-fungible,
+unique token that we use to represent the capability to engage with a contract. In
+that case, we surely do not want to support the creation of additio nal instances
+of the role token, not even temporarily.
+In other words, whether to permit pair production or not depends on the asset
+policy of the produced token. Hence, we will require in the formal led ger rules,
+discussed in Section 3, that transactions producing a token T always engage T ’s
+asset policy to validate the legitimacy of the pair production.
+
+6 M. M. T. Chakravarty et al.
+2.3 Babel fees
+Now, we are ﬁnally in a position to explain the concrete mechanism underlying
+babel fees. The basic idea is simple: assume a transaction t that attracts a fee of
+x C (where C is the ledger’s primary currency), which we would like to pay in
+custom currency T . We add an additional babel fee output obabel with a liability
+to t : obabel = {C ↦→−x, T ↦→y}. This output indicates that we are willing to
+pay y T to anybody who pays the x C in return. Hence, anybody who consumes
+obabel will receive the y T , but will at the same time have to compensate the
+liability of −x C . The two are indivisibly connected through the token bundle.
+Thus, we may view a token bundle that combines a liability with an asset a s a
+representation of an atomic swap.
+The transaction t can, due to the liability, never be included in the ledger
+all by itself. The liability −x C does, however, make a surplus of x C available
+inside t to cover t’s transaction fees.
+To include t in the ledger, we need a counterparty to whom y T is worth at
+least x C . That counterparty batches t with a fee paying transaction tfee that
+consumes obabel. In addition, tfee will have to have another input from which it
+derives the x C together with its own transaction fee, all out of the counterpart y’s
+assets. The transaction tfee puts the y T , by itself, into an unencumbered output
+for subsequent use by the counterparty. Finally, the counterpa rty combines t and
+tfee into a transaction batch for inclusion into the ledger.
+In Section 4, we will outline a scheme based on Babel fees and fee pay ing
+transactions, where block producing nodes act as fee paying coun terparties for
+transactions that oﬀer Babel fees in the form of custom tokens t hat are valuable
+to those block producer. They do so, on the ﬂy, in the process of b lock production.
+2.4 Other uses liabilities and liabilities on account-base d ledgers
+Due to space constraints, we relegate a discussion of other uses o f liabilities
+to Appendix B. Moreover, Appendix C describes how limited liabilities can be
+realised on an account-based ledger.
+3 Formal ledger rules for limited liabilities
+In this section, we formalise the concept of limited liabilities by building onthe
+UTXOma ledger; i.e., the UTXO ledger with custom native tokens as introduced
+in existing work [6]. To add support for limited liabilities, we modify the ledg er
+rules in three ways:
+1. The original UTXO ma rules are deﬁning ledger validity by adding transac-
+tions to the ledger one by one. We extend this by including the ability to
+add transactions inbatches; i.e., multiple transactions at once.
+2. We drop the unconditional per-transaction ban on negative valu es in trans-
+action outputs and replace it by the weaker requirement that ther e remain
+no negative values at the fringe of a batch of transactions. In oth er words,
+
+Babel Fees via Limited Liabilities 7
+liabilities are conﬁned to occur inside a batch and are forced to be res olved
+internally in the batch where they are created.
+3. We amend the rules about the use of policy scripts such that the s cript of
+a token T is guaranteed to be run in every transaction that increases the
+supply of T .
+In this context, the supply of a token T in a given transaction t is the amount
+of T that is available to be locked by outputs of t. If that supply is larger than
+the amount of T that is consumed by all inputs of t taken together, then we
+regard t as increasing the supply. This may be due to forging T or due to pair
+production (as discussed in Section 2.2).
+3.1 Validity
+In the original UTXOma ledger rules, we extend a ledger l with one transaction
+t at a time. In the UTXO ll ledger rules (UTXO ma with limited liabilities), we
+change that to add transactions in a two stage process that supp orts the addition
+of batches of transactions ts with internal liabilities:
+1. We modify the deﬁnition of the validity of a transaction t in a ledger l from
+UTXOma, such that it gives us conditional validity of t in l for UTXO ll as
+deﬁned in Figure 1.
+2. We deﬁne validity of a batch of one or more transactions ts by way of the
+conditional validity of the individual t ∈ts together with the batch validity
+of ts in ledger l.
+We describe the details of these two stages in the following.
+3.2 Stage 1: conditional validity
+Conditional validity in UTXOll is deﬁned very much like full validity in UTXO ma.
+Figure 1 deﬁnes the conditions for transactions and ledgers to be c onditionally
+valid, which are mutually dependent. The deﬁnitions in Figures 1 and 2 a re
+based on the ledger formalisation introduced for UTXO ma [6]. We do not repeat
+this formalisation here to favour conciseness, but summarise it in Ap pendix A
+for ease of reference.
+Deﬁnition 1 (Conditional validity of transactions and ledgers). A trans-
+action t ∈Tx is conditionally valid for a conditionally valid ledger l ∈Ledger
+during tick currentTick if t abides by the conditional validity rules of Figure 1,
+using the auxiliary functions summarised in Figure 2.
+A ledger l ∈Ledger, in turn, is conditionally valid if either l is empty or l is of
+the form t :: l′with l′being a conditionally valid ledger and t being conditionally
+valid for l′.
+Figure 1 highlights the two changes that we are making to the UTXO ma
+rules: ﬁrstly, we struck out Rule (2), and secondly, we changed Ru le (8) in two
+
+8 M. M. T. Chakravarty et al.
+1. The current tick is within the validity interval
+currentTick ∈ t. validityInterval
+2. All outputs have non-negative values
+For all o ∈ t. outputs, o. value ≥ 0
+3. All inputs refer to unspent outputs
+{i. outputRef : i ∈ t. inputs} ⊆ unspentOutputs(l).
+4. Value is preserved
+t. forge +
+∑
+i∈ t.inputs
+getSpentOutput(i, l ) =
+∑
+o∈ t.outputs
+o. value
+5. No output is locally double spent
+If i1, i ∈ t. inputs and i1. outputRef = i. outputRef then i1 = i.
+6. All inputs validate
+For all i ∈ t. inputs, there exists sig ∈ t.sigs, verify(i. key, sig, txId(t))
+7. Validator scripts match output addresses
+For all i ∈ t. inputs, keyAddr(i. key) = getSpentOutput(i, l ). addr
+8. Forging
+♦A transaction which changes the supply —i.e., changedSupply(t, l ) ̸= {}— is only
+valid if either:
+(a) the ledger l is empty (that is, if it is the initial transaction).
+(b) ♦ for every policy ID h ∈ changedSupply(t, l ), there exists s ∈ t. scripts with
+h = scriptAddr(s).
+9. All scripts validate
+For all s ∈ t. scripts,
+/llbrackets/rrbracket(scriptAddr(s), t, {getSpentOutput(i, l ) | i ∈ t. inputs}) = true
+Fig. 1: Conditional validity of a transaction t in a ledger l permitting liabilities
+places marked with ♦ . The removal of Rule (2) permits liabilities in the ﬁrst
+place. Outputs may now contain negative values and, if they do, the associated
+transaction is merely conditionally valid. Full validity is now conditional o n
+resolving all liabilities from other transactions that are added in the s ame batch.
+Moreover, the change to Rule (8) ensures that transactions tha t change the
+supply of a token under a policy s with script address h do run the policy script
+s, regardless of whether the change in supply is due to a non-empty f orge ﬁeld
+t.forge or due to pair production. In either case, the script is guaranteed an
+
+Babel Fees via Limited Liabilities 9
+– output references provided by a transaction
+unspentTxOutputs: Tx → Set[OutputRef]
+unspentTxOutputs(t) = {(txId(t), 1), . . . , (txId(id), |t.outputs |)}
+– a ledger’s UTXO set
+unspentOutputs: Ledger → Set[OutputRef]
+unspentOutputs([]) = {}
+unspentOutputs(t :: l) = ( unspentOutputs(l) \ t. inputs) ∪ unspentTxOutputs(t)
+– the outputs spent by the given set of transaction inputs
+getSpentOutput: Input × Ledger → Output
+getSpentOutput(i, l ) = llookupTx(l, i. outputRef . id). outputs[i. outputRef . index ]
+– policy IDs of assets whose amount varies
+policiesWithChange: Quantities × Quantities → Set[PolicyID]
+policiesWithChange(val1, val2) = {a.pid | a ∈ supp(val1 − val2)}
+– policy IDs whose supply changed in the transaction
+changedSupply: Tx × Ledger → Set[PolicyID]
+changedSupply(t, l ) =
+policiesWithChange(∑
+o∈ getSpentOutput(t.inputs) o.value +, ∑
+o∈ t.outputs o.value +) ∪
+policiesWithChange(∑
+o∈ getSpentOutput(t.inputs) o.value − , ∑
+o∈ t.outputs o.value − )
+where
+value+(a) = if value(a) > 0 then value(a) else 0
+value− (a) = if value(a) < 0 then value(a) else 0
+Fig. 2: Auxiliary validation functions
+opportunity to validate that the increase in supply abides by the rule s enforced
+by the token policy. In other words, transactions that contain su pply changes
+that violate the associated token policy are guaranteed to be reje cted.
+Changed supply. The change in supply is computed with the help of the
+function changedSupply(t, l) (deﬁned in Figure 2) that, for a given ledger l, de-
+termines all policy script hashes h that control an asset whose supply is changed
+by the transaction t. Such a change may be due to the minting or burning of
+assets in the transactions forge ﬁeld t.forge or it may be due to pair production,
+as discussed in Section 2.2. The function changedSupply spots supply changes by
+comparing the quantity of assets and asset liabilities in the inputs and outputs of
+a transaction. It uses the helper functions value+ and value−to ﬁlter all positive
+(assets) and negative (liabilities), respectively, out of a token bun dle.
+Script validation. Rule (8) uses the set of hashes of policy scripts computed
+by changedSupply to check that all the corresponding scripts are included in the
+t.scripts ﬁeld. The scripts in t.scripts are exactly those that Rule (9) executes.
+
+10 M. M. T. Chakravarty et al.
+Note that the primary currency of the ledger may require a special case in
+this rule. The total supply of the primary currency may be constan t as part of
+the ledger implementation, and therefore its minting policy will always f ail to
+validate, even in the case of producing and consuming transient deb t. This may
+be addressed in (among others) one of the following ways: either mo dify the
+policy to speciﬁcally allow pair production of the primary currency, or modify
+this rule to not check the primary currency policy at all.
+3.3 Stage 2: batch validity
+For a ledger to be valid, we require that it is conditionally valid and that its
+state (i.e., the set of unspent outputs) does not contain any nega tive quantities.
+Deﬁnition 2 (Ledger validity). A ledger l : Ledger is (fully) valid if l is
+conditionally valid and also, for all, o ∈unspentOutputs(l), o.value ≥0.
+On that basis, we deﬁne the validity of a batch of transactions ts for a valid
+ledger l.
+Deﬁnition 3 (Validity of a batch of transactions). A batch of transactions
+ts : List[Tx] is (fully) valid for a valid ledger l : Ledger if ts + +l is a fully valid
+ledger.
+4 Implementing Babel Fees
+In this section, we describe a concrete spot market, where userscan exchange
+custom tokens via the babel fees mechanism described in Section 2.3 . This spot
+market comprises a set of sellers S = {s1, s2, ..., sn}and a set of buyers9 B =
+{b1, b2, ..., bm}. Sellers sell bundles of custom tokens to buyers, who in return
+provide primary tokens to cover the fees incurred by the transac tions submitted
+by the sellers to the network.
+4.1 Babel oﬀers
+In this context, a transaction with a babel fee output (as per Section 2.3) essen-
+tially constitutes an oﬀer — speciﬁcally, the oﬀer to obtain a speciﬁed amount
+of custom tokens by paying the liability in primary tokens included in the babel
+fee output. We deﬁne such oﬀers as follows.
+Deﬁnition 4.We deﬁne a babel oﬀer to be a tuple of the form:
+BabelOﬀer def= ( Txid , TName, TAmount, Liability)
+where Tx id is a unique identiﬁer of the transaction containing the babe l fee out-
+put, TName is a string corresponding to the name of a custom to ken, TAmount
+9 Buyers in this market are the block issuers of the blockchain.
+
+Babel Fees via Limited Liabilities 11
+is a positive integer ∈Z+ corresponding to the amount of tokens oﬀered and
+Liability is a negative integer ∈Z− corresponding to the amount in primary
+tokens that has to be paid for obtaining the tokens.
+Sellers produce such babel oﬀers, which are then published to the network and
+are visible to all buyers.
+4.2 Exchange rates
+In our model, we assume that the spot market of babel oﬀers operates in distinct
+rounds10. In every round, a buyer is selected from the set B at random. The
+selected buyer has the opportunity to accept some of the outsta nding oﬀers by
+paying the corresponding liabilities. The rational buyer chooses the oﬀers that
+maximise her utility function, which we elaborate in Section 5.
+In order to help sellers to make attractive oﬀers, we assume that e very buyer
+i, i = 1 , 2, ..., m publishes a list Li[(Tj , XRj )] of exchange rates XRj for every
+exchangeable custom token Tj, j = 1 , ..., k. The list of exchange rates from all
+buyers BL[i] = Li, i = 1 , ..., m is available to all sellers s ∈S. Note that the
+buyer can set XRj = + ∞if they don’t accept the token.
+Given a speciﬁc babel oﬀer g = ( tg, (tokenA, amountA, liabilityA)) oﬀering
+an amount of a custom token tokenA, and assuming that there is only a single
+buyer b with a published exchange rate for tokenA equal to XRA = tokenA
+primary token,
+an attractive oﬀer should adhere the inequality: amountA ≥|liabilityA|XRA.
+Naturally, an oﬀer gets more attractive to the degree that exces s tokens are
+oﬀered over the minimum needed to meet the exchange rate for the liability.
+4.3 Coverage
+To generalise to the case wherem possible buyers express an interest in tokenA,
+we need to consider the following question: how many tokenA does a seller need
+to oﬀer to ensure that P % buyers consider the oﬀer attractive?
+The seller has to choose the cheapest Pth percentile from the available ex-
+change rates listed for tokenA, which by deﬁnition is satisﬁed by an eﬀective
+exchange rate that is greater than P % of the published exchange rates. In other
+words, for the oﬀer g from above to be attractive to P % of buyers, the seller
+needs to choose the amount for tokenA as follows:
+amountA ≥|liabilityA|percentile(P, tokenA, BL) (1)
+where percentile(P, tokenA, BL) is the lowest exchange rate for tokenA, such
+that it is still greater than P % of the exchange rates listed for that token in the
+exchange rate table BL. In this case, we say that the oﬀer g has P % coverage.
+For example, assume a liability of 0 .16 primary tokens and a set of 10
+buyers with the following published exchange rates for tokenA, BLtokenA =
+{1.63, 1.38, 3.00, 1.78, 2.00, 1.81}. If a seller wants to ensure that more than 70%
+10 In practice this can be the block-issuing rounds.
+
+12 M. M. T. Chakravarty et al.
+of the buyers will consider her oﬀer, she computes the 70th percentile of the
+exchange rates, which is 2 .00. Thus, the seller knows that she has to oﬀer at
+least 0 .16 ×2.00 = 0 .32 of tokenA.
+4.4 Liveness
+Consider a babel oﬀer that is published to the network and assume that there
+is at least one party bi (buyer) that is attracted by this oﬀer. The interested
+party will then create a transaction batch txb (see Section 2.2) that covers the
+liability and will publish it to the network with the expectation that this w ill
+(eventually) be included into a block and be published in the ledger implem ented
+by the blockchain. Therefore, it is crucial to ensure censorship resilience for our
+Babel oﬀers and show that our spot market for Babel oﬀers enjo ys the property
+of liveness [10].
+If bi is selected as a block issuer, then she will include the transaction bat ch
+in the block she will create and thus liveness is preserved. However, if bi is
+never selected as a block issuer (or is selected with a very low probab ility),
+then we must ensure the accepted oﬀer will eventually be included int o the
+blockchain. In the following analysis, we distinguish between two case s: a) The
+case where all buyers are acting rationally (but not maliciously) and b ) the case
+where a percent of the buyers are controlled by a malicious adversa ry party. Our
+detailed analysis is presented in Appendix D and has shown that our sp ot market
+indeed enjoys liveness, if the buyers are rational players trying to maximize their
+proﬁt. Moreover, in the case of adversary players, if honest maj ority holds and
+a Babel oﬀer attracts at least one honest player, then the accep ted oﬀer will be
+(eventually) published in the blockchain and thus liveness is preserve d.
+5 Transaction Selection for Block Issuers
+A block issuer constructs a block of transactions by choosing froma set of
+available transactions called the mempool. A rational block issuer tries to max-
+imize her utility. In our case, we assume that this utility is a value, corr e-
+sponding to the amount of primary currency earned by this block. T hese earn-
+ings come from the transaction fees paid either in primary currency or cus-
+tom tokens. Hence we assume the existence of a utility function of t he form:
+utility :: CandidateBlock →V alue , where CandidateBlock is a list of transac-
+tions CandidateBlock def= List[CandidateT ransaction ] and Value is an amount
+∈Z+ of primary currency at the lowest denomination.
+5.1 The value of Babel oﬀers
+A candidate transaction residing in the mempool and waiting to be included in a
+block can be either a (single) transaction or a transaction batch (s ee Section 2.2).
+In the following, we deﬁne the concept of a candidate transaction :
+
+Babel Fees via Limited Liabilities 13
+Deﬁnition 5. A candidate transaction residing in the mempool is deﬁned as
+quadruple:
+CandidateTransactiondef= ( Txid , Value, Liability, Size)
+where Tx id is a unique identiﬁer of a transaction (or a transaction batc h) in
+the mempool, Value for the case of transactions corresponds to the transaction
+fees expressed in the primary currency, while for the case of transaction batches,
+it corresponds to the total value of the obtained custom toke ns expressed as an
+amount in the primary currency. In the case of transaction ba tches, Liability ∈
+Z− is the amount expressed in the primary currency that has to be paid for
+covering this liability. In the case of transactions, it equ als zero. Finally, Size is
+the total size of the transaction, or the transaction batch a s a whole, expressed
+in bytes.
+We assume the existence of a function that can transform a Babel oﬀer
+(Deﬁnition 4) into a candidate transaction batch: batchVal :: BabelOﬀer →
+CandidateTransaction. We need this function in order to be able to express the
+value of the obtained custom tokens in primary currency, so that B abel oﬀers
+are comparable to the transaction fees of conventional transac tions. Any such
+conversion function might be chosen by the block issuer based on he r business
+logic of how to evaluate a speciﬁc oﬀer. In particular, one reasonab le approach
+to deﬁning the conversion function is the following:
+Value =
+∑
+∀token∈BabelOﬀer
+TAmount nominalVal
+|Liability per token |nominalVal
+=
+∑
+∀token∈BabelOﬀer
+(TAmount ×nominalVal)2
+|Liability|
+The nominal value of the token, nominalVal, is essentially the current rate
+primary currency
+custom token ; i.e., it expresses what amount of primary currency one cus-
+tom token is worth. Therefore, if the exchange rate between a cu stom token T
+and the primary currency A is 3 : 1, then nominalVal = 0 .33A. Of course, this
+rate is dynamic and it is determined by market forces just like with ﬁat curren-
+cies and Bitcoin fees. We assume that this information is available to th e block
+producer, when they need to select candidate transactions from the mempool to
+include in a new block. In fact, block issuers can publish exchange rat es for spe-
+ciﬁc tokens they consider acceptable (as discussed in see Section 4 ). Intuitively,
+the higher the nominal value, the more valuable the token is to the blo ck issuer.
+Hence, whenever a block issuer tries to assemble a block they face t he fol-
+lowing optimization problem:
+Deﬁnition 6.The transaction selection problem T xSelection (n, SB, M, R ) is
+the problem of ﬁlling a candidate block of size SB, with a subset Bn ⊆ M
+of n available candidate transactions M = {tx1, tx2, ..., txn}, where we use
+Bn ⊆ {1, 2, .., n}, without spending more than a reserve R of available pri-
+mary currency on liabilities, in such a way that utility (Bn ) ≥ utility(B′
+n ) ∀
+
+14 M. M. T. Chakravarty et al.
+blockB′
+n ⊆M. Every candidate transaction txi = ( i, vi, li, si), for i = 1 , ..., n
+is deﬁned according to Deﬁnition 5 and has a ﬁxed liability li and size si in
+bytes. We assume that the value of a candidate transaction th at corresponds
+to a Babel oﬀer is not ﬁxed; instead, it decreases (just as its desirability) as
+we select candidate transactions oﬀering the same custom to ken for the block.
+Thus, the value vi of a candidate transaction is expressed as a function of what
+has already been selected for the block, vi(Bi−1) : CandidateBlock →Value,
+where Bi−1 ⊆{1, 2, ..., i −1}and vi(∅) = vio is the initial value of the oﬀer
+and 0 ≤vi(Bi−1) ≤voi. Finally, the utility function that we want to maxi-
+mize is deﬁned as utility = ∑
+i∈Bn vi(Bi−1), where Bi−1 is the solution to the
+T xSelection (i −1, SB −∑ n
+j=i sj , M −{i, ..., n}, R −∑ n
+j=i lj ) problem.
+5.2 Dynamic programming
+We start with the presentation of an an optimal solution to the transaction se-
+lection problem. It is a variation of the dynamic programming solution t o the
+0-1 knapsack problem [9]. It is important to note that we want conve ntional
+transactions and transaction batch oﬀers to be comparable only with respect
+to the value oﬀered and their size. We do not want to view liability as ano ther
+constraint to the knapsack problem, because this would favor zer o liability candi-
+date transactions (i.e., conventional transactions) over Babel o ﬀers. The liability
+aspect of the oﬀer has already been considered in the value calculat ion of the
+conversion function from a BabelOffer to a CandidateTransaction, as shown
+in the indicative conversion formula above.
+5.3 Optimal algorithm of the transaction selection problem
+The optimal algorithm presented in Algorithm 1 proceeds as follows. Initially,
+we order the candidate transactions of M in descending order of their (initial)
+value per size ratio vio/si, i = 1 , 2, ...n. We maintain an array U[i], i = 1 , 2, ...n.
+Each entry U[i] is a list of tuples of the form ( ts, tv, r, b). A tuple ( ts, tv, r, b)
+in the list U[i] indicates that there is a block B assembled from the ﬁrst i
+candidate transactions that uses space exactly ts ≤SB, has a total value exactly
+utility(B) = tv ≤∑ n
+i=1 voi, has a residual amount of primary currency to be
+spent on liabilities exactly r ≤ R and has a participation bit b indicating if
+transaction i is included in B, or not.
+This list does not contain all possible such tuples, but instead keeps t rack of
+only the most eﬃcient ones. To do this, we introduce the notion of on e tuple dom-
+inating another one; a tuple ( ts, tv, r, b) dominates another tuple ( t′
+s, t′
+v, r′, b′), if
+ts ≤t′
+s and tv ≥t′
+v; that is, the solution indicated by the tuple ( ts, tv, r, b) uses
+no more space than ( t′
+s, t′
+v, r′, b′), but has at least as much value. Note that dom-
+ination is a transitive property; that is, if ( ts, tv, r, b) dominates ( t′
+s, t′
+v, r′, b′) and
+(t′
+s, t′
+v, r′, b′) dominates ( t′′
+s, t′′
+v, r′′, b′′), then ( ts, tv, r, b) also dominates ( t′′
+s, t′′
+v, r′′, b′′).
+We will ensure that in any list, no tuple dominates another one; this me ans that
+we can assume each list U[i] is of the form [( ts1, tv1, r1, b1), ..., (tsk, tvk , rk, bk)]
+
+Babel Fees via Limited Liabilities 15
+with ts1 < t s2 < ... < t sk and tv1 < t v2 < ... < t vk . Since every list U[i], i =
+1, 2, ..., n does not include dominating tuples and also the sizes of the transac-
+tions are integers and so are their values, then we can see that the maximum
+length of such a list is min(SB + 1, Vo + 1), where Vo = ∑ n
+i=1 voi.
+Algorithm 1 starts out with the initialization of list U[1] (line 2) and then
+iterates through all n−1 transactions (lines 3-10). In each iteration j, we initially
+set U[j] ←−U[j −1] after turning oﬀ the participation bit in all tuples (lines
+4-5). Then for each tuple ( ts, tv, r, b) ∈U[j −1], we also add the tuple ( ts +
+sj , tv + vj (Bj−1), r −lj , 1) to the list, if ts + sj ≤SB ∧r −lj ≥R; that is, if by
+adding transaction j to the corresponding subset, we do not surpass the total
+available size SB and do not deplete our reserve R for liabilities (lines 6-9). Note
+that the value of transaction j at this point is determined by the contents of
+the corresponding block Bj−1 through the function call vj (Bj−1). To this end,
+in lines 14-22 we provide a function that returns the block correspo nding to a
+speciﬁc tuple. We ﬁnally remove from U[j] all dominated tuples by sorting the
+list with respect to their space component, retaining the best value for each
+space total possible, and removing any larger space total that do es not have a
+corresponding larger value (line 10). We return the maximum total v alue from
+the list U[n] along with the corresponding block Bn (lines 11-13).
+Theorem 1. Algorithm 1 correctly computes the optimal value for the tra nsac-
+tion selection problem.
+The proof of the theorem is contained in Appendix E.
+5.4 Polynomial approximation
+Since we iterate through all availablen transactions and in each iteration we
+process a list of length min(SB + 1 , Vo + 1), where Vo = ∑ n
+i=1 voi, we can see
+that algorithm 1 takes O(n min (SB, Vo)) time. This is not a polynomial-time
+algorithm, since we assume that all input numbers are encoded in bina ry; thus,
+the size of the input number SB is essentially log2SB, and so the running time
+O(nSB ) is exponential in the size of the input number SB, not polynomial. Based
+on the intuition that if the maximum value Vo was bounded by a polynomial in
+n, the running time will indeed be a polynomial in the input size, we now pro pose
+an approximation algorithm for the transaction selection problem th at runs in
+polynomial time and is based on a well-known fully polynomial approximat ion
+scheme of the 0-1 knapsack problem [13].
+The basic intuition of the approximation algorithm is that if we round th e (in-
+teger) values of the candidate transactions to v′
+i(Bi−1) = ⌊vi(Bi−1)/µ⌋, where
+0 ≤ v′
+i(Bi−1) ≤ ⌊vio/µ⌋ = v′
+io and run Algorithm 1 with values v′
+i instead
+of vi, then by an appropriate selection of µ, we could bound the maximum
+value V ′
+o = ∑ n
+i=1 v′
+io by a polynomial in n and return a solution that is at
+least (1 −ǫ) times the value of the optimal solution (OPT). In particular, if
+we choose µ = ǫvomax/n, where vomax is the maximum value of a transac-
+tion; that is, vomax = maxi∈M (voi). Then, for the total maximum value V ′
+o ,
+
+16 M. M. T. Chakravarty et al.
+Algorithm 1: Transaction selection algorithm for a block (Optimal
+Solution).
+Input: A set M of candidate transactions M = {tx1, tx2, ..., tx n}, where
+txi = ( i, vi(Bi−1), li, si) for i = 1 , ..., n according to deﬁnition 5
+Input: An amount of primary currency available for covering liabil ities, called the reserve
+R.
+Input: An available block size SB
+Input: A utility function util = ∑
+i∈Bn vi(Bi−1)
+Output: (B, util(B), res): A candidate block B ⊆M such that
+util(B) > util (B′ )∀B′ ⊆M, the value of this block ( util(B)) and a residual
+amount res from the reserve R such that res ≥0
+/* Assume array U[i]: Array[List[(Size, Value, Liability, Bit)]], i = 1 , ...n */
+1 order transactions in M in descending order of vio/si, i = 1 , 2..., n
+2 U[1] ←−[(0, 0, R, 0), (s1, v1o, R −l1, 1)]
+3 for j = 2 to n do
+4 baseList ←−copy list U[j −1] with zero participation bits for all tuples
+5 U[j] ←baseList
+6 foreach (ts, tv , r, b) ∈baseList do
+7 if ts + sj ≤SB ∧r −lj ≥R then
+8 Bj−1 ←−getBlock(U, j −1, ts)
+9 Add tuple ( ts + sj , tv + vj (Bj−1), r −lj , 1) to U[j]
+10 Remove dominating pairs from list U[j]
+11 (Sfinal , Vmax, residual, b ) ←−max(s,v,r)∈U[n](v)
+12 Bn ←−getBlock(U, n, S final )
+13 return ( Bn, Vmax, residual)
+// -----------------------------------------------------------------
+14 getBlock(U: Array[List[(Size, Value, Liability, Bit)]], n:T xid, tsn: Size) return
+CandidateBlock
+15 B ←−[]
+16 ts ←−tsn
+17 for i = n down to 1 do
+18 (tsi, tvi, ri, bi) ←−getT uple(U[i], ts)
+19 if bi == 1 then
+20 B ←−i : B // ":" is list construction
+21 ts ←−ts −tsi
+22 return B
+we have V ′
+o = ∑ n
+i=1 v′
+io = ∑ n
+i=1⌊ vio
+ǫvomax/n ⌋ = O(n2/ǫ). Thus, the running
+time of the algorithm is O(n min (SB, V ′
+o )) = O(n3/ǫ) and is bounded by a
+polynomial in 1 /ǫ. Algorithm 2 comtains our approximate algorithm for the
+transaction selection problem. Essentially, we run algorithm 1 for th e prob-
+lem instance TxSelection(n, SB, M ′, R), where M′ = {tx′
+1, tx′
+2, ..., tx′
+n}, and
+tx′
+i = ( i, v′
+i(Bi−1), li, si) for i = 1 , ..., n We can now prove that this algorithm
+returns a solution whose value is at least (1 −ǫ) times the value of the optimal
+solution.
+Theorem 2.Algorithm 2 provides a solution which is at least (1 −ǫ) times the
+value of OPT.
+The proof of the theorem is in Appendix F.
+
+Babel Fees via Limited Liabilities 17
+Algorithm 2: Transaction selection algorithm for a block (Approximate
+Solution).
+Input: A set M of candidate transactions M = {tx1, tx2, ..., tx n}, where
+txi = ( i, vi(Bi−1), li, si) for i = 1 , ..., n according to deﬁnition 5
+Input: An amount of primary currency available for covering liabil ities, called the reserve
+R.
+Input: An available block size SB
+Input: A utility function util = ∑
+i∈Bn vi(Bi−1)
+Input: The acceptable error ǫ from the optimal solution, where 0 < ǫ < 1
+Output: (B, util(B), res): A candidate block B such that util(B) > util (B′)∀B′ ⊆M,
+the value of this block ( util(B)) and a residual amount res from the reserve R
+such that res ≥0
+1 vomax ←−maxi∈M (voi)
+2 µ ←−ǫvomax/n
+3 v′
+i(Bi−1) ←−⌊vi(Bi−1)/µ⌋for i = 1 , 2, ..., n
+4 run algorithm 1 for the problem instance TxSelection(n, SB , M ′, R), where
+M′ = {tx′
+1, tx′
+2, ..., tx ′
+n}, and tx′
+i= ( i, v′
+i(Bi−1), li, si) for i = 1 , ..., n
+6 Related Work
+Babel fees are enabled by swap outputs based on limited-lifetime liabilities. These
+swaps, once being proposed (as part of a complete transaction), can be resolved
+unilaterally by the second party accepting the swap as elaborated in Appendix B.
+Atomic swaps and collateralized loans. Atomic swaps (which may be used
+to pay for fees) often go via an exchange, including for Ethereum E RC-20 to-
+kens [15] and Waves’ custom natives [22], as well as multi-blockchain e xchanges
+based on atomic swaps [12,14]. These exchanges come in varying degr ees of de-
+centralisation. Atomic swaps are also used for swapping or auctionin g assets
+across chains [11,16]. Our proposal is fully decentralized and single-c hain. It al-
+lows transactions carrying swap or fee-coverage oﬀers to be diss eminated directly
+via the blockchain network (because they are fully-formed transa ctions), without
+any oﬀ-chain communication.
+A notable diﬀerence between our swap mechanism and some layer-2 D EX
+solutions, such as Ethereum’s Uniswap [21] and SwapDEX [19], is that t hese
+require proof of liquidity (ie. assets locked in a contract), as well as contract-
+ﬁxed exchange rates. Our proposal enables users to accept the optimal number of
+exchange oﬀers without an obligation to have liquidity or to accept th em. Users
+are also free to choose and change their exchange rates at any tim e, without
+on-chain actions.
+Our limited-lifetime liabilities are a sort of loan, but one that is resolved
+before it is even recorded on the ledger. There is also work on ledger -based
+loans [4,20], but this leads to rather diﬀerent challenges and mechanis ms. In
+particular, the liabilities we propose do not require collateral backing (as they
+are resolved within a single batch). Moreover, unlike either atomic sw aps or
+collateralized loans, our mechanism requires no actions from the use r after sub-
+mitting a swap oﬀer or fee-less transaction to the network.
+
+18 M. M. T. Chakravarty et al.
+These mechanisms, while having some capacity to address some of th e same
+shortcomings as the babel fees mechanism, are usually a combinatio n of oﬀ-
+chain solutions and layer-2 (via smart contracts) are quite diﬀeren t from the
+single-chain, ledger-integrated proposal we provided.
+Child pays for parent.The UTXO model enforces a partial ordering on
+transactions that can be taken advantage of to encourage block producers to
+include less desirable (smaller-fee) transactions in a block by also diss eminating a
+higher-fee transaction that depends on the undesirable transat ion. This is known
+as a child-pays-for-parent technique [17]. Like ours, it deals with fu lly formed
+transactions, and requires no further input from the author of t he small-fee
+transaction. The solution we propose, however, is geared toward s a ledger model
+where transaction validation rules enforce a minimum fee, so any tra nsaction
+that does not pay it (via liabilities or directly) will be rejected regardle ss of
+whether a high-fee transaction depends on it.
+Ethereum.Ethereum’s Gas Station Network (GSN) [1] infrastructure consis ts
+of (a) a network of nodes listening for meta-transactions (trans action-like re-
+quests to cover transaction fees), which turn these requests in to complete trans-
+actions, with fees covered by the relay node, and (b) an interface that contracts
+must implement in order for the relay nodes to use this contract’s fu nds to
+subsidize the transaction fees.
+Babel fees are simpler as they don’t require the following (all of which the
+GSN relies on): (1) disseminating of partially formed (meta-)transa ctions on a
+separate network, (2) adding infrastructure, such as relays, r elay hubs, and a
+separate communication network, (3) any changes to smart cont racts to allow
+them to participate, (4) submitting transactions to make or updat e fee-covering
+or exchange oﬀers, (5) any further action from the user after s ubmitting a trans-
+action that requires its fees to be covered, and (6) pre-paying fo r the fee amounts
+contracts are able to cover.
+Another solution for processing transactions without any primary currency
+included to cover fees, called Etherless Ethereum Tokens, is props ed in [3]. This
+approach includes a formal composability framework (including form al proofs
+of important properties), requires notably less gas consumption, and oﬀers a
+much more seamless user experience than the GSN. However, it still relies on
+the oﬀ-chain dissemination of meta-transactions, and requires ch anges to smart
+contracts to opt in to participation, as well as ﬁx an exchange rate .
+Algorand. Algorand is an account-based cryptocurrency which supports cu s-
+tom native tokens. It provides users with a way to perform atomic t ransfers (see
+[2]). An atomic transfer requires combining unsigned transactions in to a single
+group transaction, which must then be signed by each of the partic ipants of each
+of the transactions included. This design allows users to perform, in particular,
+atomic swaps, which might be used to pay fees in non-primary curren cies.
+
+Babel Fees via Limited Liabilities 19
+As with our design, the transactions get included into the ledger in ba tches.
+Unlike Babel fees, however, incomplete transactions cannot be se nt oﬀ to be
+included in the ledger without any further involvement of the transa ction author.
+Debt representation in UTXO blockchains. There are similarities between
+the debt representation proposal presented in [8] and the mecha nism we propose,
+the main one being the idea of representing debt as special inputs on an UTXO
+ledger. Unlike the debt model we propose, the model presented in t hat paper
+allows debt to be recorded in a persistent way on the ledger. As we pr event
+liabilities to ever enter the ledger state, we side step the main issues d iscussed
+in [8], including the need for managing permissions for issuing debt on th e ledger,
+and therefore also for the trust users may be obligated to place in t he debt issuer,
+and vice-versa. The possibility of unresolved debt remaining on the le dger (and
+therefore inﬂation) is a concern that needs to be taken seriously in this case.
+Debt recorded on the ledger state (and outside a transaction bat ch) enables
+functionality that we cannot support with limited liabilities. Moreover, if a debt-
+creating transaction is complete and ready to be applied to the ledge r, all nodes
+are able to explicitly determine the validity of this transaction. This wa y, these
+transaction can be relayed by the existing network, without any sp ecial consid-
+eration for their potential to be included in a batch, and by who.
+Another key diﬀerence between the two proposals is that ours ass umes an
+underlying multi-asset ledger, so that the debt-outputs have ano ther major in-
+terpretation — they also serve as oﬀers for custom token fee cov erage, as well
+as swaps. Finally, the ledger we propose treats debt outputs and in puts in a
+uniform way, rather than in terms of special debt transactions an d debt pools,
+which result in potentially complicated special cases.
+Stellar DEX.The Stellar system [18] supports a native, ledger-implemented
+DEX to provide swap functionality (and therefore, custom token f ee payment).
+In the Stellar DEX, oﬀers posted by users are stored on the ledger . A trans-
+action may attempt an exchange of any asset for any other asset , and will fail
+if this exchange is not oﬀered. This approach requires submitting tr ansactions
+to manage a user’s on-chain oﬀers, and also requires all exchanges to be exact
+— which means no overpaying is possible to get one’s bid selected. A tra nsac-
+tion may attempt to exchange assets that are not explicitly listed as oﬀers in
+exchange for each other on the DEX. The DEX, in this case, is searc hed for a
+multi-step path to exchanging these assets via intermediate oﬀers . This is not
+easily doable using the approach we have presented.
+A DEX of this nature is susceptible to front-running. In our case, b lock
+issuers are given a permanent advantage in resolving liability transac tions over
+non-block-issuing users. Among them, however, exactly one may is sue the next
+block, including the liabilities they resolved.
+
+20 M. M. T. Chakravarty et al.
+References
+1. Yoav Weiss and Dror Tirosh and Alex Forshtat: EIP-1613: Ga s stations network.
+https://eips.ethereum.org/EIPS/eip-1613 (2018)
+2. Algorand Team: Algorand Developer Documentation.
+https://developer.algorand.org/docs/ (2021)
+3. Andrews, J., Ciampi, M., Zikas, V.: Etherless ethereum to kens: Simulating na-
+tive tokens in ethereum. Cryptology ePrint Archive, Report 2021/766 (2021),
+https://ia.cr/2021/766
+4. Black, M., Liu, T., Cai, T.: Atomic loans: Cryptocurrency debt instruments (2019)
+5. Chakravarty, M.M.T., Chapman, J., MacKenzie, K., Melkon ian, O., M¨ uller, J.,
+Jones, M.P., Vinogradova, P., Wadler, P.: Native custom tok ens in the extended
+UTXO model. In: Leveraging Applications of Formal Methods, Veriﬁcation and
+Validation: Applications - 9th International Symposium on Leveraging Applica-
+tions of Formal Methods, ISoLA 2020, Rhodes, Greece, Octobe r 20-30, 2020, Pro-
+ceedings, Part III. LNCS, vol. 12478 (2020)
+6. Chakravarty, M.M.T., Chapman, J., MacKenzie, K., Melkon ian, O., M¨ uller, J.,
+Jones, M.P., Vinogradova, P., Wadler, P., Zahnentferner, J .: UTXO ma: UTXO
+with multi-asset support. In: Leveraging Applications of F ormal Methods, Veriﬁ-
+cation and Validation: Applications - 9th International Sy mposium on Leveraging
+Applications of Formal Methods, ISoLA 2020, Rhodes, Greece , October 20-30,
+2020, Proceedings, Part III. LNCS, vol. 12478 (2020)
+7. Chakravarty, M.M.T., Chapman, J., MacKenzie, K., Melkon ian, O., Peyton Jones,
+M., Wadler, P.: The Extended UTXO model. In: Proceedings of T rusted Smart
+Contracts (WTSC). LNCS, vol. 12063. Springer (2020)
+8. Chiu, M., Kalabi´ c, U.: Debt representation in UTXO block chains. In: Financial
+Cryptography and Data Security 2021 (2021)
+9. Cormen, T.H., Leiserson, C.E., Rivest, R.L., Stein, C.: I ntroduction to Algorithms,
+Third Edition. The MIT Press, 3rd edn. (2009)
+10. Garay, J.A., Kiayias, A., Leonardos, N.: The bitcoin bac kbone protocol: Analy-
+sis and applications. In: Oswald, E., Fischlin, M. (eds.) Ad vances in Cryptology
+- EUROCRYPT 2015 - 34th Annual International Conference on t he Theory and
+Applications of Cryptographic Techniques, Soﬁa, Bulgaria , April 26-30, 2015, Pro-
+ceedings, Part II. LNCS, vol. 9057, pp. 281–310. Springer (2 015)
+11. Herlihy, M.: Atomic cross-chain swaps (2018)
+12. IDEX Team: IDEX documentation.https://docs.idex.io/ (2021)
+13. Kellerer, H., Pferschy, U., Pisinger, D.: Knapsack Prob lems. Springer Berlin Hei-
+delberg, Berlin, Heidelberg (2004)
+14. Komodo Team: AtomicDEX documentation. https://developers.komodoplatform.com/basic-docs/atomicdex/
+(2021)
+15. Kyber Team: Kyber: An On-Chain Liquidity Protocol.
+https://files.kyber.network/Kyber_Protocol_22_April_v0.1.pdf (2019)
+16. Prestwich, J.: Cross-chain auctions via bitcoin double spends.
+https://medium.com/summa-technology/summa-auction-bitcoin-technical-7344096498f2
+(2018)
+17. Project, B.: Developer guides. https://developer.bitcoin.org/devguide/
+(2020)
+18. Stellar Development Foundation: Stellar Development G uides.
+https://developers.stellar.org/docs/ (2020)
+
+Babel Fees via Limited Liabilities 21
+19. SW APDEX Team: SW APDEX : Decentralized Finance is the Fut ure.
+https://swapdex.net/whitepaper/SWAPDEX.pdf (2020)
+20. Team, M.: The maker protocol: Makerdao’s multi-collate ral dai (mcd) system.
+https://makerdao.com/en/whitepaper/ (Retrieved May 26, 2021)
+21. Team, U.: Uniswap whitepaper. https://hackmd.io/@HaydenAdams/HJ9jLsfTz#%F0%9F%A6%84-Uniswap-Whitepaper
+(2019)
+22. Waves.Exchange Team: Waves.Exchange Documentation.
+https://docs.waves.exchange/en/waves-exchange/ (2021)
+23. Zahnentferner, J.: Chimeric ledgers: Translating and u nifying UTxO-based and
+account-based cryptocurrencies. IACR Cryptology ePrint A rchive 2018, 262
+(2018), http://eprint.iacr.org/2018/262
+
+22 M. M. T. Chakravarty et al.
+A Deﬁnitions supporting the formal ledger rules
+The UTXOll ledger rules presented in Section 3 are based on those of UTXO ma [6].
+This appendix summarises supporting deﬁnitions for ease of refere nce. There is,
+however, one notable simpliﬁcation in the system that we use here co mpared to
+the original UTXO ma system. The original UTXO ma system, while not support-
+ing general-purpose scripts for smart contracts, does support a special-purpose
+language for deﬁning asset policy script as well as multisig and timed UT XO
+validator scripts. In the present work, we keep the asset policy sc ript, but we
+restrict UTXO outputs to be simply pay-to-pubkey outputs. This is to keep
+the presentation simpler and because the additional functionality o f UTXO ma
+doesn’t lead to additional insight in the context of the present pape r.
+B the type of Booleans
+N the type of natural numbers
+Z the type of integers
+H the type of bytestrings: ⋃ ∞
+n=0{0, 1}8n
+(φ1 : T1, . . . , φ n : Tn) record type with ﬁelds φi of types Ti
+t.φ the value of φ for t,
+where t has type T and φ is a ﬁeld of T
+Set[T ] the type of (ﬁnite) sets over T
+List[T ] the type of lists over T ,
+with
+[ ] as indexing and | | as length
+h :: t the list with head h and tail t
+h + +t list concatenation
+x ↦→f(x) an anonymous function
+c# cryptographic collision-resistant hash of c
+Interval[A] type of intervals over totally-ordered set A
+FinSup[K, M ] type of ﬁnitely supported functions
+from a type K to a monoid M
+Fig. 3: Basic types and notation
+Figure 3 includes some basic types and notation. Crucial are ﬁnitely- supported
+functions, which provide the algebraic structure underpinning tok en bundles on
+a multi-asset ledger.
+Finitely-supported functions.We model token bundles as ﬁnitely-supported func-
+tions. If K is any type and M is a monoid with identity element 0, then a function
+f : K →M is ﬁnitely supported if f(k) ̸= 0 for only ﬁnitely many k ∈K. More
+precisely, for f : K →M we deﬁne the support of f to be supp(f) = {k ∈K :
+f(k) ̸= 0 }and FinSup[K, M ] = {f : K →M : |supp(f)|< ∞}.
+If (M, +, 0) is a monoid then FinSup[K, M ] also becomes a monoid if we deﬁne
+addition pointwise (i.e., ( f +g)(k) = f(k)+g(k)), with the identity element being
+the zero map. Furthermore, if M is an abelian group then FinSup[K, M ] is also
+
+Babel Fees via Limited Liabilities 23
+an abelian group under this construction, with ( −f)(k) = −f(k). Similarly, if M
+is partially ordered, then so is FinSup[K, M ] with comparison deﬁned pointwise:
+f ≤g if and only if f(k) ≤g(k) for all k ∈K.
+It follows that if M is a (partially ordered) monoid or abelian group then so
+is FinSup[K, FinSup[L, M ]] for any two sets of keys K and L. We will make use
+of this fact in the validation rules presented later in the paper (see F igure ??).
+Finitely-supported functions are easily implemented as ﬁnite maps, w ith a failed
+map lookup corresponding to returning 0.
+A.1 Ledger types
+Figure 4 deﬁnes the ledger primitives and types that we need to deﬁne the
+UTXOll model. All outputs use a pay-to-pubkey-hash scheme, where an o utput
+is locked with the hash of key of the owner. We use a simple scripting lan guage
+for forging policies, which we don’t detail here any further — please s ee [6] for
+details. We assume that each transaction has a unique identiﬁer der ived from its
+value by a hash function. This is the basis of the lookupTx function to look up
+a transaction, given its unique identiﬁer.
+Token bundles.We generalise per-output transferred quantities from a plain
+Quantity to a bundle of Quantities. A Quantities represents a token bundle: it is a
+mapping from a policy and an asset, which deﬁnes the asset class, to a Quantity
+of that asset. 11 Since a Quantities is indexed in this way, it can represent any
+combination of tokens from any assets (hence why we call it a token bundle).
+Asset groups and forging policy scripts. A key concept is the asset group . An
+asset group is identiﬁed by the hash of special script that controls the creation
+and destruction of asset tokens of that asset group. We call this script the forging
+policy script .
+Forging. Each transaction gets a forge ﬁeld, which simply modiﬁes the required
+balance of the transaction by the Quantities inside it: thus a positive forge ﬁeld
+indicates the creation of new tokens. Quantities in forge ﬁelds can also be nega-
+tive, which eﬀectively burns existing tokens.
+Additionally, transactions get a scripts ﬁeld holding a set of forging policy
+scripts: Set[Script]. This provides the forging policy scripts that are required as
+part of validation when tokens are minted or destroyed (see Rule 8 in Figure 1).
+The forging scripts of the assets being forged are executed and t he transaction is
+only considered valid if the execution of the script returns true. A forging policy
+script is executed in a context that provides access to the main com ponents of
+11 We have chosen to represent Quantities as a ﬁnitely-supported function whose values
+are themselves ﬁnitely-supported functions (in an impleme ntation, this would be a
+nested map). We did this to make the deﬁnition of the rules sim pler (in particular
+Rule 8). However, it could equally well be deﬁned as a ﬁnitely -supported function
+from tuples of PolicyIDs and AssetIDs to Quantitys.
+
+24 M. M. T. Chakravarty et al.
+Ledger primitives
+Quantity an amount of currency, forming an abelian group (typically Z)
+AssetID a type consisting of identiﬁers for individual asset classe s
+Tick a tick
+Address an “address” in the blockchain
+TxId the identiﬁer of a transaction
+txId : Tx → TxId a function computing the identiﬁer of a transaction
+lookupTx : Ledger × TxId → Tx retrieve the unique transaction with a given identiﬁer
+verify : PubKey × H × H → B signature veriﬁcation
+keyAddr : PubKey → Address the address of a public key
+Script forging policy scripts
+scriptAddr : Script → Address the address of a script
+/llbracket/rrbracket: Script → (Address × Tx × Set[Output]) → B apply script inside brackets to its arguments
+Ledger types
+PolicyID = Address (an identiﬁer for a custom asset)
+Signature = H
+AssetID = ( pid : PolicyID, aName : AssetName)
+Quantities = FinSup[AssetID, Quantity]
+Output = ( addr : Address, value : Quantities)
+OutputRef = ( id : TxId, index : Int)
+Input = ( outputRef : OutputRef
+key : PubKey)
+Tx = ( inputs : Set[Input],
+outputs : List[Output],
+validityInterval : Interval[Tick],
+forge : Quantities
+scripts : Set[Script],
+sigs : Set[Signature])
+Ledger = List[Tx]
+Fig. 4: Ledger primitives and basic types
+
+Babel Fees via Limited Liabilities 25
+the forging transaction, the UTXOs it spends, and the policy ID. Th e passing
+of the context provides a crucial piece of the puzzle regarding self -identiﬁcation:
+it includes the script’s own Policy, which avoids the problem of trying to include
+the hash of a script inside itself.
+Validity intervals.A transaction’s validity interval ﬁeld contains an interval of
+ticks (monotonically increasing units of time, from [7]). The validity inte rval
+states that the transaction must only be validated if the current t ick is within
+the interval. The validity interval, rather than the actual current chain tick value,
+must be used for script validation. In an otherwise valid transaction , passing the
+current tick to the evaluator could result in diﬀerent script validatio n outcomes
+at diﬀerent ticks, which would be problematic.
+B Other applications of limited liabilities
+Swaps.As discussed, we use liabilities in babel fees to form transaction outp uts
+that represent atomic swaps — we call those swap outputs . We do this by in-
+cluding a liability (negative token value) together with an asset (posit ive token
+value). Whoever consumes such an output eﬀectively swaps the to kens described
+by the liability for those constituting the asset.
+UTXO ledgers do already support atomic swaps natively by way of tra nsac-
+tions consuming two inputs carrying two diﬀerent assets and swapp ing the keys
+under which these two assets are locked. Such a swap transaction does require
+both parties to sign that transaction (to authorise the consumpt ion of each par-
+ties share in the swap). Moreover, both parties to the swap must b e known at
+swap transaction creation time.
+Liabilities enable us to break this monolithic, cooperative process into a non-
+interactive two-stage process. The ﬁrst party creates a liability t ransaction con-
+suming only it’s own share of the swap and bundling it with a liability of the
+expected return in a swap output. The second party combines theliability trans-
+action with a second transaction that resolves the liability and comple tes the
+swap. The second party can do that solely on the basis of the ﬁrst t ransaction
+without any additional need to interact with the ﬁrst party.
+Our batch example from Section 2.2 demonstrates this pattern. Th e ﬁrst
+output of t1, namely
+(addr : ∅, value : {T1 ↦→−5, T2 ↦→10}),
+is the swap output, oﬀering to swap 10 T2 for 5 T1.
+Service payments. Extending the concept of swaps from exchanging assets
+to exchanging assets for information. In the Extended UTXO mode l [5], which
+facilitates complex smart contracts on a UTXO ledger, transaction outputs also
+include a data component. This can, for example, be used to commun icate in-
+formation from an oﬀ-chain oracle. Liabilities included with such an out put can
+serve as payment for consuming such an output with the data.
+
+26 M. M. T. Chakravarty et al.
+Indivisiblity.Transaction batches are diﬀerent to signed transaction groups
+proposed for some ledgers, such as, for example, Algorand [2]. To create a signed
+transaction group, all component transactions need to be known and the group
+signed as a whole. If multiple component transactions are created b y diﬀerent
+parties, these parties need to cooperate to create the group tr ansaction. The
+beneﬁt of such a signed group is that it is indivisible.
+The transaction batches that we propose are diﬀerent. They are not inher-
+ently indivisible. For example, a batch comprising two transactions t1 and t2,
+where the latter consumes an output of the former, may be include d in the ledger
+as a whole, but unless there is a liability involved in the output of t1 consumed
+by t2, we could also split the batch and simply submit t1 on its own.
+And even if t1’s output in includes a liability, while this prevents t1 to go
+onto the ledger by itself, it still leaves the possibility of replacing t2 by another
+transaction that resolves t1’s liability. In other words, while a liability may pre-
+vent a preﬁx of a batch to be fully valid on its own, it may not prevent s wapping
+out a suﬃx of transactions.
+Nevertheless, we can use spending conditions on outputs with liabilitie s to
+exert control over liability-resolving transactions in a batch. With p ay-to-pubkey
+outputs, we can control who may create these transactions and within the Ex-
+tended UTXO model [5], we can use script code to exert ﬁne-grained control
+over these transactions.
+C Account-based ledgers
+In this paper, we explain limited liabilities in the context of a UTXO ledger
+model, building on the native custom token extension for UTXO, calledUTXOma
+introduced in [6]. We like to emphasize, though, that both the native c ustom to-
+ken extension of UTXO ma and the concept of limited liabilities from the present
+paper can equally well be applied to an account-based ledger — this mig ht not
+come as a surprise, given that one accounting model can be transla ted into the
+other [23].
+Native custom tokens.The core ideas of native custom tokens in UTXO ma
+are (a) the generalisation of integral values in UTXOs to token bund les and (b)
+the use of policy-controlled forge ﬁelds. In the context of an acco unt-based ledger,
+Point (a) translates to accounts that hold an entire bundle of toke ns instead of
+just coins of a single currency. Just like in the UTXO ma model, these token
+bundles can be represented as ﬁnitely-supported functions using the same group
+structure as UTXO ma for value calculations. In a similar manner, transactions
+transferring value from one account to another now transfer en tire token bundles,
+which get deducted from the source account and added to the tar get account,
+with the constraint that none of the bundle components of the sou rce account
+may become negative as a result.
+
+Babel Fees via Limited Liabilities 27
+To realise Point (b), we extent transfer transactions with the sam e sort of
+forge ﬁeld as in UTXO ma. This includes the same conditions on the use of asset
+policies for all minted and burned assets.
+Limited liabilities.We do require that transfer transactions based on token
+bundles cannot lead to negative token quantities in accounts. Howe ver, to rep-
+resent liabilities, we do need a notion of account with a liability, albeit one of
+limited lifetime.
+To this end, we introduce the concept of a temporary anonymous accounts. A
+temporary anonymous account is being identiﬁed with a hash derived from the
+transaction hash. Moreover, such an account is only available within one batch
+of transactions. In other words, just like a liability, it never gets ad ded to the
+ledger state. As a logical consequence, a temporary anonymous a ccount must
+have a balance of zero at the end of the batch in which it is active. This ensures
+that temporary anonymous accounts are never included in the ledg er state.
+In contrast to regular accounts in the ledger state, a temporary anonymous
+account may hold a token bundle, where one or more assets occur in a negative
+quantity. Those accounts, thus, serve the same purpose as tra nsaction outputs
+with liabilities in UTXO ll. Hence, they can form the basis for implementing babel
+fees for an account-based ledger.
+Unlike the multi-input and multi-output UTXO transactions, account trans-
+actions typically have only one source and one destination. However , we can use
+temporary anonymous accounts as a sink as well as a source for th e currency
+redistributed in a batch.
+D Liveness
+In order to analyze the liveness property of the spot market, we consider a babel
+oﬀer that is published to the network and assume that there is at least one party
+bi (buyer) that is attracted by this oﬀer. The interested party will t hen create a
+transaction batch txb (see Section 2.2) that covers the liability and will publish
+it to the network with the expectation that this will (eventually) be in cluded
+into a block and be published in the ledger implemented by the blockchain .
+In the following analysis, we distinguish between two cases: a) The ca se where
+all buyers are acting rationally (but not maliciously) and b) the case w here a
+percent of the buyers are controlled by a malicious adversary part y.
+Liveness in the presence of rational players In this case, the aim of the
+players is to increase their income by collecting transaction fees and accepting
+Babel oﬀers. Returning to our running example, lets assume that s ome other
+player bj is selected to produce the next block. Then there are only two optio ns:
+a) bj is not attracted by the oﬀer, or b) bj is attracted by the oﬀer.
+In the former case, bj will ignore the Babel oﬀer, but she will not ignore the
+transaction batch txb. Since players are acting rationally and txb includes the
+
+28 M. M. T. Chakravarty et al.
+appropriate transaction fees, thenbj or some other block issuer following bj, will
+eventually select txb to be included in a block. The higher the fees the faster this
+will take place. So liveness is preserved in this case.
+In the latter case, where bj is indeed attracted by the Babel oﬀer, then she
+can front-run and substitute txb with her own transaction batch t′
+xb that will
+accept the speciﬁc Babel oﬀer. This is a case where front-running transactions is
+a feature: it makes it feasible for block issuers to be paid in the token s they prefer
+for their transaction processing services. However, liveness is als o preserved in
+this case since the Babel oﬀer will be accepted (not by bi but by bj ) and be
+published to the blockchain.
+Liveness in the presence of adversary playersGiven that the aim of Babel
+fees is to facilitate transaction processing on a blockchain, we need to consider
+the adversarial case, where some of the block producers may con spire against
+the use of a particular token T . In our scheme for the implementation of Babel
+fees, block producers are also the buyers in the spot market for B abel oﬀers.
+Hence, they may, in addition to ignoring oﬀers with token T , also advertise
+unrealistically low exchange rates for T in BL (the table of buyers-accepted
+rates) to trick sellers into creating transactions that stand no ch ance of being
+processed. On the other hand, we do assume that the processing of transactions
+with Babel fees, just like directly payed transaction, is generally in t he interest
+of the network. Hence, honest block producers will advertise a ra te at which they
+will in fact process transactions with Babel fees if they are oﬀered any.
+In our analysis, we require the ratio t
+m−t ≤1 −δ, where t is the number
+of parties controlled by the adversary and m is the total number of parties and
+δ ∈(0, 1). This is an honest majority assumption if, without loss of generality, one
+assumes that all parties command the same amount of power, cf. [1 0]. Assuming
+that this ratio also holds for the entries in BL corresponding to published rates
+for a token T , then as long as the seller includes a suﬃcient amount of T tokens,
+such that the oﬀer has 50% coverage, the seller’s transaction will a ttract at
+least one honest party. This honest party will then issue a transaction batc h txb
+accepting the oﬀer.
+In the following, we show that txb will eventually be published on the ledger
+and thus liveness is preserved. Assume that txb is issued at round r. By the
+chain growth property of the chain [10],we know that the chain adopted by any
+honest party will keep growing. After s rounds there will be a growth of at
+least τs blocks, where τ is the chain velocity parameter of the chain growth
+property. Intuitively, τ equals the probability that an honest party is selected
+as a block issuer, which in our case translates to τ = m−t
+m . So after s rounds
+(starting from r) an honest party’s chain will have m−t
+t s new blocks. By the
+chain quality property of the chain [10], we know that the ratio of honest blocks
+(i.e., blocks produced by honest parties) in this chain will be at least 12 m−t
+t sµ,
+where µ ∈(0, 1) is the honest block proportion parameter of the chain quality
+12 Note that the number of honest blocks can be less than m− t
+t s, because the adversary
+can employ attacks such as selﬁsh mining that can eliminate honest blocks [10]
+
+Babel Fees via Limited Liabilities 29
+property. We know that if an honest block exists, then txb will be included, or
+a new t′
+xb will be included instead accepting the Babel oﬀer by the honest block
+issuer. So we require that m−t
+t sµ ≥1, which means:
+s ≥1
+µ
+t
+m −t (2)
+Due to the chain growth property of the chain, this honest block th at will include
+txb (or t′
+xb) will be buried under k blocks, where k is the number of blocks for
+the common preﬁx property of the blockchain [10]. Then it will be reported in
+the ledger. Therefore, even in the presence of an adversary con trolling t/m of
+the total hashing power, if honest majority holds and a Babel oﬀer attracts at
+least one honest party, the accepted oﬀer will be (eventually) pub lished in the
+blockchain and thus liveness is preserved.
+E Proof of Theorem 1
+Proof.We will prove by induction that for any feasible block of transactions
+B ⊆{1, 2, ..., j }corresponding to the tuple ( ts, tv, r, b), ts ≤SB ∧r ≤R, list
+U[j] will always include some tuple ( t′
+s, t′
+v, r′, b′), t′
+s ≤SB ∧r′≤R that dominates
+(ts, tv, r, b).
+For j = 1, we have U[1] = {(0, 0, R, 0), (s1, v1, R −l1, 1)}and the claim for
+any B ⊆{1}trivially holds.
+We assume that the claim holds for the list U[j −1].
+Let B ⊆{1, 2, ..., j }be any block and ( ts, tv, r, b) be the corresponding tuple,
+ts ≤SB ∧r ≤R. We have two options: a) b == 0 and b) b == 1. In other words,
+transaction j is not part of B, or it is part of B.
+If j is not part of B, then by induction hypothesis we know that in the list
+U[j −1] there will be some tuple ( t′′
+s, t′′
+v, r′′, b′′) that dominates ( ts, tv, r, b). Re-
+member that Algorithm 1 ﬁrst sets U[j] ←−U[j −1] and then removes all domi-
+nating pairs. Thus there will be some tuple in U[j] that dominates ( t′′
+s, t′′
+v, r′′, b′′)
+and then by transitivity of domination will also dominate ( ts, tv, r, b). Thus there
+will be some tuple in U[j] that dominates ( ts, tv, r, b).
+If j is part of B, then we consider block B′= B−{j}. By induction hypothesis
+again, there will be some tuple ( t′′
+s, t′′
+v, r′′, b′′) in list U[j −1] that dominates tuple
+(
+∑
+k∈B′
+sk,
+∑
+k∈B′
+vk(B′
+k−1), rk, bk)
+Which means that t′′
+s≤∑
+k∈B′ sk and t′′
+v≥∑
+k∈B′ vk(B′
+k−1). Then, Algorithm 1
+will add transaction j to the tuple ( t′′
+s, t′′
+v, r′′, b′′) and add tuple ( t′′
+s+ sj , t′′
+v+
+vj (B′), r′′−lj, 1) to the list U[j]. But then we have t′′
+s+ sj ≤∑
+k∈B′ sk + sj = ts
+and t′′
+v+ vj (B′) ≥∑
+k∈B′ vk(B′
+k−1) + vj (B′) = tv. Thus there will be some tuple
+in U[j] that dominates ( ts, tv, r, b).
+
+30 M. M. T. Chakravarty et al.
+F Proof of Theorem 2
+Proof.Let B be the block returned from Algorithm 2 for the problem
+TxSelection(n, SB , M, R ). Let Bopt be the optimal solution for this problem.
+We want to show that utility(B) ≥(1−ǫ)utility(Bopt) = (1 −ǫ)OP T . Certainly
+vomax ≤OP T , since one possible solution is to put the most valuable transaction
+in a block by itself. By the deﬁnition of v′
+i we know that µv′
+i ≤vi ≤(µ + 1)v′
+i, so
+that µv′
+i ≥vi −µ. These inequalities along with the fact that B is the optimal
+solution for the problem TxSelection(n, SB, M ′, R) and thus ∑
+i∈B v′
+i(Bi−1) ≥∑
+i∈Bopt v′
+i(Bi−1), we have the following:
+utility(B) =
+∑
+i∈B
+vi(Bi−1)
+≥µ
+∑
+i∈B
+v′
+i(Bi−1)
+≥µ
+∑
+i∈Bopt
+v′
+i(Bi−1)
+≥
+∑
+i∈Bopt
+vi(Bi−1) −|Bopt|µ
+≥
+∑
+i∈Bopt
+vi(Bi−1) −nµ
+=
+∑
+i∈Bopt
+vi(Bi−1) −ǫvomax
+= utility(Bopt) −ǫvomax
+= OP T −ǫvomax
+≥OP T −ǫOP T = (1 −ǫ)OP T

@@ -1,0 +1,1178 @@
+Scripting smart contracts
+for distributed ledger technology
+Pablo Lamela Seijas, Simon Thompson Darryl McAdams
+{pl240,S.J.Thompson}@kent.ac.uk darryl.mcadams@iohk.io
+University of Kent, UK IOHK
+10th February 2017
+Abstract
+We give an overview of the scripting languages used in existing cryptocurren-
+cies, and in particular we review in some detail the scripting languages of Bitcoin,
+Nxt and Ethereum, in the context of a high-level overview of Distributed Ledger
+Technology and cryptocurrencies. We survey diﬀerent approaches, and give an
+overviewofcritiquesofexistinglanguages. Wealsocovertechnologiesthatmight
+beusedtounderpinextensionsandinnovationsinscriptingandcontracts,including
+technologies for veriﬁcation, such as zero knowledge proofs, proof-carrying code
+and static analysis, as well as approaches to making systems more eﬃcient, e.g.
+Merkelized Abstract Syntax Trees.
+1 Introduction
+Distributed Ledger Technology (DLT) has recently attracted attention from individu-
+als and start-ups, as well as commercial organisations and national and international
+institutions [18]. DLT oﬀers the possibility of securely recording information in a
+non-centralised,distributedway,andbuildingonthisitispossibletoconstructnotonly
+distributed databases, but also to record the results of transactions that have ﬁnancial
+value, most notably cryptocurrencies. Various kinds ofscripting languages have been
+introduced that allow users to writesmart contractsthat describe these transactions.
+In this paper, we give an overview of the scripting languages used in existing
+cryptocurrencies,andinparticularwereviewthescriptinglanguagesofBitcoin,Nxtand
+Ethereum,inthecontextofahigh-leveloverviewofDistributedLedgerTechnologyand
+cryptocurrencies. Wealsocovertechnologiesthatmightbeusedtounderpinextensions
+andinnovationsinscriptingandcontracts,includingtechnologiesforveriﬁcation,such
+aszeroknowledgeproofs,proof-carryingcodeandstaticanalysis,aswellasapproaches
+to making systems more eﬃcient, e.g. Merkelized Abstract Syntax Trees. A survey of
+researchissuesforBitcoinandcryptocurrenciesingeneralattheendof2015isprovided
+by [7].
+1
+
+In surveying a cross-section of the work in the ﬁeld, it is striking to see a wide
+variety of diﬀerent approaches to scripting.
+• Some scripting languages are Turing-incomplete: Bitcoin script has no facilities
+for looping or recursion, for example; whilst others, such as Ethereum script,
+are Turing-complete, at least in principle, supporting looping constructs. On the
+otherhand,theylosecompletenessinpracticebecauseofrun-timeboundsplaced
+on the possible execution time, stack size and so on.
+• Bitcoin and Ethereum provide a low-level computation model by means of a
+virtualmachine,intowhichitispossibletocompileahigher-levellanguage,such
+as Ethereum’s Solidity; other systems, including Nxt, provide a higher-level API
+in a general purpose language (here JavaScript).
+• Another approach sees DLT transactions as ﬁtting into a wider business process
+model, and would propose deriving them by transformation of a language such
+as BPMN, or ﬁnite state machines.
+• Finally, it is possible to use virtualization technology to isolate computations, as
+is done in Hyperledger with Docker containers.
+While we have talked about scripting languages as if they were general purpose pro-
+gramming languages, they can also go beyond this in providing particular facilities
+including randomness, name registration, anonymity, incentive alignment, control of
+transactionality and so on. Because of this, we see interactions between the language
+and the general DLT infrastructure on which it is built:
+scripting language
+DLT infrastructure
+Obviously, the DLT infrastructure pretty much shapes the scripting language, but
+therecanbeinteractionsinthereversedirectiontoo. Inparticular,exploringthewayin
+whichrandomnessisprovidedinEthereum,showsthatthetypicaluseoftimestampsas
+asourceofrandomnesscanprovideapotentialattackmechanism. Wegiveanoverview
+of this and other potential security vulnerabilities towards the end of the paper.
+In order to give some context, we provide brief introductions and references with
+information about the diﬀerent cryptocurrencies and decentralised systems, but the
+mainaimofthisworkistooverviewtheirscriptinglanguagesandrelatedtechnologies.
+WebeginbygivingintroductionstoBitcoinscriptingincontextinSection2anddo
+the same for Ethereum and Nxt in Sections 3 and 4. Other DLT systems are surveyed
+in Section 5, and other approaches to scripting in Section 6. Section 7 presents some
+critiques of existing systems, and Section 8 presents a number of technologies that
+might contribute to the next generation of blockchain scripting. Section 9 concludes
+the paper.
+2
+
+2 Bitcoin
+Bitcoin is the ﬁrst widely-used implementation of a decentralised cryptocurrency and
+introduced the decentralised consensus mechanism of ablockchain.
+Bitcoin’s blockchain is a back-linked list of blocks of transactions [2]. Each block
+withintheblockchainisidentiﬁedbyahash,generatedusingtheSHA256cryptographic
+hashalgorithmontheheaderoftheblock. Eachblockalsoreferencesapreviousblock,
+known astheparent block, throughthe “previousblock hash”ﬁeld inthe blockheader.
+In other words, each block contains the hash of its parent inside its own header. The
+sequence of hashes linking each block to its parent creates a chain going back all the
+way to the ﬁrst block ever created, known as the genesis block.
+In essence, it can be considered like a public log that, in the case of Bitcoin, is
+used to keep track of transactions. Assuming that the miners that represent more
+than 50% of the computing power that contributes to the creation of new blocks for
+the blockchain are “honest”, and that the hash functions used are irreversible and
+unpredictable, information in the blockchain becomes statistically harder to revoke as
+new blocks are added on top of it.
+Changing a block implies recreating all the blocks on top of it, since every block
+(except the genesis block) contains the hash of the previous block. Creating a block is
+costly because it requires a proof-of-work, which only allows miners to create blocks
+proportionally to their computing power (as compared to that of the rest of miners);
+and only the longest chain is considered valid, so it is out of reach for a single agent to
+replace the main chain, as long as no single agent controls more than 50% of the total
+computing power.
+2.1 Proof-of-work
+Proof-of-work is a mechanism that is used to ensure that a distributed consensus is
+achieved without either the presence of a central authority or the requirement that a set
+of participating users are identiﬁed in some way.
+Proof-of-work is implemented as a requirement for each block in the blockchain
+to have a hash smaller than a given target number. This target number is determined
+through a calculation that is carried out every 2016 blocks (roughly two weeks), and
+aims to ensure that, independently of the global amount of computing power, a new
+block will be generated roughly every 10 minutes in average.
+2.2 Guarantees
+The design of the Bitcoin system means that it is able to provide a range of guaran-
+tees, under an explicitly-articulated set of assumptions. In this section we explain the
+guarantees, together with the cryptographic mechanisms used to support them.
+The algorithm used for hashing the blocks in the blockchain is double SHA256,
+which consists in applying SHA256 twice to the header of the block. Since the hash
+function is considered irreversible under reasonable assumptions, the most eﬃcient
+known way of obtaining a hash that is smaller than the target is by brute force, that
+is, by repeatedly trying diﬀerent inputs until one that complies is found. In order to
+3
+
+alter the resulting hash, the input of the hashing function is to be modiﬁed by changing
+a reserved ﬁeld called anonce (or alternatively other parts of the header). Users that
+perform the work to create new blocks are calledminers.
+2.2.1 Decentralised agreement
+In the case of Bitcoin, agreement on the creation of blocks is achieved thanks to the
+diﬃculty of block creation: the computing power necessary to “hijack” the creation
+of a new, alternative, consensus is highly unlikely to be achieved by a single miner or
+cartel of miners.
+2.2.2 Veriﬁability
+AnotherguaranteeprovidedbyBitcoinisthepossibilityforuserstounilaterallyverify,
+withouttrustinganyoneelse,thatablock,andhencethewholeblockchain,isvalid(that
+it conforms with the rules). This latter property is possible since every block includes
+a hash of the previous block, and the ﬁrst block (or genesis block) is hard-coded in the
+source code of Bitcoin clients.
+2.2.3 Probable irrevocability
+On the other hand, the irrevocability of transactions is only guaranteed eventually by
+theassumptionthatatleast50%oftheBitcoinminingpowercomesfromhonestusers.
+Honest users will accept the longest blockchain as the true one and build upon it, thus,
+assumingmostminingpowerishonest,itbecomesincreasinglyunlikelythatadishonest
+agent will be able to create a fork from an old block so that the new fork is longer than
+the true one. If this were not the case, then a malicious user would be able to revert
+transactions by creating a fork, but even in this case it would still be impossible to get
+invalid blocks to be accepted by honest users, thanks to veriﬁability.
+Because the diﬃculty of block creation is variable, when we talk about the longest
+chain or blockchain we actually mean the one with the highest combined diﬃculty,
+not the one with the highest number of blocks. Otherwise, it would be possible for a
+malicious user to create an isolated chain to which only him can contribute and thus,
+the diﬃculty of this chain would be lower (since it adapts to the total processing power
+of the miners of the chain). By having a chain with lower diﬃculty, an attacker would
+be able to create blocks very fast and potentially obtain a chain with more blocks than
+the globally accepted chain.
+2.3 Mining
+There are two incentives for miners. On the one hand, each block gives an amount of
+freshbitcoinstotheminerthatcreatedit. Ontheotherhand, eachtransactiontypically
+contains a transaction fee (which is speciﬁed implicitly as the bitcoins unspent in the
+transaction), the taxes of all transactions in the block also go to the miner.
+In the case of Bitcoin, the prize for creating a block, other than the fees, is reduced
+by half every 210,000 blocks (roughly every four years), it was originally 50 bitcoins
+and at the time of writing is 12.5 bitcoins.
+4
+
+2.4 Merkle tree
+In order for it to be possible to prove that a transaction exists in the blockchain without
+transferring the whole blockchain, the transactions are stored in a structure called
+Merkle tree. Such a tree stores transactions at leaf nodes, and inner nodes contain the
+combined hashes of their immediate subtrees. This makes it possible to prove that a
+transaction has been hashed without having to rehash all the transactions of a block,
+only the sequence of hashes called Merkle path, obtained by traversing the tree from
+the root to the relevant leaf node.
+2.5 Transactions
+Blocks in the blockchain collect transactions. These transactions transfer bitcoins or
+unspent transaction outputs(UTXOs) between users. But the eﬀective owner of a
+particular amount of bitcoins is not speciﬁed in the transaction; rather, the transaction
+declares,foreachunspentoutput,aprogramwritteninScript(seeSection2.6);whoever
+wants to spend that output must provide an input to the program that makes it succeed
+(that is, return zero).
+Typically, this program provides a cryptographic challenge that only the owner can
+solve, for example, providing a signature made with the private key of the owner, but
+it could be any program. For example, a program can check that several people have
+signed a transaction, that a subset of a set of people have signed a transaction, or even
+that a transaction provides the solution to a puzzle.
+2.6 Script
+ThelanguageusedforcreatingscriptsinBitcoiniscalled“Script”. ScriptisaForth-like
+bytecode stack-based language but, unlike Forth, Script is designed purposely so that
+its execution is guaranteed to terminate. Scripts consist of a sequence of instructions,
+and these are executed linearly, with no jumps backwards; hence, execution time is
+bounded above by execution time is bounded above by the length of the script after
+the instruction pointer. This limitation prevents denial of service attacks on the nodes
+validating the blocks.
+Script provides a set of more than a hundred primitives that allow [46]:
+• The addition of constants to the stack.
+• Some basic conditional ﬂow control, that is non-looping, but lazy (not requiring
+the evaluation of both alternatives).
+• Stack manipulation (including basic alternative stack access).
+• Stringmanipulation(mostlydisabledinthestandardclientimplementation[17]).
+• Bitwise manipulation (mostly disabled).
+• Somebasic32-bitarithmeticwithoverﬂow(multiplicationanddivisiondisabled).
+• Some basic cryptographic primitives for hashing and signature veriﬁcation.
+5
+
+• Twoprimitivesfordelayingandexpiringuncommittedtransactions,withrespect
+to time or the current height of the blockchain.
+Some characteristics that are available in Forth but are not available in Script include
+variables, arrays, functions and loops.
+Usually, stack based systems only allow access to the few top items in the stack,
+which forces programs to recalculate values that may have already been evaluated. In
+Forth, it is possible to declare variables and arrays, so these allow random access, but
+these functionalities are not available in Script. Nevertheless, Script provides a pair of
+instructions that allow random read access to the stack:
+• OP_PICK: copy an item from arbitrarily deep on the stack to the top.
+• OP_ROLL: move an item from arbitrarily deep on the stack to the top.
+Theseprimitivesallowrandomreadaccesstovaluesthathavebeencalculatedpreviously
+in the script, but Script does not provide any primitives that allow random write access
+to either of the stacks.
+Byusingtheserandomaccessinstructionsandthealternativestack,itispossibleto
+writeascriptinScriptthateﬃcientlyemulatesaparticularTuringmachineperforming
+aﬁnitenumberofstepsboundedbythelengthofthescript. However,itseemsitwould
+not be possible to eﬃciently emulate a RASP machine, and this emulation does not
+implythatthelanguageisTuringcomplete: toexecutealoopingprogramitisnecessary
+to unroll it the number of times that it loops, and this can only be done for a single
+speciﬁc input, rather than an arbitrary input conﬁguration on the tape.
+2.6.1 Limitations
+In practice, many limitations have been imposed that avoid the construction of scripts
+that diverge from the ones considered standard, some of these limitations are:
+• Alimitationonthesizeoftheblocks(whichissettoroughly1MBatthetimeof
+writing [6])
+• Alimitationonthelengthofthescripts(whichissetto512bytesforeachelement
+and 10.000 bytes per script at the time of writing [29])
+• A limitation on the number of opcodes (which is set to 201 for most op-codes at
+the time of writing [32])
+• Many disabled opcodes [46]
+Nevertheless, there does not seem to be any explicit limitation to the size of the stack,
+which is formally unnecessary because it is restricted implicitly by the limitations to
+the length of the script.
+6
+
+2.6.2 Pay to script hash (P2SH)
+ThereisanextensiontoBitcointhatallowsthepaymenttoscriptsbyprovidingitshash
+as destination address. This makes it easier for users to use non-standard scripts since
+they can transfer funds to them like a normal address, and scripts can be created by a
+diﬀerent user. It could potentially be used to split scripts into several transactions and
+allow more complicated types of contracts but, in practice, there is a limitation that
+forbids the recursive use of P2SH (it does not work to point a P2SH script to another
+P2SH script).
+3 Ethereum
+Ethereumisablockchainbasedcryptocurrencysystemthataimstoprovideadecentral-
+ised general purpose computer. Its underlying currency is calledether. The programs
+that run on this decentralised computer are usually referred to as smart-contracts and
+areautomaticallyenforcedthroughtheblockchainvalidationprocessthatiscarriedout
+by all full nodes independently.
+Full nodes are those that download and validate the whole blockchain, these nodes
+donotneedtotrustanyothernode,sincetheycanvalidatethewholetransactionhistory.
+In contrast, because the size of the blockchain is considerable (roughly 89 GB at the
+time of writing), portable devices often use so called lightweight clients, which only
+store part of the blockchain and rely on full nodes to validate transactions.
+3.1 General structure
+UnlikeBitcoin,theEthereumscriptingmechanismallowsforloopingbehaviourthrough
+the use of both jumps and recursive calls. If this were the only diﬀerence with Bitcoin,
+a malicious attacker could perform a successful DoS (Denial of Service) attack by
+sending a transaction that loops forever, since smart-contracts are validated by every
+node. In order to avoid this problem, Ethereum also introduces a limit to the execution
+time of each transaction that is calledgas.
+3.1.1 Gas
+Gas is an amount ofether, paid in advance when a transaction is issued, that covers
+the cost of executing the transaction. If a transaction runs out ofgas while it is being
+executed, the transaction will be rolled-back but thegas consumed will not be not
+returned.
+Because creating transactions requires their creators to specify and allocate the
+maximum amount ofgas that they are willing to pay, the miners have the opportunity
+of detecting transactions that will take too long to validate without actually having to
+compute their result.
+7
+
+3.1.2 Contracts
+In addition to carrying out computations and transferringether, it is also possible for
+transactionstocreatestandalonecontractsthataresavedintheblockchainandcanstore
+ether,data,executablecode,cancommunicatewithothercontractsandevencreatenew
+ones in turn.
+Basically contracts act as users, with the diﬀerence that they cannot initiate trans-
+actions (they are reactive). This limitation was imposed in order to avoid DoS attacks
+against existing contracts. With this design, the gas required to execute the code
+triggeredbyatransactionmustbeinitiallypaidbytheuserthatissuedthetransactionin
+the ﬁrst place. But contracts may programmatically choose to refund legitimate users
+so, eﬀectively, it is possible to have contracts that users can use for free.
+3.1.3 Blockchain
+The structure and workings of the blockchain in Ethereum are very similar to those
+of Bitcoin, but there are two fundamental diﬀerences: state information and uncle
+incentivization.
+State information In Bitcoin, all transaction history is stored in the blockchain, and
+in order to ﬁnd whether an amount of bitcoins are unspent, it may be necessary to
+consult blocks that are located deep in the blockchain. Thus, in order to know whether
+a transaction is invalid, it is necessary to have a complete copy of the blockchain or to
+ask someone that does.
+In Ethereum, every block contains a snapshot with information about all of the
+unspent ether, active contracts, and so on. For this reason, it is possible to prune old
+nodestostoreonlytheirheaders,thisallowsforimportantsavingsandreducestheneed
+for lightweight nodes.
+Uncle incentivization Validating blocks potentially gives miners a competitive dis-
+advantage since they take longer to start hashing. This, combined with the reduced
+block generation time of Ethereum (currently about 15 seconds) can lead some miners
+to skip the validation of some or all transactions.
+In order to palliate this problem, Ethereum oﬀers a reward to uncles, that is, blocks
+that do not make it into the blockchain but are, nevertheless, valid.
+3.2 Scripting
+The code of Ethereum’s smart-contracts is written in bytecode and executed into a
+virtual machine called EVM. EVM has a ﬁxed word size of 32 bits and is untyped for
+simplicity.
+3.2.1 Storage
+Unlike Bitcoin, Ethereum’s EVM provides a single stack limited to 1024 elements, but
+it provides two additional types of storage:
+8
+
+• Temporary storage (memory), which is a byte array and isdeleted at the end of
+the execution of each transaction.
+• Permanentstorage,whichisaword-indexedkey-valuedictionary,andispreserved
+on the blockchain between executions, but which can be deallocated explicitly.
+3.2.2 Jump operations
+Ethereum’s EVM language provides both conditional and unconditional jump opera-
+tions. In order to allow for easier and eﬃcient implementations of JIT-compilers [16],
+these jump operations can only target parts of code marked as jump destinations.
+3.2.3 Contract operations
+Contracts are virtual entities that reside in the blockchain and can store ether and
+bytecode, can send and receive messages and ether, and create other contracts. Unlike
+external accounts managed by users, contracts cannot initiate transactions: they are
+reactive.
+Creation Newcontractscanbedirectlycreatedbyusersorbyothercontractsthrough
+the CREATE bytecode operation.
+Calls Contracts can send messages to other contracts or accounts through the use of
+the call operations. These allow to send ether, to execute the code of another contract,
+to stipulate a maximum amount of gas for the code executed by the call (which may
+be smaller than the gas available at the time of the call), and can pass and receive
+information.
+Contracts in Ethereum have a single block of bytecode that is executed by calls,
+but high level languages like Solidity automatically deﬁne a function selector at the
+beginning of the block that redirects calls to the appropriate part of the bytecode.
+Suicide Inordertosavestoragespace,Ethereumallowscontractstodeletethemselves
+whentheyarenolongernecessary. Inordertopromotethis,partofthecostofcreating
+contracts is refunded when the suicide operation is called.
+3.2.4 Inspection operations
+Ethereum’sEVMallowscontractstoaccessseveralkindsofmetainformationaboutthe
+blockchain, about the contracts themselves, and even about the code of other contracts,
+which can be copied to memory.
+3.2.5 Logging operations
+AnotherfunctionalityprovidedbytheEVMislogging. Thereisasetofbytecodesthat
+allowsmart-contractstologvalues. Theselogsarereturnedasthe“receipt”thatresults
+fromprocessingthetransaction,buttheyarenotexplicitlystoredintheblockchain[51].
+9
+
+3.2.6 High-level languages
+InadditiontoEVMbytecode,severalhighlevellanguagesthatarecompiledtoitexist.
+The most popular ones are probably:
+• Solidity – Solidity is a contract-oriented, high-level language whose syntax is
+similar to that of JavaScript. Solidity is statically typed, supports inheritance,
+libraries and complex user-deﬁnes types among other features [48].
+• Serpent – Serpent, as suggested by its name, is designed to be very similar to
+Python; it is intended to be maximally clean and simple, combining many of
+the eﬃciency beneﬁts of a low-level language with ease-of-use in programming
+style, and at the same time adding special domain-speciﬁc features for contract
+programming [47].
+4 Nxt
+Nxt is designed to be a general foundation for DLT-based economic transactions. It is
+inspiredbythesuccessofBitcoin,butaimstoprovidemoreperformanceandscalability
+through being based on proof of stake rather than proof of work.
+The NRS (Nxt Reference Software) uses a client-server architecture. The NRS
+server is a Java application with two interfaces: one for communicating with other
+servers through the Internet (forming a network of nodes), and one for responding
+to requests from clients through its API (Application Program Interface). The client
+component of the NRS is a browser-based, user-friendly interface to the NRS server
+(via the API), often referred to as the Nxt Wallet.
+Aswithotherblockchainsystems,anyoneisabletoinstallandrunthesoftware. The
+systemisopensource,and,aswithotherprojects,thecoredevelopersactasgatekeepers
+for system changes. Individual users can modify instances of the software, but as with
+otherblockchainsystems,changesonacollectionofinstalledinstanceswithmorethan
+50% of the stake would be required to mount on the integrity of the whole system.
+It is possible to write JavaScript plugins for the client, but these do not extend the
+core functionality at all, and facilitate e.g. visualisation or block exploration.
+There are proposals for a successor to Nxt, Ardor, and this is expected to be
+released in the ﬁrst half of 2017. This will separate the notions of tokens for “forging”
+and for (user) “transactions”; this is intended to support more eﬃcient operation of the
+blockchain. The current situation with a single blockchain will become one in which
+there is both a single “infrastructural” blockchain which takes care of forging tokens
+as well as the overall consistency and progress of the chain, together with many child
+chains, which can perform operations in their own currencies.
+4.1 Programmability
+Crucially,theprogrammabilityofthesystemisprovidedthrougha“fat”highlevelAPI,
+whichisaccessiblefromNxtclientsthroughaRESTinterface. TheAPIprovidesfunc-
+tionality supporting various kinds of transactions, and the transactions are categorised
+10
+
+into types and subtypes “for modular growth and development of the Nxt protocol”.
+Eachtypedictatesrequiredandoptionalparameters,aswellasthe“processingmethod”
+of the operation.
+The whitepaper explicitly says that “the core software doesn’t support any form
+of scripting language”; rather, users are expected to work with the built in transaction
+typesandtransactionsthatsupportsome250primitiveoperationsinanumberofareas,
+including basic payments; an alias system (for strings that can be stored on the block-
+chain, representing e.g. URIs); messaging (messages can be sent between accounts,
+but also represent structured data by means of JSON objects); exchanging assets; buy-
+ing and selling through a digital goods store; infrastructure; phasing operations, etc.1
+Scriptability of the API is given by <script> at the client side, but this does not allow
+any access to any more fundamental levels of the implementation.2
+In conclusion, while there is no scripting functionality in the core, it is possible
+to build functionality by putting together API calls in JavaScript. This will produce a
+sequence of transactions in the API. In contrast to systems with a lower-level VM, an
+attackwouldhavetobebymeansoftheseAPIfunctions,ratherthanageneralVM-code
+program. The security of the system therefore rests on (open source) implementations
+of this API: is each of the operations secure, and is there no way of putting together
+an attack through a sequence of API calls? While the VM allows a broader range of
+potential scripts, there is a conceptual cost in understanding the scope of possibilities
+presented by a large and more complex high-level API.
+5 Other DLT systems
+Since the development of Bitcoin, numerous diﬀerent alternative cryptocurrencies or
+alt-coins have been created. These can be classiﬁed by their relationship to Bitcoin
+[50]:
+• They may be implemented within Bitcoin, and be calledmeta-coins.
+• They may have their own blockchain but be linked to the blockchain of Bitcoin
+(or other cryptocurrency). These includeside-chains and blockchains that rely
+on merged mining.
+• They may be inspired by Bitcoin but implemented in a completely independent
+way.
+5.1 Meta-coins
+Meta-coins are mechanisms that are implemented on top of Bitcoin, and can be seen
+as speciﬁc ways of using and interpreting Bitcoin. They beneﬁt from the stability
+of its blockchain, which guarantees their irrevocability, and they will generally have
+additionalrulesthatinterpretthemeaningofBitcointransactionsandmayignorethose
+1The API is fully documented here:http://nxtwiki.org/wiki/The_Nxt_API
+2Some details of coding are found here:https://nxt.org/category/coding/ which gives some
+examples of <script>s.
+11
+
+that do not make sense (invalid transactions from the point of view of the meta-coin),
+but they are transparent to other Bitcoin users.
+They may store the information as part of Bitcoin transactions (this can be done in
+several ways [14]), or they may just store a hash of their data and store the actual data
+somewhere else.
+In this section, we review three examples of meta-coins.
+5.1.1 Coloured coins
+Coloured coins [9] assign extra meaning to bitcoins, even though the idea can be
+applied to other cryptocurrencies and even to physical currencies. They may be used,
+for example, as a means to getting a bitcoin UTXO to represent the ownership of a
+real-world item (e.g: a piece of land, a share of an enterprise, or a ticket to a concert).
+Of course, coloured coins do not, by themselves, enforce this “extra meaning”, it is
+required that some authoritative organisation or convention recognises them.
+5.1.2 Type-coin
+Type-coin [13] is a mechanism for general-purpose aﬃne-commitment. It is related to
+colouredcoins(seeSection5.1.1)inthatitcanbeusedforrepresentingaﬃneresources
+similarly to how coloured coins represent assets, but it is more expressive because it
+can express predicates using aﬃne logic. Type-coin is implemented on top of Bitcoin
+and its state is interpreted by applying a set of rules to Bitcoin’s blockchain.
+5.1.3 Counterparty
+Counterparty [11, 12] provides the functionality of Ethereum as a meta-coin. The
+internal currency (XCP) is allocated through “proof of burn” of bitcoins, that is, in
+order to obtain XCP units users send bitcoin to a special address that is unspendable.
+Transactionsareencodedasnormalbitcointransactionsandtheyarevalidatedbyusing
+the rules speciﬁed in the source-code of Counterparty’s client.
+5.2 Sidechains and merged mining
+SomesystemshavetheirownblockchainbutitislinkedtoBitcoin’sthroughtechniques
+such as 2way-pegging or merged mining. These techniques aim to enhance Bitcoin by
+providing new functionalities while reusing some of its strong properties:
+2way-peggingallowsthedirectconversionofbitcointoanalternativecurrencyand
+back, by temporarily locking the funds through a script. This works in the same way
+as “proof of burn” but it can be reversed and, thus, allow the exchange of currency
+in both directions. This mechanism has not been widely adopted; it has been notably
+implemented in RootStock and there exist some other experimental projects.
+Merged mining aims to reuse the mining power of Bitcoin to add security to a
+blockchainthatislesspopular. Itworksbyaddingthehashofsomeoralloftheblocks
+in the blockchain of the alternative cryptocurrency to those of Bitcoin’s.
+12
+
+5.2.1 RootStock
+Rootstock [42] works as a sidechain of Bitcoin with 2way-pegging, bitcoins can be
+transferredtoRootstockblockchainandtheybecome“rootcoins”(RTC),androotcoins
+can be transferred back into Bitcoin blockchain. Rootstock provides similar function-
+ality to that of Ethereum. In the paper [43], the authors claim that the Roostock VM
+(RVM) is op-code level compatible with EVM (the Ethereum VM).
+The native currency of Rootstock (RTC) is used to pay miners of Rootstock block-
+chain for executing the contracts. Rootstock also supports merge mining Bitcoin and
+Rootstock simultaneously, and oﬀers some protection mechanisms, like checkpoints
+andincreasedmaturitytimeforminedcoins(periodduringwhichrecentlyminedcoins
+cannot be used), against DoS by Bitcoin miners.
+5.2.2 Namecoin
+Namecoin[35]startedasaforkoftheBitcoinsoftwareandaimsatprovidingadecent-
+ralised system to register names. It can be used as alternative for DNS and currently
+canbeusedforresolvingthe .bit domains. Itchargesasmallfeeforregisteringnames
+and it requires owners to update them roughly once every 250 days, otherwise they
+expire. Namecoin has its own blockchain but it is linked to Bitcoin in that it provides
+the possibility of merged mining with it.
+5.3 Tezos
+Tezos [22, 21] is a cryptocurrency that, at the time of writing, is under development,
+butauthorsprovideadetailedspeciﬁcationofitsscriptinglanguageandanexplanation
+of the system.
+Tezos claims to be the ﬁrst cryptocurrency that is democratically-amendable. It
+providesanexplicitmechanismfordecidingonfuturemodiﬁcationsofitsownprotocol,
+and initially it considers a voting mechanism and a trial period.
+The scripting language of Tezos is stack-based but includes high-level primitives
+like lambdas, sets, maps, and some for context speciﬁc tasks; and it provides a full
+speciﬁcation to aid formal veriﬁcation of contracts. It also provides functionalities
+aimed at increasing readability of bytecode like the labelling of elements in the stack
+and the nesting of primitive expressions. To solve the problem of script-based DoS,
+Tezos deﬁnes a ﬁxed limit for the number of computation steps per program.
+Tezosalsoallowsthecreationofcontractsstoredintheblockchainthatcanstorean
+amount of currency and data (up to 16KB), and are controlled by a user or “manager”.
+Contracts without currency are automatically destroyed.
+Tezos’ Contract Script Language is the most conservative of the new blockchain
+languages. It’s a stack language, much like Bitcoin Script. However, unlike Bitcoin
+Script, Tezos’ language is statically typed. Additionally, it has a detailed speciﬁcation,
+including a formal operational semantics for the stack machine. This makes it easy to
+construct formal veriﬁcations in Coq and related tools. The main drawback of Tezos’
+language is that, like Bitcoin script and Forth, it’s hard to program in. Stack languages
+are notoriously diﬃcult to use, making it undesirable as user-facing language.
+13
+
+5.4 Hawk
+Hawk [30] is a decentralised smart contract system that anonymises transactions, and
+provides mechanisms that simplify the task of hiding the inputs and participants in
+smartcontracts(seeSection8.3),throughtheuseofcryptographiccommitments,zero-
+knowledge proofs (see Section 8.4), and the use of a third-party or manager.3
+The work in [30] can be seen to provide a foundation for smart contractsà la
+Ethereum, but with the possibility of making the participants and values in the trans-
+actions private, in the style of Zerocash, withmint and pour operations. It presents an
+abstraction of what the blockchain can be seen to provide (in Section II-A), and how
+computation proceeds in it (Section II-C), includingimmediate and delayed computa-
+tions, which are represented via “ticks” on the chain.
+The description of contracts is done by using an abstraction that allows for the
+declarationofprivateandpublicparts,andcanbecompiledtoalowerlevelimplement-
+ation that uses zero-knowledge proofs or SNARKs for hiding the inputs of the private
+parts. Transactions are programmed in three phases:freeze,computeand ﬁnalize.
+The system provides two levels of description for computations: the more abstract
+programsand the more concretefunctionality, with a wrapper going from the former
+to the latter. This wrapper can be seen as encapsulating some of the general context,
+including timers, pseudonyms and ledgers, and these “ideal” programs can be seen in
+some way as a speciﬁcation of the lower level ones.
+The protocols described in the paper [30] are formally proven secure under the
+UniversalComposabilityframework,againsttheabstractionoftheblockchainprovided.
+At the time of writing there is no publicly available implementation of Hawk.
+6 Other ideas for scripting
+Other approaches to scripting are possible: in particular, it is possible to generate
+scripts from other artefacts, including business process modelling (BMP) languages,
+and ﬁnite-state machines; we look at these here.
+6.1 Compilation from a higher-level language
+Whileprogramminglanguagesorvirtualmachinesareasuitableprogrammingmedium
+for some, in other domains more specialised, domain-speciﬁc languages are used in
+practice. A key example is that of business process description, and there is work on
+translatingspeciﬁcationswritteninsuchlanguagesintoblockchainscriptinglanguages,
+such as Solidity.
+6.1.1 BPMN: The OMG Business Process Model and Notation
+BPMN is used for describing real-world business processes, such as a supply chain,
+which require the collaboration of a number of entities. Tracking and validating such a
+3Note,however,thatthemanagercannotaﬀecttheresultoftheexecutionofscriptsotherthanbyaborting
+in the middle of the process, see Section 7.5.
+14
+
+processcanbeachievedwithDLT,usingblockchainasbothasynchronisationprimitive
+and an immutable audit trail. Systems like these are typically described in a language
+like BPMN [8]. Recent work [49] shows how BPMN speciﬁcations can be translated
+into smart contracts in Solidity, which form part of a larger runtime system that can
+monitorandorchestratetheexecutionoftheprocess,aswellasprovidingotherservices
+to the process, such as payment escrow.
+6.1.2 Data-Aware Processes
+Further to the work in the previous section, another evaluation of the possibilities of
+using blockchain in this area [26] argues that this sort of ‘artefact-based’ approach
+is suitable for data-rich real-world processes, too, and in particular it can be seen to
+provide possibilities for rich conceptual modelling and veriﬁcation. In particular, the
+authors argue that realistic systems involve data, taking their models beyond the purely
+ﬁnite-state machine, requiring machine-assisted proof or automated technology such
+as model checking. These approaches, which are already used to verify BPM systems,
+should be extensible to blockchain-based systems.
+6.2 Finite State Machines
+ADSLforFSMsdescribingblockchaintransactionsisdiscussedinaNxtforum[19];it
+isnotclearthatthishasbeentakenanyfurther,butmaylinkwiththeBambooproposal
+in Section 7.2.
+6.3 Hyperledger: Dockerized chaincode
+The Hyperledger [27] consortium, which involves IBM and the Linux Foundation
+amongotherorganisations,aimstobuildgeneralpurposeDLTtechnology,withmaking
+manyaspectsofthesystempluggable,including,forexample,conﬁdentialityand(even)
+the consensus mechanism.
+Scripting in this model useschaincode, which ﬁrst had a binding in the Google Go
+language (and is set to have Java and JavaScript bindings too). This makes the model
+similar to that of Nxt, but the diﬀerence in Hyperledger is that chaincode is isolated
+intoDockercontainers,thusprovidingsomeguaranteesautomatically. Eachchaincode
+instance can deﬁne persistent state variables that are stored on the blockchain, and are
+updated when the transaction is invoked; the totality of this storage is called theworld
+state.
+6.4 Logic rules
+There is a history of using a variety of logics to describe contracts, and [28] builds
+on this to examine the feasibility of using logic to describe smart, blockchain-based,
+contracts. This is done through exploring a typical example, ﬁrst in pseudocode and
+then in Formal Contract Logic (FCL), a deontic, defeasible logic, implemented in the
+defeasible logic engine SPINdle. Once the approach is established, the paper also
+examines the trade-oﬀs between performing (parts of) the computations on and oﬀ the
+15
+
+blockchain. It concludes by arguing that a case for feasibility has been made, but notes
+that a substantial challenge to adoption is the relatively ineﬃciency of logic execution
+mechanisms.
+6.5 Process Calculi
+Otherlanguageshaveemerged,aswell. Synereo’sRholangisbasedonamoreformally
+well-understood system, Process Calculus, and it has a published speciﬁcation [41].
+ThismakesitpotentiallyamenabletoformalveriﬁcationwithtoolssuchasCoq,andto
+richtypingsystemssuchaslinearsessiontypes. However,Rholangisalsoreﬂective[33],
+in the sense that data can be represented by processes, which may pose problems for
+both those options. Additionally, many programmers do not have any familiarity with
+process calculus, which would add to both learning overhead and also comprehension
+overhead.
+Ontheotherhand,useofcommunicatingprocessesinRholangunderlinesthepoint
+(also made by the proposal) that “social” contracts are inherently concurrent artefacts,
+and so it is desirable that this concurrency is not lost through sequentialisation when
+modelling them.
+7 Critiques of existing systems
+When programming, developers usually focus on normal usage; however, in a scenario
+where money is involved and the programs developed have to interact with potentially
+malicious agents, it is crucial to understand the unanticipated possibilities that the
+languageaﬀords,includinganydefaultbehavioursoftheprograms,andanypotentially
+unspeciﬁed aspects.
+In this section, we consider a series of observed security problems that follow this
+pattern.
+7.1 Reentrancy
+Reentrancy is the correct behaviour of a function or method in the event of it being
+called in the middle of its own execution. Reentrancy is guaranteed for those functions
+thatarereferentiallytransparent,thatis,theydonothavesideeﬀectsoraccesstoglobal
+variables.
+Incaseswhereafunctioncallsanotherfunctionoverwhichwedonothavecontrol,
+we must consider the possibility that the remote function will call our function back
+again, thus we cannot assume that our function call will act atomically [3, 31].
+In Ethereum, payments are implemented through a call to an unknown function.
+Because we usually do not intend the called function to execute any code, we want to
+limit the gas of the call to a low value. Failing to do so, allows a malicious recipient to
+execute arbitrary code after the payment.
+One example of when this would be a problem is if we have a “withdraw” function
+that retrieves money from an account and does so by ﬁrst sending money to the user
+and then subtracting the amount from the balance. A malicious user could cause the
+16
+
+paymentcalltoexecutethe“withdraw”functionrecursivelyandhewouldbeabletodo
+so until the bank runs out of funds since the balance will not be updated. This security
+issue has been infamously illustrated by the DAO attack [31].
+There are several problems in this example: one is the lack of reentrancy, another
+one is the unintended execution of arbitrary code.
+Nevertheless, we can imagine that isolating the logic from the side-eﬀects would
+help avoid this kind of problem.
+7.2 Bamboo: improving Ethereum-style reentrancy
+YoichiHaraihasdevelopedanimprovedlanguageBamboo,[23]basedontheEthereum
+approachtocontracts;inparticular,hislanguageimprovesitsreentrancybehaviour. He
+attributes the deﬁciencies of Ethereum to the absence of message queues to contracts,
+as implemented in Erlang, for instance.
+“In EVM, when contractA calls contractB, contractB can call back into
+contractA.Atthispoint,twoexecutionsofcontract A exist,whichdoshare
+the storage but do not share the program counter. So the reasoning is
+almost as complicated as having two threads on the same program. Both
+EVM and Solidity have this nasty property.”
+“InBambootheprogramexecutionisalwaysatasinglepoint,evenincase
+of reentrancy. The snippet
+sleep_after_calling(B)
+with reentrancy { ... code_reentrant ... };
+... code_continued ...
+sends a message to the calleeB. Usually, when the calleeB returns, the
+execution continues incode_continued. If the calleeB calls back our
+contract, the execution is trapped intocode_reentrant. This prevents
+some code far away from changing the state while our contract is calling
+callee B.” [24]
+Whilethisapproachallowsthecalledcodetobemorewell-behaved,theproblemofthe
+calleereenteringanalreadycalledfunctionremainsand,arguably,thisisstillsomething
+to be addressed.
+7.3 Implicit runtime exceptions
+Exceptions represent behaviour which is not the intended one. Because of their nature,
+exceptionsaregoodcandidatestocausebehavioursinprogramsthatwerenotconsidered
+bytheirdevelopers. Ifwewanttohelpdevelopersmaketheircodepredictablewemust
+study how to help them be aware of all kinds of exceptions that can occur.
+Ethereum’s EVM handles exceptions by simply returning 0 whenever a call fails
+[38]. Contract developers are expected to verify return values in the calling function.
+In this section, we study some examples of exceptions that have allowed attacks in
+Ethereuminthepastandwesuggestsomeideasthatscriptinglanguagesmayimplement
+in order to mitigate this kind of problem.
+17
+
+7.3.1 Stack overﬂow
+In Ethereum, the act of sending a message (which can be caused by a function call in
+Solidity) increases the size of the stack. Because the execution of a function can be the
+result of another function call, we cannot make assumptions about the amount of stack
+space remaining, thus, any call can potentially produce an exception. Furthermore, if
+the exception is not automatically propagated and the programmer forgets to check for
+errors, the execution will continue as if it was a normal execution, which allows for
+potential malicious attacks [15].
+7.3.2 Out of gas exception
+As we saw in Section 3.1.1, the execution eﬀort of contracts in Ethereum is controlled
+by gas. When you issue a transaction, you may be able to predict the gas that is going
+tobeneeded(assumingtherearenoraceconditions). Butcodethatispartofacontract
+stored in the blockchain may have any amount of gas available when called by an
+external agent. Thus, execution can potentially suﬀer an out-of-gas exception at any
+point.
+Ethereum implements a good fallback for this cases, since transactions are rolled
+back when they run out of gas. But it introduces uncertainty when calling foreign
+functions which may not succeed if insuﬃcient gas is provided [15]. We cannot know
+for sure how much gas is going to be necessary for a foreign call to be executed. This
+suggests that it could be useful to ﬁnd mechanisms to limit the execution time without
+usinggas,andthatitwouldreduceuncertaintytobeabletoguaranteepreconditionson
+the execution of transaction (so as to prevent race conditions).
+7.3.3 Dealing with exceptions
+There are several ideas that a scripting language could implement in order to try to
+make errors derived from unexpected runtime exceptions more diﬃcult, some of these
+solutionsaﬀectthedesignofthelowlevelscriptinglanguagesincehighorderlanguages
+may not be able to enforce atomicity [31]:
+• [31] suggests propagating the exceptions through callers and reverting the state,
+and providing a proper mechanism to control exceptions.
+• We may want to have a way of describing the way exceptions will be handled
+for each scenario. We may want the execution to carry on and ignore failing
+operations, or we may want to rollback everything if any operation fails, but we
+probably want to deﬁne this explicitly or at least have a fallback that is easy to
+predict.
+• Wemaywanttoforcethedevelopertodeﬁneexplicitlytheexceptionalbehaviour
+whenever there is a chance for it to occur.
+18
+
+7.4 No reimbursement
+Apossibleissuethat,whilelesssevere,maybejustasfrustratingforusers,isincomplete
+handling of preconditions. Again, it is usually the case that developers focus on the
+normal execution ﬂow, and when preconditions of a contract are not met, even if the
+execution is aborted, the user may not be returned the money invested in the contract
+[15, 38]. Furthermore, even if the user checks that the preconditions are met before
+sending a transaction, it is possible that a race condition changes this fact, thus forcing
+the user to face a risk when issuing a transaction.
+Makingtransactionexecutiondeterministic[31]cancertainlyavoidtheuncertainty
+forusers,butthereisnoeasywayofenforcingthatthiskindoferrorsdonotoccur. One
+possible path of research would be to ﬁnd a way of writing programs that analyses the
+sum of incomes and outcomes for each user and makes variations to this sum explicit.
+7.5 Unilateral abortion
+In complex multi-stage contracts, it is possible for users to stop collaborating on the
+execution of contracts if, for example, doing so would be against their interest [15].
+Because of this, contracts must be designed with the possibility of eventual non-
+cooperationinmindforeachstep. Usually,non-cooperationcanbepunishedbystoring
+a deposit for each participant that is forfeited if they choose to not cooperate, and by
+establishing deadlines for each step of the protocol [30].
+Ontheotherhand,deadlinesnecessarilyposeariskforusers,thatmaysuﬀeraDoS
+thatpreventsthenfromcooperatingand,thus,loosethedepositeveniftheyarewilling
+to cooperate.
+Again, there is no obvious way of preventing this mistakes from happening, but it
+should be possible to ﬁnd a way to design contracts that allows to specify deposits and
+timeoutsforusersandautomaticallypunishesuserswhentheydonotcooperateand,for
+example, rollback the whole protocol for the rest. Even though any of these solutions
+would probably require many considerations and calibrations speciﬁc to the scenario.
+7.6 Unpredictable state
+Because transactions are processed in chunks (blocks), the order in which unprocessed
+transactions will be processed is unknown. The order is decided by the miner that is
+successfulatacertainpointintime. Sincesmart-contractsmaydependoncontext(the
+state of the blockchain), it is not unusual for their result to be unpredictable [15, 3].
+One possible solution to the unpredictability could be to establish a particular
+context as a precondition for transactions to be executed, or to use the expected output
+asaprecondition[31]. Butthiscouldpotentiallyslowdownhighlyinteractivecontracts
+and force users to resend transactions many times.
+Another consequence is that, if there is any beneﬁt on being the ﬁrst in creating
+a transaction that contains a secret, an attacker could intercept a transaction with the
+secret and make their own transaction by using the secret, and potentially get their
+transaction to be recorded ﬁrst in the blockchain. We can imagine this would be an
+important issue for a system that registers names like Namecoin (see Section 5.2.2)
+19
+
+since attackers could see that a user is trying to register a name and then register it
+themselves and later charge a ransom to the user for releasing it.
+The reasons why attackers may be able to get a copy of a transaction to appear
+earlier in the blockchain than the original one include: luck, paying higher fees, and
+controlling enough network or mining power and using it to discard or diﬃcult the
+propagation of the user’s transaction.
+But that is not the only consequence of unpredictability, some properties can be
+directly manipulated by miners without the need of controlling the network, like is
+the case of timestamps [31] in Ethereum, which are allowed a margin of up to 900
+seconds due to the latency and potential lack of synchronisation between the diﬀerent
+nodes. Allowing the language to provide this kind of unreliable information can trick
+developersintoafalsesenseofsecuritywhichmayleadtobugslikeusingtimestampsas
+seedsforrandomness[31],soitmaybeawisedesigndecisionnottoprovidethem. [31]
+suggestsusingtheblockheightnumberasareplacementandtranslatingtheexpressions
+thatusetimestampsintermsofblockheightnumbers(sincetheexpectedtimebetween
+blocks is known).
+The problem of secret stealing can be solved by using cryptographic commitments
+or zero-knowledge proofs (see Section 8.4).
+7.7 Secrecy
+NorEthereum,norBitcoinprovideanonymitytousersbydefault,otherthantheoption
+of using pseudonyms, but that does not usually prevent by itself the use of analysis
+techniques to analyses data.
+In addition, many contracts implementing multi-player games, require that some
+ﬁeldsarekeptsecretforawhile: forinstance,ifaﬁeldstoresthenextmoveofaplayer,
+revealing it to the other players may advantage them in choosing their next move.
+In such cases, to ensure that a ﬁeld remains secret until a certain event occurs, the
+contracthastoexploitsuitablecryptographictechniques[3]. Someofthesetechniques
+have been mentioned in Sections 5.4 and 8.4.
+7.8 Immutable bugs
+Immutabilitycanbebothseenasdesirableandasundesirabledependingonthecircum-
+stance. Clearly, the fact that data in the blockchain is immutable is a conscious design
+choice,butitbecomesaproblemwhenwhatisimmutableisabug[3]. Thechallengeis
+not really technical but bureaucratic, in that it would be necessary to ﬁnd a convenient
+andconvincingwayofdecidinghowtodecideaboutthechanges,upgradesandﬁxesof
+contracts,andingeneraloftherulesinadecentralisedcrypto-system. Wehavealready
+seeninTezos(seeSection5.3)anapproachtothelater,thedefaultsolutionprovidedfor
+ﬁxes in contracts was to have a designated manager for contracts. But we can see that
+having a manager is a limitation if we want to trust no-one, or maybe we are interested
+intrustingaschemeofthetypeN-out-of-M,whichwouldrequiresomescriptthatdoes
+the validation.
+20
+
+7.9 Lost ether
+Another consequence of immutability is currency sent to addresses whose key is not
+known[3]due,forexampletoamistake. Ifstandardcryptographicassumptionhold,this
+currency is statistically impossible to recover and is lost forever (burned). In addition
+to the economical loss, this produces a burden on the blockchain because the unspent
+currency cannot be forgotten, since there is no proof that it is actually unspendable (as
+far as everyone knows someone could actually have the key).
+In order to reduce the likelihood of this happening, in the context of Bitcoin,
+Base58Check is often used which adds redundancy to addresses, so that a small typo
+cannot produce a diﬀerent valid address [2].
+7.10 Non-randomness
+Some scripts require a safe source of randomness during execution [3]. When the
+execution environment is a blockchain, the problem translates into ﬁnding a source of
+randomness that is globally available, independently veriﬁable, and unpredictable.
+Theblockchainseemstobeagoodsourceforsuchrandomness,sincethehashesof
+new blocks are diﬃcult to predict. But using it as source of randomness opens the gate
+for potential manipulation by the miners. Thus, ﬁnding a safe way of using the entropy
+intheblockchainasasourceofrandomnessisanopenandactivelyresearchedproblem
+[40].
+7.11 Turing completeness or not?
+ATuringcompletescriptinglanguageiscapable–inprincipleatleast–ofallowingall
+computable functions to be scripted in the language. This means that the execution of
+some scripts will not terminate (for some inputs), and even for those that do terminate,
+execution times can be indeﬁnitely large. So, it would appear that choosing a Turing
+incompletelanguagewouldbeappropriate. Whilethisistrue,Turingincompletenessis
+notsuﬃcient initself. 4 Forexample, computationtimes canbesuper-exponential even
+for primitive recursion (with higher types), as evidenced by the Ackermann function.
+Even without recursion, puttinga prioribounds on execution time can be problematic
+in scenarios where contracts can invoke each other, and calls can be symbolic.
+8 Technologies
+8.1 Veriﬁable computation
+Veriﬁable computation [37] is a technique that allows the generation of proofs of
+computation – that is proofs that the evaluation of a program has a speciﬁed result –
+that can be veriﬁed faster than the time that it would take to do the actual computation.
+This allows the outsourcing of computation to untrusted parties.
+4This argument is made in the context of Ethereum in the white paper: https://github.com/
+ethereum/wiki/wiki/White-Paper#computation-and-turing-completeness
+21
+
+In Pinoccio [37], authors claim to have achieved a “nearly practical” way of doing
+this, as opposed to previous ways that, while asymptotically would work for some
+input, in practice they have an infeasible constant factor (hundreds of years for small
+computations).
+InGeppetto[10],authorsdescribeadditionaltechniquesforimprovingtheeﬃciency
+of the approach. The work in the paper is for a practical C compiler, based on LLVM,
+and introduces a number of advanced techniques that aim to reduce power overhead
+andincreasethescopeofthework. TheGeppettoworkisbuiltontopofthePinocchio
+system, which also underlies zero knowledge proofs (see Section 8.4).
+Veriﬁable computation has, at least, one interesting application to smart contracts:
+they would allow miners to do the computations only once and generate a proof of
+computation, and veriﬁers would only need to verify that the proof is correct. This
+would allow for more expensive contracts to be run, since they would not increase the
+time required to validate the blockchain proportionally.
+Potentially, computations could be carried out directly by the users sending the
+transactions, but this would potentially require transactions to be recomputed in case
+theircontextchanges(whichcouldhappenasaresultofaraceconditionintheprocess
+of adding them to the blockchain, see Section 7.6).
+8.2 Veriﬁable bounds and reusable libraries
+Even if we cannot give a proof of computation, it would be useful to supply a proven
+upper bound for the amount of computation that a program will require. This way, we
+can calculate a minimum amount of gas that would guarantee the contract to execute,
+which would avoid the out-of-gas exception completely (with the security implications
+this has, see Section 7.3.2).
+Contracts are usually designed and reused many times with small changes to their
+parameters and inputs. Even if the automatic veriﬁcation of general contracts is not
+possible, it may be possible for some contracts to manually prove or provide formulas
+thatveriﬁablycalculatetheamountoftimerequiredtoexecuteagivencontract,oreven
+toprovethatexecutioniscorrect(asisthecasewithNPproblems,whosesolutionscan
+be veriﬁed in polynomial time). Such reusable and veriﬁable formulas can be stored in
+the blockchain.
+8.3 Multiparty computation
+Securemultipartycomputation(MPC)protocols,allowagroupofmutuallydistrusting
+parties to compute a joint functionf on their private inputs. Typically, the security
+of such protocols is deﬁned with respect to the ideal model wheref is computed by a
+trusted party [1].
+The aspects that can be guaranteed in diﬀerent settings vary, the basic protocols
+allow simple emulation of the computation, but Bitcoin has been used successfully
+[1, 4] to enforce the results of computations and penalise in cases of non-cooperation
+(see Section 7.5).
+22
+
+8.4 Zero knowledge
+Zero knowledge proofs are a cryptographic mechanism of proving the possession of a
+speciﬁc bit of knowledge without revealing that bit of knowledge. It has been shown
+[20] that it is possible to interactively demonstrate with zero knowledge the possession
+ofasolutionforthe3-colouringproblemofagraphandbyextensionanyNP-complete
+problem.
+Zerocoin [34] and Zerocash [45] use zero knowledge proofs to add anonymity to
+bitcoin transactions without adding any trusted parties. The algorithm allows users to
+mint a number of zero-coins into a pool and to later redeem diﬀerent ones, but ensures
+than each user cannot redeem more coins that he or she has minted without revealing
+any links between the inputs and the outputs.
+Zero knowledge proofs are also integrated in Hawk (see Section 5.4)) to ensure
+anonymity.
+8.5 Proof-carrying code / proof of computation
+Inproof-carryingcode [36]programcode–intheoriginalexample,machinecode–is
+accompaniedbyaproofthatthecodesatisﬁescertainproperties,suchasterminatingin
+a given period of time. The proof is deﬁned in such a way that it can be checked by the
+recipient, and such a check is substantially cheaper than the recipient making the proof
+forthemselves. Moreover,therecipientneednottrustthesender: theproofprovidesthe
+essentialevidence that something is the case, rather than having to trust the veracity of
+another agent in the system. Assuming that the proof format is published, the recipient
+can indeed write a proof checker for him or herself, and need not trust a third party to
+supply one.
+This does have a major drawback, however: not only will implementors of the
+blockchain system need to understand and implement a programming language, they
+willalsoneedtounderstandandimplementafullblownproofchecker. Justusingproof
+assistantslikeCoq isdescribedbyprogramminglanguage implementorsasrequiringa
+PhD,nevermindconstructingone. Now, whilethisisnotreallytrue, itdoesconveythe
+complexityofthetask. Ontheotherhand,thismaybeagoodthing,asitcreatesahurdle
+forthosewantingtodevelopavalidator,andmaydeterallbutthemostdetermined(and
+skilled), thus avoiding the production of poorly designed validator software that could
+threaten the blockchain network.
+A related concept isproof of computation, where a proof accompanies a value: in
+such a case the value is purported to be the result of evaluating a given expression, and
+the proof provides evidence that this is the case.
+8.6 Use of combinators
+Combinatorsare higher-order functions, which could be in an untyped functional lan-
+guage(likethe λ-calculus)oratypedlanguage(suchasHaskell). Setsofsuchfunctions
+formcombinatorlibraries,andtheyhavebeenusedtodeﬁnesmall domainspeciﬁclan-
+guages(DSLs); well-known examples include parsing libraries and hardware descrip-
+tion. [39] studies how combinators can be used to represent typical ﬁnancial contracts.
+23
+
+It aims to deﬁne a combinator language that is closer to the terminology that is used in
+ﬁnancial contexts.
+The model is of contracts with two parties: the holder and the counter-party. Seen
+as existing over time, with a horizon (expiry date), and potential constraint on the
+acquisition date. Contracts can be combined through conjunction, disjunction and one
+aftertheother(sequentially),aswellasbeingableto“swappolarity”asitwere. Shown
+how complex contracts can be described using the DSL: including “American”- and
+“European”-style options.
+The paper [39] presents, in addition to the combinator library itself, a valuation
+of contracts, based on stochastic machinery, and a concrete implementation of this
+valuation machinery.
+8.7 Use of polymorphic dependent types and algebraic side-eﬀects
+Dependent types allow users to declare more expressive types for their programs. In-
+deed, through the “Curry-Howard” isomorphism, types can be identiﬁed with proposi-
+tions in predicate logic, and members of those types with proofs of those propositions.
+Forthesereasons,anexpressivelanguagemightbeanappropriatevehicleforguarantee-
+ing that smart contracts have certain properties by design. The paper [38] investigates
+this,andinparticularexamineshowIdris,withitscombinationofdependenttypesand
+algebraic eﬀects, can be used to good eﬀect in this space. In particular, it manages to
+model handling of both gas and global state in a safer way.
+In a little more detail, it proposes using dependent and polymorphic types, and
+algebraicside-eﬀectdeclarationstopreventthem. Theintentionistoavoidunexpected
+outcomesbydeclaringtheexpectedoutcomesandside-eﬀectsexplicitly. Thepaperalso
+provides a translation from Idris to Serpent, the Python-style high-level language for
+Ethereum. Finally,thepaperlooksatsomecommonproblemsofcontractdevelopment,
+but these are taken directly from [15], discussed in Section 7. In evaluating the work,
+thepaperconcludesthatprocesscalculi, plusbehaviouraltypes, mightprovideabetter
+solution.
+8.8 Formal veriﬁcation of contracts
+“Provingprogramscorrect”hasbeendiscussedformorethanthirtyyears,butiscoming
+of age. Some work has been done on applying this to smart contracts, too, with two
+notable examples of veriﬁcation of Ethereum contracts.
+The ﬁrst approach [5] uses F*5, which is an ML-like functional programming lan-
+guage aimed at program veriﬁcation, to verify Ethereum contracts, written in Solidity.
+It presents three diﬀerent ways of attacking the problem.
+• First it presents a system Solidity*, written in OCaml, and which translates
+programs written in Solidity to F*, (constituting a “shallow” embedding of the
+language). Itisthenpossibletoverifypropertiesofthetranslatedfunctions. This
+5https://www.fstar-lang.org
+24
+
+work detected some re-entrancy problems, as well as unchecked calls to send,
+and it was evaluated on a small number of source-level scripts.6
+• EVM bytecode can be decompiled into F*, using another tool called EVM*,
+which is also written in OCaml. It is possible then verify properties of the code,
+e.g. gas consumption, running in a lightweight interpreter of a subset of the
+instruction set.
+• Given the two translations, it is also possible to show the equivalence of the
+Solidity*andEVM*translations,atleastwhenSoliditysourcecodeisavailable.
+The Ethereum Virtual Machine (EVM) has also been formalised [25] in the Isa-
+belle/HOL proof assistant, and aspects of the behaviour of a typical contract – the
+Deed contract, which is a part of the Ethereum Name Service – have been veriﬁed.
+In particular, the safety property that “only the registrar can decrease the balance” has
+been formally established.
+As should be expected, one of the beneﬁts of such a formalisation is that [25]
+contains a clear statement of the set of assumptions under which the result holds, and
+theserepresenttheresultofaseriousconceptualmodellingexercise. Thereportpoints
+tofurtherwork, 7 suchasvalidatingtheEVMimplementationandformalisationofGas,
+sothatlivenessproperties(“somethinggoodhappens”)canbeprovedinadditiontothe
+existing safety property (“nothing bad happens”).
+8.9 Static analysis of contracts
+Some errors can be easily checked by applying static analysis tools. This approach
+has been explored extensively for programming languages like C. But in particular
+we would like to highlight its application as a quick ﬁx to Ethereum EVM languages
+through the Oyente tool [31], which can be used both for ﬁnding errors in contracts
+that are written by the user, and to allow users to avoid using buggy contracts that are
+already deployed.
+8.10 Merkelized Abstract Syntax Trees
+MAST (Merkelized Abstract Syntax Trees) [44] is a proposal for allowing Bitcoin
+transaction validation scripts to be stored in partially-hashed form.
+The existing structure of a Bitcoin validation script is simply a Script program
+consisting of a sequence of Script operations. However, there is a logical structure to
+Scriptprograms,asinallprograms,whichhastreeform. Inparticular,everyconditional
+operation causes the program to branch into two logical subprograms, one for the case
+that the condition was true, and one for the case that the condition was false.
+For any given script, a successful validation involves passing down to a leaf block
+of code in such a tree, having passed or failed the tests accordingly. All other branches
+of the tree are irrelevant for the validation in question.
+6Note that the vast majority of Ethereum scripts on the blockchain are only available as EVM code.
+7More is said about this on reddit: https://www.reddit.com/r/ethereum/comments/59wr6w/
+formal_verification_of_deed_contract_in_ethereum/
+25
+
+The MAST proposal takes advantage of this fact, and proposes to replace all of the
+irrelevant branches with their hashes, thereby eliminating from validation scripts all
+portions of the script that are not required to perform the validation.
+ImplementingMASTinacompletelynewblockchainoughttobesimple. Thereisa
+majorcaveat,however. MASTreliesonthefactthatevaluationofcodeinvolvessimply
+runningthroughalistofoperationstoperformonce,intheobviousorder. Thepossible
+execution paths correspond directly to the program branches. Richer programming
+constructs such as loops, recursion, deﬁned functions, etc. make it harder, possibly
+impossible,touseMAST.Thisarisesbecausethepartsoftheprogramthatarerelevant
+to a computation, and therefore to a validation, cannot be delineated at the outset as
+one of a handful of paths to a leaf node in the code tree. Instead, the relevant paths are
+determined by execution and may involve many scattered parts of the program. It may
+still be possible to use MAST in this setting, however, but it’s an open question as to
+how precisely to do that.
+9 Conclusion
+In this paper, we have surveyed some representative examples of the advanced use of
+cryptocurrencies and blockchains beyond their basic usage as a payment method, and
+we have focused in existing scripting solutions, their strengths and weaknesses, and
+some existing solutions for known problems with them.
+Wehaveseenthat,whiletherehavebeenmanydiverseeﬀortsindiﬀerentdirections,
+there are still many open questions, no universal solutions, and lots of room for future
+research and experimentation.
+We are very grateful to Input|Output Hong Kong8 for funding the work that led
+to this paper. Lior Yaﬀe kindly apprised us of details of the Nxt system, and Maria
+ChristakisandValentinWüstholzmadeanumberofusefulcommentsanearlierversion
+of the paper.
+References
+[1] Marcin Andrychowicz, Stefan Dziembowski, Daniel Malinowski, and Lukasz
+Mazurek. Secure multiparty computations on bitcoin. In2014IEEESymposium
+on Security and Privacy, pages 443–458. IEEE, 2014.
+[2] Andreas M Antonopoulos. Mastering Bitcoin. O’Reilly Media, 2014.
+[3] Nicola Atzei, Massimo Bartoletti, and Tiziana Cimoli. A survey of attacks on
+ethereumsmartcontracts. CryptologyePrintArchive: Report2016/1007, https:
+//eprint.iacr.org/2016/1007, 2016.
+[4] Iddo Bentov and Ranjit Kumaresan. How to use bitcoin to design fair protocols.
+In International Cryptology Conference, pages 421–439. Springer, 2014.
+8https://iohk.io
+26
+
+[5] Karthikeyan Bhargavan, Antoine Delignat-Lavaud, Cédric Fournet, Anitha Gol-
+lamudi, Georges Gonthier, Nadim Kobeissi, Natalia Kulatova, Aseem Rastogi,
+Thomas Sibut-Pinote, Nikhil Swamy, and Santiago Zanella-Béguelin. Formal
+veriﬁcation of smart contracts: Short paper. InProceedings of the 2016 ACM
+Workshop on Programming Languages and Analysis for Security, PLAS ’16.
+ACM, 2016.
+[6] Block size limit controversy.https://en.bitcoin.it/wiki/Block_size_
+limit_controversy, 2010. [last accessed 21-11-2016].
+[7] Joseph Bonneau, Andrew Miller, Jeremy Clark, Arvind Narayanan, Joshua A.
+Kroll, and Edward W. Felten. SoK: Research Perspectives and Challenges for
+Bitcoin and Cryptocurrencies. https://eprint.iacr.org/2015/261.pdf,
+2015. [last accessed 27-11-2016].
+[8] BPMN. http://www.bpmn.org, 2016. [last accessed 21-11-2016].
+[9] Colored Coins.https://en.bitcoin.it/wiki/Colored_Coins, 2014. [last
+accessed 21-11-2016].
+[10] CraigCostello,CédricFournet,JonHowell,MarkulfKohlweiss,BenjaminKreu-
+ter, Michael Naehrig, Bryan Parno, and Samee Zahur. Geppetto: Versatile veri-
+ﬁable computation. In 2015 IEEE Symposium on Security and Privacy, pages
+253–270. IEEE, 2015.
+[11] Counterparty. http://counterparty.io/, 2014. [last accessed 21-11-2016].
+[12] Counterparty at Wikipedia. https://en.wikipedia.org/wiki/
+Counterparty_(technology), 2014. [last accessed 21-11-2016].
+[13] KarlCraryandMichaelJSullivan. Peer-to-peeraﬃnecommitmentusingbitcoin.
+ACMSIGPLAN Notices, 50(6):479–488, 2015.
+[14] Data Storage Methods at Colored Coins wiki. https://github.com/
+Colored-Coins/Colored-Coins-Protocol-Specification/wiki/Data%
+20Storage%20Methods, 2015. [last accessed 21-11-2016].
+[15] Kevin Delmolino, Mitchell Arnett, Ahmed E Kosba, Andrew Miller, and Elaine
+Shi. Step by step towards creating a safe smart contract: Lessons and insights
+from a cryptocurrency lab.IACRCryptology ePrint Archive, 2015:460, 2015.
+[16] Design Rationale at Ethereum Wiki.https://github.com/ethereum/wiki/
+wiki/Design-Rationale, 2014. [last accessed 23-11-2016].
+[17] Disabled opcodes at Bitcoin client source code.
+https://github.com/bitcoin/bitcoin/blob/
+57b34599b2deb179ff1bd97ffeab91ec9f904d85/src/script/
+interpreter.cpp#L288, 2010. [last accessed 21-11-2016].
+27
+
+[18] Distributed ledger technology: beyond block chain. https://www.gov.uk/
+government/news/distributed-ledger-technology-beyond-block-
+chain, 2016. [last accessed 27-11-2016].
+[19] FSM and Nxt. https://nxtforum.org/automated-transactions/ats-
+with-fsm-based-dsl/ , 2014. [last accessed 21-11-2016].
+[20] OGoldreich,SMicali,andAWigderson. Proofsthatyieldnothingbutthevalidity
+of their assertion.Preprint, 1986.
+[21] LM Goodman. Tezos—a self-amending crypto-ledger White paper. https:
+//tezos.com/pdf/white_paper.pdf, 2014.
+[22] LM Goodman. Tezos: A Self-Amending Crypto-Ledger Position Paper.https:
+//tezos.com/pdf/position_paper.pdf, 2014.
+[23] Yoichi Hirai. Bamboo: an embryonic smart contract language. https:
+//github.com/pirapira/bamboo, 2016. [last accessed 24-11-2016].
+[24] Yoichi Hirai. Ethereum reentrancy. Private communication, 2016.
+[25] Yoichi Hirai. Formal Veriﬁcation of Deed Contract in Ethereum Name Service.
+https://yoichihirai.com/deed.pdf, 2016. [last accessed 24-11-2016].
+[26] Richard Hull, Vishal S. Batra, Yi-Min Chee, Alin Deutsch, Fenno
+F. Terry Heath, III, and Victor Vianu. Towards a Shared Ledger
+Business Collaboration Language based on Data-Aware Processes. In
+Proc. Intl. Conf. on Service Oriented Computing (ICSOC), 2016.
+[27] Hyperledger. https://www.hyperledger.org/blog,2016. [lastaccessed21-
+11-2016].
+[28] Florian Idelberger, Guido Governatori, Régis Riveret, and Giovanni Sartor. Eval-
+uation of logic-based smart contracts for blockchain systems. InInternational
+Symposium on Rules and Rule Markup Languages forthe Semantic Web, pages
+167–183. Springer, 2016.
+[29] Is there a maximum size of a scriptSig/scriptPubKey? at Bitcoin Stack-
+Exchange. http://bitcoin.stackexchange.com/questions/35878/is-
+there-a-maximum-size-of-a-scriptsig-scriptpubkey , 2015. [last ac-
+cessed 21-11-2016].
+[30] Ahmed Kosba, Andrew Miller, Elaine Shi, Zikai Wen, and Charalampos Papam-
+anthou. Hawk: The blockchain model of cryptography and privacy-preserving
+smart contracts.UniversityofMarylandand Cornell University, 2015.
+[31] Loi Luu, Duc-Hiep Chu, Hrishi Olickel, Prateek Saxena, and Aquinas Hobor.
+Making smart contracts smarter. In Proceedings of the 2016 ACM SIGSAC
+Conference on Computer and Communications Security, pages 254–269. ACM,
+2016.
+28
+
+[32] Maximum number of op_codes in script at Bitcoin StackExchange.
+http://bitcoin.stackexchange.com/questions/38230/maximum-
+number-of-op-codes-in-script , 2015. [last accessed 21-11-2016].
+[33] L. Gregory Meredith andMatthias Radestock. Areﬂective higher-order calculus.
+Electr.NotesTheor.Comput., 141(5):49–76, 2005.
+[34] Ian Miers, Christina Garman, Matthew Green, and Aviel D Ru-
+bin. Zerocoin: Anonymous distributed e-cash from bitcoin. In
+Security and Privacy (SP), 2013 IEEE Symposium on, pages 397–411. IEEE,
+2013.
+[35] Namecoin. https://namecoin.org/, 2011. [last accessed 21-11-2016].
+[36] George C. Necula and Peter Lee. Safe, untrusted agents using proof-carrying
+code. In Mobile Agents and Security, pages 61–91, London, UK, UK, 1998.
+Springer-Verlag.
+[37] Bryan Parno, Jon Howell, Craig Gentry, and Mariana Raykova.
+Pinocchio: Nearly practical veriﬁable computation. In
+Security and Privacy (SP), 2013 IEEE Symposium on, pages 238–252. IEEE,
+2013.
+[38] Jack Pettersson and Robert Edström. Safer smart contracts through type-
+driven development.https://publications.lib.chalmers.se/records/
+fulltext/234939/234939.pdf, 2106.
+[39] Simon Peyton Jones, Jean-Marc Eber, and Julian Seward. Composing contracts:
+An adventure in ﬁnancial engineering (functional pearl). InProceedings of the
+Fifth ACM SIGPLAN International Conference on Functional Programming,
+ICFP ’00. ACM, 2000.
+[40] Cécile Pierrot and Benjamin Wesolowski. Malleability of the blockchain’s en-
+tropy. Cryptology ePrint Archive, 2016/370, https://eprint.iacr.org/
+2016/370.pdf, 2016.
+[41] Contracts, Composition, and Scaling The Rholang 0.1 speciﬁcation.
+https://docs.google.com/document/d/1gnBCGe6KLjYnahktmPSm_
+-8V4jX53Zk10J-KFQl7mf8/edit?pref=2&pli=1#heading=h.
+k4bk2akncduu, 2016. [last accessed 11-12-2016].
+[42] Rootstock. http://www.rsk.co/, 2014. [last accessed 21-11-2016].
+[43] Rootstock White Paper. http://www.the-blockchain.com/docs/
+Rootstock-WhitePaper-Overview.pdf, 2015. [last accessed 21-11-2016].
+[44] Naik Manali Rubin, Jerry and Nitya Subramanian. Merkelized Abstract Syn-
+tax Trees.http://www.mit.edu/~jlrubin/public/pdfs/858report.pdf,
+2016. [last accessed 11-12-2016].
+29
+
+[45] EliBenSasson,AlessandroChiesa,ChristinaGarman,MatthewGreen,IanMiers,
+Eran Tromer, and Madars Virza. Zerocash: Decentralized anonymous payments
+frombitcoin. In2014 IEEE Symposium on Security and Privacy,pages459–474.
+IEEE, 2014.
+[46] Script – Bitcoin Wiki.https://en.bitcoin.it, 2010. [last accessed 21-11-
+2016].
+[47] Serpent at Ethereum Wiki. https://github.com/ethereum/wiki/wiki/
+Serpent, 2014. [last accessed 21-11-2016].
+[48] Solidity documentation. https://solidity.readthedocs.io/en/
+develop/, 2016. [last accessed 21-11-2016].
+[49] Ingo Weber, Xiwei Xu, Régis Riveret, Guido Governatori, and Alexander Pono-
+marev andJan Mendling. Untrusted Business Process Monitoring and Execution
+Using Blockchain. InIntl. Conf. Business Process Mgmt. (BPM), 2016.
+[50] WhatareForks,Alt-coins,Meta-coins,andSidechains? https://coincenter.
+org/entry/what-are-forks-alt-coins-meta-coins-and-sidechains ,
+2015. [last accessed 21-11-2016].
+[51] WheredocontracteventlogsgetstoredintheEthereumarchitecture? atEthereum
+StackExchange.http://ethereum.stackexchange.com/questions/1302/
+where-do-contract-event-logs-get-stored-in-the-ethereum-
+architecture, 2013. [last accessed 21-11-2016].
+30

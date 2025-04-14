@@ -1,0 +1,632 @@
+
+
+ROD G BERTOCHILLI
+GENKI
+RUAYNER
+MAGBIGDREW RELIC
+THE DRMZ TEAM
+
+Sundays
+6-8PM PST
+Wed/Fri
+6-8PM PST
+Tuesdays
+6-8PM PST
+LOCAL MEETUPS & X SPACES:
+LOCAL PARTNERS
+DRMZ is building the Cardano
+community in SoCal! 
+DRMZ hosts monthly meetups, workshops,
+events, and X spaces focused on Cardano
+and Web3 education, as we as X spaces.
+
+WEB3
+COURSES Head to Work.Courses on your movile wallet to check out these courses!
+DRMZ also creates
+web3 curriculum!
+
+
+
+
+
+Cardano is a decentralized proof-of-stake layer 1 blockchain rooted in
+rigorous research and academic principles. It emphasizes scalability,
+sustainability, and interoperability, offering a secure platform for
+decentralized applications, tokenized real-world assets, and community-
+driven governance.
+CARDANO BLOCKCHAIN NETWORK
+Led by Charles Hoskinson,
+responsible for Cardano’s
+blockchain development and
+technical architecture
+An independent organization
+focuses on global adoption,
+strategic partnerships, and
+regulatory efforts
+The commercial arm, focused
+on driving innovation,
+investment, and business
+adoption on Cardano.
+
+BYRON SHELLEY
+GOGUEN
+BASHO VOLTAIRE
+Cardano launched in
+2017 as a federated
+network using the
+ground-breaking
+Ouroboros
+consensus protocol
+In 2020, Cardano
+introduced nodes run
+by the community,
+delegation & staking
+ADA to participate in
+the network
+FOUNDATION:
+DECENTRALIZATION:
+SMART
+CONTRACTS:
+SCALING: GOVERNANCE:
+In 2021, Cardano
+enabled the
+community to build
+DApps and create
+navitely supported
+tokens
+Cardano introduced
+parallel accounting
+for interoperability,
+sidechains, & layer
+2 solutions
+Cardano introduced
+on-chain community
+voting with CIP-1694
+& Constitutional
+Representation
+THE ERAS OF CARDANO
+
+169+ peer
+reviewed
+Academic
+Papers 
+1. Provably secure
+2. 10,000x more
+energy efficient
+than Bitcoin
+Non-
+custodial
+(“liquid”)
+staking 
+ICO fair
+distribution
+Japan
+Sept 2017
+CARDANO IN DETAIL
+Ouroboros tracks time in 5
+day intervals (epochs) &
+Cardano has run for 534
+epochs without shutting down
+Cardano max supply is 45 billion ADA 
+No slashing
+imposed on
+SPOs or
+delegators
+58.1% of ADA is staked
+(1 ADA = 1,000,000 “laces”)
+
+AT THE
+HEART OF
+OUROBOROS
+IS THE
+CONCEPT OF
+INFINITY
+Higher delegation = higher chance to mint
+DRMZ Stake Pool is one of 3000+ stake pools
+that decentralize Cardano
+SPOs that validate transactions & produce
+blocks for the network receive rewards, which
+are redistributed to delegators based on the
+amount of ADA they have staked (APY ~ 4-6 %)
+OUROBOROS / PROOF OF STAKE
+Ouroboros randomly selects reliable SPOs as
+“slot leaders” to produce blocks
+Each block is cryptographically signed by its producer
+(SPO) and linked to the previous block in the chain.
+
+DRMZ deploys multiple nodes
+across the planet with no less than
+4 dedicated CPU cores, 24GB RAM
+attached to High-Speed storage,
+and employs a BP-Node, 3 Private
+Relays, and 2 Public Relays.
+BLOCKS & UPTIME
+Block = Collections of transactions 
+A stake pool’s uptime ensures it can participate in producing blocks.
+ Higher uptime = better chances to produce blocks, which leads
+to more rewards for delegators
+
+1. Set up a Cardano wallet
+DELEGATING ADA
+2. Navigate to the delegation
+section & search “DRMZ”.
+3. Sign & Delegate your
+ADA.
+STAKING ADA
+IS SIMPLE,
+SAFE,  AND
+REWARDING!
+
+In governance, SPOs act as a technical check,
+participating in decisions like protocol updates to
+ensure they align with network stability and
+performance.
+The CC ensures that all governance actions
+comply with the Constitution. They review and
+approve protocol changes & treasury
+withdrawals-- a safeguard for Cardano’s
+principles of decentralization and transparency.
+STAKE POOL OPERATORS (SPO)CARDANO GOVERNANCE
+CONSTITUTIONAL COMMITTEE (CC)
+DELEGATED REPRESENTATIVES (DREP)
+DReps are ADA holders or groups empowered
+to vote on governance proposals. They
+represent themselves or the broader community
+that delegates voting power to them.  
+Governance Actions are submitted by ADA holders & voted
+on by DREPs, SPOs, & the Constitutional Committee to be
+ratified and enacted
+In the era of Voltaire, Cardano's governance structure
+distributes decision-making power across multiple
+stakeholders:
+
+The Interim Constitution provides a
+temporary legal framework during the
+transition to the Voltaire era.
+GUARDRAILS (“INTERIM PERIOD”)
+Proposal Mechanisms: Only key
+governance bodies (DReps, SPOs, CC)
+can submit proposals for governance
+actions.
+Review and Approval: The
+Constitutional Committee reviews all
+proposals to ensure they comply with
+Cardano's principles.
+Checks and Balances: Clear separation
+of powers between the CC, DReps, and
+SPOs to prevent centralization.
+No-Confidence Vote: The community
+can remove CC members through a no-
+confidence vote if needed.
+Transparency: All decisions and their
+rationales are made public for community
+scrutiny.
+“By necessity, this Constitution recognizes the
+role of and empowers the Constitutional
+Committee, confirms the right of the Cardano
+community to participate in collective bodies for
+collaboration, gives effect to on-chain
+governance, and empowers DReps to act as
+the voice ofada owners for on-chain voting.
+The Constitution also recognizes the necessity of
+safeguarding access to and the use of funds of
+the Cardano treasury through the inclusion of the
+Cardano Guardrails in this Constitution”
+THE PREAMBLE:
+INTERIM CONSTITUTION
+
+STAKE POOL OPERATORS (SPOS)
+In the Age of Voltaire, your ADA continues to
+help secure Cardano by supporting stake pool
+operations & empowers DReps to vote on
+governance proposals
+Maintain network security through
+maintenance (software updates) and reliable
+block production.
+1.
+Inform delegators about proposals and
+voting options.
+2.
+Collaborate with the community to advance
+governance goals.
+3.
+CHANGES TO ADA REWARDS SPO RESPONSIBILITIES
+Rewards continue to be earned as usual
+from your SPO, but withdrawing them
+requires interaction with governance:
+Delegate to a DRep 
+Abstain
+SPOS ENSURE
+THE STABILITY
+OF CARDANO
+
+DELEGATED REPRESENTATIVES (DREPS)
+Anyone holding ADA can become a DRep
+and their “voting power” is directly proportional to
+the amount of ADA delegated to them,
+incentivizing alignment with ADA holder’s values. 
+Register as a DRep through the
+governance portal.
+1.
+Lock 500 ADA to confirm your participation.
+(refundable upon retiring)
+2.
+Share your vision and values with the
+community to gain delegations from ADA
+holders.
+3.
+At the heart of
+Cardano governance
+is community
+empowerment
+Review and vote on governance proposals,
+ensuring that they align with the best interests of
+the community & network.
+1.
+Stay informed about governance developments,
+proposals, and updates.
+2.
+Engage with the community to understand their
+perspectives and needs.
+3.
+HOW TO BECOME A DREP DREP RESPONSIBILITIES
+
+Approve or reject protocol
+changes.
+1.
+Propose amendments to
+the Cardano Constitution.
+2.
+Oversee and execute
+decisions related to
+treasury allocation.
+3.
+Uphold the integrity of on-
+chain governance
+processes.
+4.
+Ensure the alignment of
+network changes with
+Cardano’s core values.
+5.
+Mediate conflicts between
+governance entities.
+6.
+Review and potentially
+veto key governance
+proposals.
+7.
+TWO GOVERNANCE STATES :
+The current Interim Constitutional
+Committee (ICC) will serve for a two-year term
+CONSTITUTIONAL COMMITTEE (CC)
+The CC safeguards
+Cardano’s
+governance,
+ensuring
+constitutionality in
+every action
+An elected branch of Cardano’s on-chain
+governance that votes on the constitutionality of
+governance actions, ensuring they comply with
+the Cardano Constitution. 
+7 GOVERNANCE ACTIONS
+Confident: The community has confidence in the committee members,
+allowing them to continue overseeing governance actions without challenge.
+Not Confident: “No confidence” is triggered due to the community’s loss of
+trust in one or more members, leading to possible removal or relection.
+
+CARDANO’S ECOSYSTEM
+Cardano's decentralized innovation fund,
+allowing the community to submit, vote on,
+and fund blockchain-based projects.
+
+PROJECT CATALYST SPOTLIGHT
+
+Intersect is a member-based organization
+dedicated to the ongoing development and
+maintenance of the Cardano ecosystem
+through community-driven governance!
+CARDANO’S ECOSYSTEM
+Join now to participate in steering groups,
+committees, and advisory boards
+
+INTERSECT MEMBERSHIPS
+
+Cardano's ecosystem is rich in both NFT & DeFi prjects!
+CARDANO HAS NFTS!
+NFTS ARE “NATIVE
+TOKENS” ON
+CARDANO
+GOAT Tribe
+ORE Mob
+The Mallard Order
+The Working Dead
+
+Cardano's ecosystem is diverse and includes: 
+DECENTRALIZED EXCHANGES
+CARDANO IS THRIVING!
+LENDING / BORROWING
+RWA / TOKEN MINTING
+DISTRIBUTION
+MARKETPLACES
+Liqwid / Levvy1.
+Minswap / Dexhunter2.
+DripDropz / Tosi Drop3.
+NMKR / ANVIL4.
+JPG Store / Wayup5.
+(from top left to bottom right)
+
+DEPIN (STORAGE & TELECOM) AI & AGENTS
+BOOKS / DIGITAL MEDIA /
+MUSIC
+GAMING / METAVERSE
+GOVERNANCE / DAO
+Paima / Cornucopias1.
+Iagon / World Mobile2.
+Singularity / Masumi3.
+Books/Sfuff / Nucast / Newm4.
+Clarity / Summon5.
+(from top left to bottom right)
+and also...CARDANO IS THRIVING!
+
+MEMECOINS 
+Hydra / Mithril1.
+Midnight (Partner Chain)2.
+Sundial / BitcoinOS3.
+Adahandle4.
+Hosky / Snek / FREN / CHAD /
+Sharl / Kekius Maximus
+5.
+(from top left to bottom right)
+CARDANO IS THRIVING!
+L2 / SCALABILITY ZK / PRIVACY ZK / BITCOIN WALLET ADDRESS
+...and everything from: 
+to memecoins, of course...
+( *Not Financial Advice! )
+
+CARDANO IS RESILIENT!
+THE GREATTHE GREAT
+DDOSS ATTACK
+DDOSS ATTACK
+2024!2024!
+
+CARDANO IS GROWING!
+HYDRA 1M TPS!
+HYDRA 1M TPS!
+2024!2024!
+
+CARDANO IS A
+FRAMEWORK FOR
+MAKING DREAMS
+COME TRUE
+- Charles Hoskinson
+
+Wallets are the gateway to
+decentralized finance (DeFi) and
+NFTs. 
+They allow you to securely store your
+tokens and interact with DApps directly
+from your browser.
+BLOCKCHAIN WALLETS
+SCAN TO DOWNLOAD VESPR!
+EXPERT ADVICE
+“Not Your Keys, Not Your
+Crypto” 
+Regardless of the wallet you
+choose, secure & protect your
+private keys (secret words)
+above all else!
+
+B L E E E A T !
+
+Eternl
+Browser Wallet
+CARDANO WALLETS 
+Daedalus
+Desktop Wallet (full Cardano node) 
+Vespr
+Mobile Wallet 
+Official Cardano wallet built by IOHK
+Most secure / Doesn’t connect to sites or dApps
+Great for developers!
+Mobile & browser wallet
+Simple UI to view tokens & NFTs
+Easy to connect to dApps, trade, etc
+Browser & mobile wallet
+More advanced features & UI
+Easy to manage multiple wallets & addresses
+
+Each Cardano wallet comes with: 
+A payment address & staking
+address 
+Payment address - used for 
+receiving payment/ADA 
+Staking address - used for
+delegating to stake pools and
+receiving staking rewards
+CARDANO ADDRESSES
+Wallets can have multiple
+payment addresses but
+only one staking address
+
+YOU CAN VIEW BLOCKS, EPOCHS, SLOTS, AND TRANSACTIONS ON CARDANOSCAN
+
+In the UTXO model transactions
+have inputs and outputs, where the
+inputs are unspent outputs from
+previous transactions. 
+Wallet balances =  the sum of
+several UTXOs associated with
+that address.
+In the account model, each user has
+a balance associated with their
+account. Transactions transfer funds
+from one account to another, and the
+balances are updated accordingly.
+Cardano’s EUTXO works this way, but allows smart
+contracts to be built directly into transactions
+UTXO VS ACCOUNT MODEL
+UTXO benefits: you can send multiple assets to
+different addresses in one transaction.
+
+2 inputs from the same
+wallet used to pay 56 ADA
+to one of the output
+addresses:
+50 + 34 = 84 ADA input
+2 outputs for 2 different
+wallets:
+84 - 56 = 28 ADA left 
+on one of the utxos 
+UTXO EXAMPLES
+
+Unique digital assets on a blockchain; there is only one of
+that asset on the blockchain 
+NFTs are used to represent ownership of a digital
+asset (images, videos, audio, pdfs, etc)
+NFTs are like Pokemon cards that you can’t fake. If the
+policy for a NFT is correct, it is guaranteed to be real
+NFT (Non-Fungible Token) 
+FT (Fungible Token) 
+Non-unique digital assets. There are multiples of the same
+token and you can use them interchangeably (Bitcoin,
+ADA, memecoins)
+NFTS ON CARDANO
+
+Cardano native tokens do not require
+a smart contract or extra tooling to
+support them on the blockchain
+This is helpful for security and for
+staking. NFTs and other tokens are
+“baked in” to how Cardano works
+All NFTs have a policy which governs
+which wallet(s) can edit the token &
+metadata (the image, attributes, etc)
+If a policy is “locked” then it can no
+longer edit, mint (create), or burn
+(destroy) NFTs
+CARDANO TOKENS
+
+NFTS & MARKETPLACES
+jpg.store - Top NFT marketplace.
+Most volume & activity.
+wayup.io - Add To Cart functionality.
+Rarity visible so easy to find gems.
+GOAT Tribe
+ORE Mob
+Mallard Order
+Working Dead
+Clay Nation
+Hosky NFTs
+Derp Birds
+
+
+
+CARDANO 
+BROWSERS
+Pool.pm is a site for viewing your
+wallet, NFTs/tokens, and managing
+staking/delegation. 
+It’s an easy way to view your
+assets from any web browser.
+Just go to:
+pool.pm/your-address
+or
+pool.pm/your-ada-handle
+
+STAKING NFTS
+For various NFT projects,
+you can stake your NFTs for
+additional rewards.
+Staking mechanisms can
+work different from project to
+project.
+The NFTs are locked in a
+smart contract but remain in
+your wallet. The assets
+cannot be spent while they
+are locked/staked.
+
+TAPTOOLS 
+Analytics, charting, & trading
+in one app. If you own a
+Tappy (NFT) you get pro
+features like a wallet profiler
+so you can see top traders
+and who is selling on you.
+DEXES &
+MEMECOINS
+
+SNEK
+HOSKY 
+FREN
+CHAD
+DANZO
+SHARL
+GRASS
+DEXES &
+MEMECOINS
+
+MINSWAP
+Popular DEX.
+Features for trading,
+creating liquidity
+pools, farming, etc.
+DEXES &
+MEMECOINS
+
+DEVELOPER RESOURCES
+JS LIBRARIES
+CARDANO DOCS 
+SMART CONTRACT DEVELOPMENT
+CARDANO NODE & CLI
+Explanations on core concepts and links for more
+info on various topics. docs.cardano.org
+Install & run a Cardano node and use the CLI
+(command line interface) to build txs or manage
+wallets & keys. github.com/IntersectMBO/cardano-cli
+MeshJs or Lucid are my recommended JS libraries
+for connecting your wallet, building txs, minting &
+burning NFTs, and doing various dev tasks. 
+Brush up on your Haskell. You’ll want to read up
+about Plutus (a subset of Haskell tailored for
+implementing smart contracts) & Aiken (a modern
+toolkit for working with Plutus)
+
+LUCID JS EXAMPLES
+SEND A TRANSACTION WITH CODE
+
+MINT NFTS
+LUCID JS EXAMPLES
+
+BURN NFTS
+LUCID JS EXAMPLES
+
+METADATA
+Onchain metadata is how you link data like traits or
+media (image, video, music, etc) to an NFT or token
+There are 2 standards for Cardano NFT metadata: CIP-25
+and CIP-68. CIP-25 is the original way to mint NFTs, which
+existed before smart contracts. CIP-68 extended the
+standard so metadata could be read by smart contracts.
+LUCID JS EXAMPLES
+
+ON-CHAIN METADATA
+Most NFTs rely on the IPFS
+(InterPlanetary File System) to
+store large files like images or
+videos. 
+Cardano does support fully on-
+chain metadata if you convert your
+image/media/html to base64 and
+are under the maximum size
+requirements for a transaction
+(16kb)
+
+GoatTribe.io
+
+THANKS FOR JOINING US TODAY TO
+TALK CARDANO & CELEBRATE DRMZ!
+FOLLOW US ON TWITTER AND BE SURE
+TO REACH OUT WITH QUESTIONS!
