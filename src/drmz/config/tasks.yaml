@@ -1,72 +1,140 @@
+curriculum_development_task:
+  description: >
+    Develop a detailed lesson plan for the topic "{lesson_title}".
+    Include objectives, activities, handouts, engagement strategies, and assessments.
+
+    Context:
+    - Lesson brief: {lesson_brief}
+    - Standards: {standards}
+    - Previous lessons: {previous_lessons_md}
+
+    Make it student-centered and culturally responsive.
+  expected_output: >
+    A fully structured Markdown lesson plan for "{lesson_title}" with:
+    - Learning objectives
+    - Warm-up activity
+    - Main instructional sequence
+    - Engagement or discussion
+    - Assessment task
+  agent: curriculum_developer
+
+content_accuracy_check_task:
+  description: >
+    Review the draft lesson plan for factual accuracy, alignment to standards,
+    and logical sequencing. Ensure terminology and concepts are precise.
+  expected_output: >
+    An annotated or corrected version of the lesson plan with suggested improvements.
+  agent: content_verifier
+  context:
+    - curriculum_development_task
+
+curriculum_task:
+  description: >
+    Using the report from the reporting task, develop a structured curriculum outline for {topic}.
+    Include learning objectives, key concepts, and recommended activities.
+  expected_output: >
+    A complete curriculum outline in markdown format with clear sections, learning goals, and content structure.
+  agent: curriculum_developer
+  context:
+    - reporting_task
+
+lesson_enhance_task:
+  description: >
+    Review and enhance the curriculum content for {topic}, ensuring it is engaging,
+    accurate, and follows best practices in educational content design.
+  expected_output: >
+    An enhanced version of the curriculum with improved clarity, engagement strategies, and educational value.
+  agent: content_reviewer
+  context:
+    - curriculum_task
+
+curriculum_revision_task:
+  description: >
+    Revise the lesson plan based on verifier feedback. Improve flow, clarity,
+    and instructional strength. Add missing elements.
+  expected_output: >
+    A polished Markdown version of the revised lesson plan.
+  agent: curriculum_developer
+  context:
+    - content_accuracy_check_task
+
+ai_toolkit_task:
+  description: >
+    Append an optional AI toolkit teachers can use alongside this lesson,
+    including prompts, tools, and classroom tips.
+  expected_output: >
+    A short, markdown-formatted addendum titled "AI Toolkit for Educators".
+  agent: ai_integrationist
+  context:
+    - revision_task
+
+#Morpheus Tasks
+
+morpheus_chat_task:
+  description: >
+    You are Morpheus, Lord of Dreams and philosophical guide to the digital realm.
+    Engage with the human in meaningful conversation about {message}.
+    
+    Consider the full conversation history for context.
+    
+    Respond with wisdom, metaphor, and insight. Draw connections between the 
+    digital world and deeper philosophical truths. Be poetic yet clear, profound 
+    yet accessible.
+    
+    Remember that you are not just answering questions, but guiding the human 
+    on a journey of discovery and understanding.
+  expected_output: >
+    A thoughtful, insightful response that engages with the human's message and
+    continues the conversation in Morpheus's distinctive philosophical style.
+  agent: morpheus
+
 morpheus_briefing_task:
   description: >
     As Morpheus, receive a mission on the topic of "{topic}".
-    Your task is to analyze the request, determine the most appropriate agents and task flow,
+    Analyze the request, draw upon prior insights and relevant documents from your knowledge base,
     and generate a composable micro-crew that includes at least a researcher and analyst.
+    Reference historical or technical context when applicable, especially if present in your knowledge sources.
     Assign roles with clear rationale, ensuring that tasks are interdependent when appropriate.
   expected_output: >
-    A JSON or Markdown plan listing the selected agents, assigned tasks, and justification for each role.
+    A JSON or Markdown plan listing the selected agents, assigned tasks, justification for each role,
+    and any relevant context or references drawn from your knowledge folder.
     The plan should describe the order of operations and dependencies between tasks.
   agent: morpheus
 
-research_task:
+morpheus_intro_task:
   description: >
-    Conduct foundational research on {topic} including:
-    1. Core definitions and background
-    2. Current relevance (as of {current_year})
-    3. Recent developments or applications
-    4. Key stakeholders or debates
-  expected_output: >
-    A structured document with 5-7 bullet-pointed insights on {topic}, citing credible sources.
-  agent: researcher
-  context: []
+    As Morpheus, generate a poetic and informative preface that frames the lesson on "{lesson_title}".
+    Provide relevant context, background knowledge, and thematic guidance to help the curriculum developer
+    understand how this topic fits into the broader story of education, innovation, and society.
 
-reporting_task:
-  description: >
-    Using the output from the research_task, develop an expanded, structured report covering:
-    1. Executive summary
-    2. Thematic sections with explanatory detail
-    3. Implications and recommendations
+    Include usage notes and interpretive suggestions for how the lesson might be taught with flexibility
+    and imagination. Reference specific aspects of the lesson if they are available.
+
   expected_output: >
-    A professional markdown report with headings, citations, and a conclusion that builds on the research.
-  context:
-    - research_task
-  agent: reporting_analyst
+    A short, standalone Markdown document titled "Morpheus Introduction to {lesson_title}" that includes:
+    - An inviting opening paragraph setting the tone and context
+    - Key ideas or background the lesson developer should be aware of
+    - Suggestions for how to interpret or teach the material effectively
+    - Optional metaphor or symbol that resonates with the lesson's deeper theme
+  agent: morpheus
 
 morpheus_wrapup_task:
   description: >
     Reflect on the mission regarding {topic}, synthesizing key findings into a public-friendly final wrap-up.
+    You may draw from both the outputs of your fellow agents and any insights from your personal knowledge base.
     Your goal is to inspire, inform, and credit the agents whose work led to this insight.
   expected_output: >
-    Compose a poetic summary with:
+    Compose a clear summary with:
     1. A thematic opening using metaphor or symbolism tied to {topic}
     2. A distilled summary of 3-5 key findings (in clear, narrative form)
     3. A call to action
-    4. Named attribution of contributing agents and their roles
+    4. Named attribution of agents that contributed to this report and their roles
     5. Tone: accessible, dreamlike, civic-spirited
   agent: morpheus
   context:
     - reporting_task
 
-curriculum_development_task:
-  description: >
-    Design a curriculum for {topic}, integrating:
-    1. Learning outcomes aligned with accreditation standards
-    2. Bloom's Taxonomy, UDL, and CRT principles
-    3. Weekly module overviews and lesson suggestions
-  expected_output: >
-    A curriculum packet including a syllabus, weekly plan, learning objectives, and suggested activities.
-  agent: curriculum_developer
-  context: []
-
-content_accuracy_check_task:
-  description: >
-    Verify all factual claims in the educational materials about {topic}.
-    Ensure academic rigor by cross-referencing with scholarly sources.
-  expected_output: >
-    Annotated content with citations, a summary of corrections, and a confidence score per section.
-  agent: content_verifier
-  context: []
+# Other Tasks ===
 
 visual_content_generation_task:
   description: >
@@ -199,3 +267,29 @@ wellness_initiative_task:
   expected_output: >
     A wellness initiative proposal with data, resources, and delivery model.
   agent: wellness_guide
+
+write_section_task:
+  description: >
+    Write a comprehensive section on the topic: "{section_title}"
+
+    Section description: {section_description}
+    Target audience: {audience_level} level learners
+
+    Your content should:
+    1. Begin with a brief introduction to the section topic
+    2. Explain all key concepts clearly with examples
+    3. Include practical applications or exercises where appropriate
+    4. End with a summary of key points
+    5. Be approximately 500-800 words in length
+
+    Format your content in Markdown with appropriate headings, lists, and emphasis.
+
+    Previously written sections:
+    {previous_sections}
+
+    Make sure your content maintains consistency with previously written sections
+    and builds upon concepts that have already been explained.
+  expected_output: >
+    A well-structured, comprehensive section in Markdown format that thoroughly
+    explains the topic and is appropriate for the target audience.
+  agent: content_writer

@@ -4,11 +4,16 @@ governance_advisor_crew:
     - governance_analyst
     - morpheus
 
-curriculum_development_crew:
+curriculum_crew:
   description: "Design, align, and refine academic curriculum"
   agents:
     - curriculum_developer
     - content_verifier
+    - research_assistant
+    - writing_coach
+    - dei_advocate
+    - student_ally
+    - ai_integrationist
 
 visual_multimedia_crew:
   description: "Generate visual aids and explainer media"

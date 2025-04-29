@@ -1,0 +1,100 @@
+governance_advisor_crew:
+  description: "Clarify and summarize governance proposals for DReps"
+  agents:
+    - governance_analyst
+    - morpheus
+
+curriculum_crew:
+  description: "Design, align, and refine academic curriculum"
+  agents:
+    - curriculum_developer
+    - content_verifier
+    - research_assistant
+    - writing_coach
+    - dei_advocate
+    - student_ally
+    - ai_integrationist
+
+visual_multimedia_crew:
+  description: "Generate visual aids and explainer media"
+  agents:
+    - visual_creator
+
+academic_research_crew:
+  description: "Synthesize scholarly research and literature"
+  agents:
+    - researcher
+    - research_assistant
+    - content_verifier
+
+writing_revision_crew:
+  description: "Polish and revise academic writing"
+  agents:
+    - writing_coach
+    - content_verifier
+
+web3_education_crew:
+  description: "Develop onboarding and literacy content for Cardano & Web3"
+  agents:
+    - blockchain_educator
+    - visual_creator
+
+crypto_tax_crew:
+  description: "Analyze tax obligations for blockchain and DAO contexts"
+  agents:
+    - tax_navigator
+
+student_support_crew:
+  description: "Support student success through planning and resource mapping"
+  agents:
+    - student_ally
+
+faculty_training_crew:
+  description: "Create professional development for instructors"
+  agents:
+    - faculty_coach
+
+accreditation_review_crew:
+  description: "Conduct accreditation reviews and mock self-studies"
+  agents:
+    - accreditation_liaison
+
+data_analytics_crew:
+  description: "Generate institutional insights through data modeling"
+  agents:
+    - data_scientist
+
+ai_toolkit_crew:
+  description: "Curate and integrate AI tools for education or research"
+  agents:
+    - ai_integrationist
+
+digital_transformation_crew:
+  description: "Guide schools through adoption of blockchain and AI systems"
+  agents:
+    - digital_strategist
+
+community_engagement_crew:
+  description: "Launch engagement campaigns and audience outreach"
+  agents:
+    - community_builder
+
+grants_funding_crew:
+  description: "Find and align grant opportunities to institutional needs"
+  agents:
+    - grants_specialist
+
+sustainability_crew:
+  description: "Propose eco-friendly practices for governance and instruction"
+  agents:
+    - sustainability_planner
+
+wellness_crew:
+  description: "Design wellness initiatives for staff and student support"
+  agents:
+    - wellness_guide
+
+dei_strategy_crew:
+  description: "Propose and analyze DEI practices for governance"
+  agents:
+    - dei_advocate

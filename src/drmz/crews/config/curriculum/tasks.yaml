@@ -1,0 +1,97 @@
+curriculum_development_task:
+  description: >
+    Develop a detailed lesson plan for the topic "{lesson_title}".
+    Include objectives, activities, handouts, engagement strategies, and assessments.
+
+    Context:
+    - Lesson brief: {lesson_brief}
+    - Standards: {standards}
+    - Previous lessons: {previous_lessons_md}
+
+    Make it student-centered and culturally responsive.
+  expected_output: >
+    A fully structured Markdown lesson plan for "{lesson_title}" with:
+    - Learning objectives
+    - Warm-up activity
+    - Main instructional sequence
+    - Engagement or discussion
+    - Assessment task
+  agent: curriculum_developer
+
+content_accuracy_check_task:
+  description: >
+    Review the draft lesson plan for factual accuracy, alignment to standards,
+    and logical sequencing. Ensure terminology and concepts are precise.
+  expected_output: >
+    An annotated or corrected version of the lesson plan with suggested improvements.
+  agent: content_verifier
+  context:
+    - curriculum_development_task
+
+revision_task:
+  description: >
+    Revise the lesson plan based on verifier feedback. Improve flow, clarity,
+    and instructional strength. Add missing elements.
+  expected_output: >
+    A polished Markdown version of the revised lesson plan.
+  agent: curriculum_developer
+  context:
+    - content_accuracy_check_task
+
+ai_toolkit_task:
+  description: >
+    Append an optional AI toolkit teachers can use alongside this lesson,
+    including prompts, tools, and classroom tips.
+  expected_output: >
+    A short, markdown-formatted addendum titled "AI Toolkit for Educators".
+  agent: ai_integrationist
+  context:
+    - revision_task
+
+#Morpheus Tasks
+
+morpheus_briefing_task:
+  description: >
+    As Morpheus, receive a mission on the topic of "{topic}".
+    Analyze the request, draw upon prior insights and relevant documents from your knowledge base,
+    and generate a composable micro-crew that includes at least a researcher and analyst.
+    Reference historical or technical context when applicable, especially if present in your knowledge sources.
+    Assign roles with clear rationale, ensuring that tasks are interdependent when appropriate.
+  expected_output: >
+    A JSON or Markdown plan listing the selected agents, assigned tasks, justification for each role,
+    and any relevant context or references drawn from your knowledge folder.
+    The plan should describe the order of operations and dependencies between tasks.
+  agent: morpheus
+
+morpheus_intro_task:
+  description: >
+    As Morpheus, generate a poetic and informative preface that frames the lesson on "{lesson_title}".
+    Provide relevant context, background knowledge, and thematic guidance to help the curriculum developer
+    understand how this topic fits into the broader story of education, innovation, and society.
+
+    Include usage notes and interpretive suggestions for how the lesson might be taught with flexibility
+    and imagination. Reference specific aspects of the lesson if they are available.
+
+  expected_output: >
+    A short, standalone Markdown document titled "Morpheus Introduction to {lesson_title}" that includes:
+    - An inviting opening paragraph setting the tone and context
+    - Key ideas or background the lesson developer should be aware of
+    - Suggestions for how to interpret or teach the material effectively
+    - Optional metaphor or symbol that resonates with the lesson's deeper theme
+  agent: morpheus
+
+morpheus_wrapup_task:
+  description: >
+    Reflect on the mission regarding {topic}, synthesizing key findings into a public-friendly final wrap-up.
+    You may draw from both the outputs of your fellow agents and any insights from your personal knowledge base.
+    Your goal is to inspire, inform, and credit the agents whose work led to this insight.
+  expected_output: >
+    Compose a clear summary with:
+    1. A thematic opening using metaphor or symbolism tied to {topic}
+    2. A distilled summary of 3-5 key findings (in clear, narrative form)
+    3. A call to action
+    4. Named attribution of agents that contributed to this report and their roles
+    5. Tone: accessible, dreamlike, civic-spirited
+  agent: morpheus
+  context:
+    - reporting_task
