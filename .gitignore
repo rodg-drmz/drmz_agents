@@ -17,5 +17,4 @@ dist/
 # Project output
 output/
 plan/
-morpheus_web/
 *.pdf
