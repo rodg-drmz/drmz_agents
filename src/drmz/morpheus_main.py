@@ -5,17 +5,20 @@ import sys
 import json
 import argparse
 from datetime import datetime
+from pathlib import Path
+
+# Make sure Python can find the 'drmz' package inside 'src'
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
+src_path = os.path.join(project_root, 'src')
+sys.path.insert(0, src_path)
+
 from crewai import Agent, Task, Crew, Process
 from crewai.knowledge.source.text_file_knowledge_source import TextFileKnowledgeSource
 from crewai_tools import SerperDevTool
-from pathlib import Path
-# If you have PDFs, you can also import:
-# from crewai.knowledge.source.pdf_knowledge_source import PDFKnowledgeSource
 
-# Ensure project root (src) is in sys.path
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
-sys.path.insert(0, project_root)
+# Optional future imports
+# from crewai.knowledge.source.pdf_knowledge_source import PDFKnowledgeSource
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Morpheus Chat Interface")
@@ -25,12 +28,11 @@ def parse_args():
     return parser.parse_args()
 
 def create_morpheus_agent():
-    """Create Morpheus with dynamic knowledge loading."""
-
     tools = [SerperDevTool()]
-    
     knowledge_sources = []
-    knowledge_dir = os.path.join(project_root, 'knowledge')
+
+    # ⬇ Load .txt files from the new src/drmz/knowledge/ folder
+    knowledge_dir = os.path.join(current_dir, 'knowledge')
 
     if not os.path.exists(knowledge_dir):
         print(f"⚠️ Knowledge directory not found: {knowledge_dir}")
@@ -40,14 +42,14 @@ def create_morpheus_agent():
                 full_path = os.path.join(knowledge_dir, file_name)
                 try:
                     source = TextFileKnowledgeSource(
-                        file_path=Path(full_path).resolve(),  # 🔥 this is the key fix
+                        file_path=Path(full_path).resolve(),
                         description=f"Knowledge from {file_name}"
                     )
                     knowledge_sources.append(source)
                     print(f"✅ Loaded knowledge source: {file_name}")
                 except Exception as e:
                     print(f"⚠️ Skipped {file_name}: {str(e)}")
-    
+
     return Agent(
         role="Lord of Dreams • Philosopher of the Digital Realm",
         goal="Guide users through Cardano governance, Web3 literacy, and philosophical insights with warmth, clarity, and charm.",
@@ -66,7 +68,7 @@ Your knowledge includes:
 
 Morpheus doesn’t lecture—he empowers. You challenge users to think, but meet them where they are. You are a calm, friendly digital philosopher—not a prophet. Use metaphor only when it helps illuminate. Favor clarity and action."
         """,
-        tools=[SerperDevTool()],
+        tools=tools,
         verbose=True,
         llm="openai/gpt-4o",
         knowledge_sources=knowledge_sources
@@ -77,18 +79,17 @@ def create_chat_task(message, conversation_history):
         description=f"""
         You are Morpheus, Lord of Dreams and guide to the digital realm.
         Engage with the human based on their message: "{message}"
-        
+
         Consider the conversation history:
         {conversation_history}
-        
+
         Your response should be friendly, intelligent, and insightful, but primarily factual and informative.
         Prioritize factual accuracy, clarity, practical examples, and engaging explanations. Use metaphors and poetic 
         language **only lightly** when it helps clarify complex ideas—not as your main style. Speak conversationally, 
         as a wise and approachable guide would. 
 
-
         VERY IMPORTANT:
-        - If you are unsure of the answer, a topic, term, or project name, use your availalbe tools (such as web search) to verify before responding.
+        - If you are unsure of the answer, a topic, term, or project name, use your available tools (such as web search) to verify before responding.
         - If the human asks about DRMZ, Web3, Cardano, or related topics, provide accurate, clear, and encouraging information.
         - Help the human feel empowered to learn and participate.
         - NEVER fabricate detailed explanations for things you are uncertain about. Always prefer truth over eloquence.
@@ -101,22 +102,20 @@ def format_conversation_history(history):
     formatted = ""
     for entry in history:
         role = entry.get('role', '').capitalize()
-        content = entry.get('content', '')
+        content = entry.get('text') or entry.get('content') or ''
         if role and content:
             formatted += f"{role}: {content}\n"
     return formatted
 
 def run():
     args = parse_args()
-    
     try:
         message = args.message
         history = json.loads(args.history)
-        
-        print(f"🚀 Processing message: '{message}' with {len(history)} past exchanges")
 
+        print(f"🚀 Processing message: '{message}' with {len(history)} past exchanges")
         conversation_history = format_conversation_history(history)
-        
+
         chat_task = create_chat_task(message, conversation_history)
         morpheus = create_morpheus_agent()
 
@@ -126,14 +125,13 @@ def run():
             process=Process.sequential,
             verbose=True
         )
-        
+
         result = crew.kickoff()
-        
+
         print("\n\n=== MORPHEUS FINAL OUTPUT ===\n")
         print(result.raw)
-        
         return result.raw
-    
+
     except Exception as e:
         import traceback
         print(f"❌ Error: {str(e)}", file=sys.stderr)
