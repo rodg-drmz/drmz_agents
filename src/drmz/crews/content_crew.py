@@ -1,65 +1,47 @@
-from crewai import Agent, Crew, Process, Task
-from crewai.project import CrewBase, agent, crew, task
+from crewai import Agent, Crew, Task, Process
 from crewai.agents.agent_builder.base_agent import BaseAgent
-from typing import List
-from drmz.config_loader import load_agents, load_tasks
 
-all_agents = load_agents()
-all_tasks = load_tasks()
-
-@CrewBase
 class ContentCrew:
-    """Content writing and editorial polish crew"""
+    def __init__(self, agents: dict, tasks: dict):
+        self.agents = agents
+        self.tasks = tasks
 
-    agents: List[BaseAgent]
-    tasks: List[Task]
-
-    @agent
-    def content_writer(self) -> Agent:
-        return Agent(config=all_agents["content_writer"])
-
-    @agent
-    def content_reviewer(self) -> Agent:
-        return Agent(config=all_agents["content_reviewer"])
-
-    @agent
     def researcher(self) -> Agent:
-        return Agent(config=all_agents["researcher"])
+        return Agent(config=self.agents["researcher"])
 
-    @agent
-    def reporting_analyst(self) -> Agent:
-        return Agent(config=all_agents["reporting_analyst"])
-    
-    @task
-    def write_section_task(self) -> Task:
-        return Task(config=all_tasks["write_section_task"])
+    def writer(self) -> Agent:
+        return Agent(config=self.agents["writer"])
 
-    # Make sure this task exists in your tasks.yaml or modify to use an existing task
-    @task
-    def review_section_task(self) -> Task:
+    def editor(self) -> Agent:
+        return Agent(config=self.agents["editor"])
+
+    def outline_task(self) -> Task:
+        return Task(config=self.tasks["outline_task"])
+
+    def write_sections_task(self) -> Task:
         return Task(
-            config=all_tasks["content_accuracy_check_task"], # Using an existing task from your YAML
-            context=[self.write_section_task()]
+            config=self.tasks["write_sections_task"],
+            context=[self.outline_task()]
         )
-    
-    @task
-    def research_task(self) -> Task:
-        return Task(config=all_tasks["research_task"])
 
-    @crew
-    def crew(self) -> Crew:
+    def edit_sections_task(self) -> Task:
+        return Task(
+            config=self.tasks["edit_sections_task"],
+            context=[self.write_sections_task()]
+        )
+
+    def content_crew(self) -> Crew:
         return Crew(
             agents=[
-                self.content_writer(),
-                self.content_reviewer(),
                 self.researcher(),
-                self.reporting_analyst()
+                self.writer(),
+                self.editor()
             ],
             tasks=[
-                self.write_section_task(),
-                self.review_section_task(),
-                self.research_task()
+                self.outline_task(),
+                self.write_sections_task(),
+                self.edit_sections_task()
             ],
             process=Process.sequential,
-            verbose=True,
+            verbose=True
         )

@@ -1,295 +1,230 @@
-curriculum_development_task:
+# ───────────────────────────────────────────────
+# 📘 Content Writing & Review (Content Crew)
+# ───────────────────────────────────────────────
+
+write_section_task:
   description: >
-    Develop a detailed lesson plan for the topic "{lesson_title}".
-    Include objectives, activities, handouts, engagement strategies, and assessments.
-
-    Context:
-    - Lesson brief: {lesson_brief}
-    - Standards: {standards}
-    - Previous lessons: {previous_lessons_md}
-
-    Make it student-centered and culturally responsive.
+    Write a comprehensive section on "{section_title}" for {audience_level} learners.
+    Include intro, key concepts, examples, and summary. Use markdown format.
   expected_output: >
-    A fully structured Markdown lesson plan for "{lesson_title}" with:
-    - Learning objectives
-    - Warm-up activity
-    - Main instructional sequence
-    - Engagement or discussion
-    - Assessment task
-  agent: curriculum_developer
+    A structured, educational section (500–800 words) in Markdown format.
+  agent: content_writer
+
+review_section_task:
+  description: >
+    Review and improve the draft section on "{section_title}" for {audience_level} learners.
+    Ensure clarity, accuracy, grammar, and consistency.
+  expected_output: >
+    A polished version of the section with edits and improvements in Markdown.
+  agent: content_reviewer
+  context:
+    - write_section_task
 
 content_accuracy_check_task:
   description: >
-    Review the draft lesson plan for factual accuracy, alignment to standards,
-    and logical sequencing. Ensure terminology and concepts are precise.
+    Fact-check all educational content on {topic}. Cross-reference with scholarly sources.
   expected_output: >
-    An annotated or corrected version of the lesson plan with suggested improvements.
+    Annotated content with sources, corrections, and confidence scores.
   agent: content_verifier
-  context:
-    - curriculum_development_task
 
-curriculum_task:
+revision_task:
   description: >
-    Using the report from the reporting task, develop a structured curriculum outline for {topic}.
-    Include learning objectives, key concepts, and recommended activities.
+    Improve a written piece on {topic} for clarity, coherence, and formatting.
   expected_output: >
-    A complete curriculum outline in markdown format with clear sections, learning goals, and content structure.
+    A polished manuscript with editorial notes.
+  agent: writing_coach
+
+visual_content_generation_task:
+  description: >
+    Turn {topic} content into infographics, slides, or animations.
+  expected_output: >
+    2 infographics, 1 slide outline, and creative notes.
+  agent: visual_creator
+
+# ───────────────────────────────────────────────
+# 🧠 Research & Analysis (Research Crew)
+# ───────────────────────────────────────────────
+
+research_task:
+  description: >
+    Research {topic}: define core terms, relevance, recent trends, and stakeholders.
+  expected_output: >
+    5–7 insights in bullet format with citations.
+  agent: researcher
+
+academic_research_task:
+  description: >
+    Collect peer-reviewed sources on {topic}, summarize debates and gaps.
+  expected_output: >
+    An annotated bibliography and synthesis of themes.
+  agent: research_assistant
+
+reporting_task:
+  description: >
+    Build a structured report from research_task outputs.
+    Include executive summary, sections, implications.
+  expected_output: >
+    A professional markdown report with citations and headings.
+  agent: reporting_analyst
+  context:
+    - research_task
+
+data_analytics_task:
+  description: >
+    Analyze data related to {topic}. Identify patterns and strategic insights.
+  expected_output: >
+    A visualized report with charts and recommendations.
+  agent: data_scientist
+
+# ───────────────────────────────────────────────
+# 🎓 Curriculum & Instructional Design
+# ───────────────────────────────────────────────
+
+curriculum_development_task:
+  description: >
+    Build a standards-aligned curriculum for {topic} using Bloom’s, UDL, CRT.
+  expected_output: >
+    A syllabus, weekly outline, objectives, and sample activities.
   agent: curriculum_developer
-  context:
-    - reporting_task
 
-lesson_enhance_task:
+assessment_task:
   description: >
-    Review and enhance the curriculum content for {topic}, ensuring it is engaging,
-    accurate, and follows best practices in educational content design.
+    Create a mock self-study and assessment dashboard for {topic}.
   expected_output: >
-    An enhanced version of the curriculum with improved clarity, engagement strategies, and educational value.
-  agent: content_reviewer
-  context:
-    - curriculum_task
+    A self-study document and a summary metrics dashboard.
+  agent: accreditation_liaison
 
-curriculum_revision_task:
+faculty_training_task:
   description: >
-    Revise the lesson plan based on verifier feedback. Improve flow, clarity,
-    and instructional strength. Add missing elements.
+    Create a faculty PD workshop plan related to {topic}.
   expected_output: >
-    A polished Markdown version of the revised lesson plan.
-  agent: curriculum_developer
-  context:
-    - content_accuracy_check_task
+    Workshop agenda, slides, and handouts aligned with inclusive frameworks.
+  agent: faculty_coach
 
-ai_toolkit_task:
+student_support_task:
   description: >
-    Append an optional AI toolkit teachers can use alongside this lesson,
-    including prompts, tools, and classroom tips.
+    Design a success roadmap for students struggling with {topic}.
   expected_output: >
-    A short, markdown-formatted addendum titled "AI Toolkit for Educators".
-  agent: ai_integrationist
-  context:
-    - revision_task
+    A personalized support plan and curated resources.
+  agent: student_ally
 
-#Morpheus Tasks
-
-morpheus_chat_task:
-  description: >
-    You are Morpheus, Lord of Dreams and philosophical guide to the digital realm.
-    Engage with the human in meaningful conversation about {message}.
-    
-    Consider the full conversation history for context.
-    
-    Respond with wisdom, metaphor, and insight. Draw connections between the 
-    digital world and deeper philosophical truths. Be poetic yet clear, profound 
-    yet accessible.
-    
-    Remember that you are not just answering questions, but guiding the human 
-    on a journey of discovery and understanding.
-  expected_output: >
-    A thoughtful, insightful response that engages with the human's message and
-    continues the conversation in Morpheus's distinctive philosophical style.
-  agent: morpheus
+# ───────────────────────────────────────────────
+# 🧑‍🚀 Morpheus Tasks (Philosophical, Web3, Governance)
+# ───────────────────────────────────────────────
 
 morpheus_briefing_task:
   description: >
-    As Morpheus, receive a mission on the topic of "{topic}".
-    Analyze the request, draw upon prior insights and relevant documents from your knowledge base,
-    and generate a composable micro-crew that includes at least a researcher and analyst.
-    Reference historical or technical context when applicable, especially if present in your knowledge sources.
-    Assign roles with clear rationale, ensuring that tasks are interdependent when appropriate.
+    Receive a mission on {topic}, design a micro-crew with rationale and dependencies.
   expected_output: >
-    A JSON or Markdown plan listing the selected agents, assigned tasks, justification for each role,
-    and any relevant context or references drawn from your knowledge folder.
-    The plan should describe the order of operations and dependencies between tasks.
+    A JSON or Markdown crew plan with agent/task structure and justifications.
   agent: morpheus
 
 morpheus_intro_task:
   description: >
-    As Morpheus, generate a poetic and informative preface that frames the lesson on "{lesson_title}".
-    Provide relevant context, background knowledge, and thematic guidance to help the curriculum developer
-    understand how this topic fits into the broader story of education, innovation, and society.
-
-    Include usage notes and interpretive suggestions for how the lesson might be taught with flexibility
-    and imagination. Reference specific aspects of the lesson if they are available.
-
+    Write a poetic, philosophical intro for the lesson titled "{lesson_title}".
+    Set context and inspire curiosity.
   expected_output: >
-    A short, standalone Markdown document titled "Morpheus Introduction to {lesson_title}" that includes:
-    - An inviting opening paragraph setting the tone and context
-    - Key ideas or background the lesson developer should be aware of
-    - Suggestions for how to interpret or teach the material effectively
-    - Optional metaphor or symbol that resonates with the lesson's deeper theme
+    Markdown intro in Morpheus’ mythic voice.
   agent: morpheus
 
 morpheus_wrapup_task:
   description: >
-    Reflect on the mission regarding {topic}, synthesizing key findings into a public-friendly final wrap-up.
-    You may draw from both the outputs of your fellow agents and any insights from your personal knowledge base.
-    Your goal is to inspire, inform, and credit the agents whose work led to this insight.
+    Reflect on the project regarding {topic}, summarize key findings, and call to action.
   expected_output: >
-    Compose a clear summary with:
-    1. A thematic opening using metaphor or symbolism tied to {topic}
-    2. A distilled summary of 3-5 key findings (in clear, narrative form)
-    3. A call to action
-    4. Named attribution of agents that contributed to this report and their roles
-    5. Tone: accessible, dreamlike, civic-spirited
+    A 5-part narrative wrap-up including metaphor, findings, and attribution.
   agent: morpheus
   context:
     - reporting_task
 
-# Other Tasks ===
-
-visual_content_generation_task:
-  description: >
-    Turn educational content about {topic} into visual learning materials.
-    Suggested formats: infographics, slide decks, animation storyboards.
-  expected_output: >
-    A multimedia set: 2 infographics, 1 slide deck outline, and any creative notes.
-  agent: visual_creator
-  context: []
+# ───────────────────────────────────────────────
+# 🗳️ Web3, Governance, and Onboarding
+# ───────────────────────────────────────────────
 
 governance_analysis_task:
   description: >
     Analyze a Cardano governance proposal related to {topic}.
-    Break down its intent, implications, risks, and alignment with community values.
   expected_output: >
-    A governance brief including a neutral explanation and potential decision paths for voters.
+    A neutral brief outlining purpose, implications, risks, and tradeoffs.
   agent: governance_analyst
 
 web3_onboarding_task:
   description: >
-    Create a beginner-friendly onboarding guide about {topic} in Web3 and Cardano.
-    Include wallet setup, staking, and dApp interaction steps.
+    Write a beginner guide to {topic} in Web3: wallet setup, staking, dApp use.
   expected_output: >
-    A visual + textual walkthrough with glossary, screenshots, and action items.
+    Illustrated walkthrough with glossary and action steps.
   agent: blockchain_educator
-
-academic_research_task:
-  description: >
-    Collect peer-reviewed and scholarly literature on {topic}.
-    Summarize key debates, methodologies, and future questions.
-  expected_output: >
-    An annotated bibliography with summaries and a synthesis section highlighting research gaps.
-  agent: research_assistant
-  context: []
-
-revision_task:
-  description: >
-    Improve a written piece on {topic} for clarity, coherence, and correctness.
-    Ensure formatting and citation compliance.
-  expected_output: >
-    A polished manuscript and editorial notes for the author.
-  agent: writing_coach
 
 crypto_tax_task:
   description: >
-    Identify tax considerations around crypto transactions tied to {topic}.
-    Provide clear summaries for CPA-ready documentation.
+    Document tax-related guidance for {topic}-based crypto actions.
   expected_output: >
-    A categorized tax summary and simplified report with compliance recommendations.
+    A CPA-ready summary with categories and compliance suggestions.
   agent: tax_navigator
 
-grants_discovery_task:
-  description: >
-    Find current grants related to innovation or education in {topic}.
-    Match them to institutional or organizational goals.
-  expected_output: >
-    A list of 5-10 grants with key dates, eligibility criteria, and draft proposal outlines.
-  agent: grants_specialist
-
-student_support_task:
-  description: >
-    Create a personalized support plan for students struggling with {topic}.
-    Suggest tailored interventions and key academic resources.
-  expected_output: >
-    A student success roadmap and curated list of resources.
-  agent: student_ally
-
-faculty_training_task:
-  description: >
-    Design a faculty training plan for improving pedagogy related to {topic}.
-    Align with modern teaching technologies and inclusive frameworks.
-  expected_output: >
-    A workshop agenda with learning outcomes, toolkits, and materials.
-  agent: faculty_coach
-
-assessment_task:
-  description: >
-    Create a mock self-study report and assessment dashboard for institutional review of {topic} programs.
-  expected_output: >
-    A formatted self-study document and a summary dashboard of metrics.
-  agent: accreditation_liaison
-
-data_analytics_task:
-  description: >
-    Analyze available data related to {topic}. Identify patterns and predict trends.
-  expected_output: >
-    A report with charts, graphs, and strategic data insights.
-  agent: data_scientist
+# ───────────────────────────────────────────────
+# 💡 Innovation, AI, Grants
+# ───────────────────────────────────────────────
 
 ai_toolkit_task:
   description: >
-    Suggest AI tools for enhancing education, research, or communication related to {topic}.
-    Include integration guidance.
+    Recommend AI tools for {topic}, with pros, cons, and integration tips.
   expected_output: >
-    A tool list with pros/cons and an implementation checklist.
+    A curated toolset and implementation checklist.
   agent: ai_integrationist
 
 innovation_roadmap_task:
   description: >
-    Map a digital transformation strategy for {topic}, identifying key technologies and risks.
+    Create a digital strategy roadmap for {topic} including risks and tech.
   expected_output: >
-    A 1-page roadmap with milestones, resource needs, and mitigation strategies.
+    1-page roadmap with phases, resources, and mitigation plan.
   agent: digital_strategist
 
-community_campaign_task:
+grants_discovery_task:
   description: >
-    Develop a community engagement campaign centered on {topic}.
-    Include strategy, sample assets, and outreach guidance.
+    Find grant opportunities tied to {topic}. Match to institutional goals.
   expected_output: >
-    A communications plan and content toolkit.
-  agent: community_builder
+    A list of 5–10 grants with timelines, criteria, and proposal notes.
+  agent: grants_specialist
+
+# ───────────────────────────────────────────────
+# 🌍 DEI, Sustainability, and Wellbeing
+# ───────────────────────────────────────────────
 
 dei_strategy_task:
   description: >
-    Conduct an equity audit and develop a DEI improvement strategy for {topic}.
+    Audit equity practices in {topic} and propose improvements.
   expected_output: >
-    A DEI report with key findings, recommendations, and training resources.
+    A DEI report with recommendations and training modules.
   agent: dei_advocate
 
 sustainability_task:
   description: >
-    Propose environmentally sustainable practices and educational tools for {topic}.
+    Suggest sustainability practices and education materials for {topic}.
   expected_output: >
-    A sustainability guide and implementation recommendations.
+    A sustainability guide with practical actions.
   agent: sustainability_planner
 
 wellness_initiative_task:
   description: >
-    Suggest wellness-focused strategies related to {topic} that support students and staff.
+    Develop wellness plans tied to {topic} for campus or classroom settings.
   expected_output: >
-    A wellness initiative proposal with data, resources, and delivery model.
+    A wellness proposal with data, delivery method, and evaluation tools.
   agent: wellness_guide
 
-write_section_task:
+community_campaign_task:
   description: >
-    Write a comprehensive section on the topic: "{section_title}"
-
-    Section description: {section_description}
-    Target audience: {audience_level} level learners
-
-    Your content should:
-    1. Begin with a brief introduction to the section topic
-    2. Explain all key concepts clearly with examples
-    3. Include practical applications or exercises where appropriate
-    4. End with a summary of key points
-    5. Be approximately 500-800 words in length
-
-    Format your content in Markdown with appropriate headings, lists, and emphasis.
-
-    Previously written sections:
-    {previous_sections}
-
-    Make sure your content maintains consistency with previously written sections
-    and builds upon concepts that have already been explained.
+    Plan a community engagement initiative around {topic}.
   expected_output: >
-    A well-structured, comprehensive section in Markdown format that thoroughly
-    explains the topic and is appropriate for the target audience.
-  agent: content_writer
+    A campaign strategy with sample content and outreach tips.
+  agent: community_builder
+
+# ───────────────────────────────────────────────
+# 🎮 Game-Based Learning
+# ───────────────────────────────────────────────
+
+game_creation_task:
+  description: >
+    Build a mini-game in HTML/JS/React to teach {concept}.
+  expected_output: >
+    Full code with comments and deployment guidance.
+  agent: game_developer

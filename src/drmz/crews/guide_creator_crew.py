@@ -3,10 +3,18 @@ from crewai.project import CrewBase, agent, crew, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from typing import List
 from drmz.config_loader import load_agents, load_tasks
+import os
 
-# Explicitly set config paths to avoid default fallback to crews/config
-all_agents = load_agents(path="src/drmz/config/content/agents.yaml")
-all_tasks = load_tasks(path="src/drmz/config/content/tasks.yaml")
+# Dynamically resolve absolute paths for config files
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(current_dir, "../../.."))
+
+agents_path = os.path.join(project_root, "src", "drmz", "config", "content", "agents.yaml")
+tasks_path = os.path.join(project_root, "src", "drmz", "config", "content", "tasks.yaml")
+
+# Load agents and tasks from resolved paths
+all_agents = load_agents(path=agents_path)
+all_tasks = load_tasks(path=tasks_path)
 
 @CrewBase
 class GuideCreatorCrew():
@@ -23,12 +31,10 @@ class GuideCreatorCrew():
 
     @agent
     def curriculum_developer(self) -> Agent:
-        # Changed from curriculum_architect to curriculum_developer
         return Agent(config=all_agents["curriculum_developer"])
 
     @agent
     def content_reviewer(self) -> Agent:
-        # Changed from lesson_enhancer to content_reviewer
         return Agent(config=all_agents["content_reviewer"])
 
     @task
@@ -45,7 +51,6 @@ class GuideCreatorCrew():
 
     @task
     def curriculum_task(self) -> Task:
-        # Using the existing curriculum_task from your tasks.yaml
         return Task(
             config=all_tasks["curriculum_task"],
             context=[self.reporting_task()],
@@ -54,7 +59,6 @@ class GuideCreatorCrew():
 
     @task
     def lesson_enhance_task(self) -> Task:
-        # Using the existing lesson_enhance_task from your tasks.yaml
         return Task(
             config=all_tasks["lesson_enhance_task"],
             context=[self.curriculum_task()],

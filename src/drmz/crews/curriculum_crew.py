@@ -1,79 +1,60 @@
-import os
-from typing import List
 from crewai import Agent, Crew, Task, Process
-from crewai.project import CrewBase, agent, crew, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
-from drmz.config_loader import load_agents, load_tasks
+from typing import List
 
-# Load your agent and task configurations
-all_agents = load_agents()
-all_tasks = load_tasks()
-
-@CrewBase
 class CurriculumCrew:
-    agents: List[BaseAgent]
-    tasks: List[Task]
+    def __init__(self, agents: dict, tasks: dict):
+        self.agents = agents
+        self.tasks = tasks
 
     # === AGENTS ===
-    @agent
     def curriculum_developer(self) -> Agent:
-        return Agent(**all_agents["curriculum_developer"])
+        return Agent(config=self.agents["curriculum_developer"], verbose=True)
 
-    @agent
     def content_reviewer(self) -> Agent:
-        return Agent(**all_agents["content_reviewer"])
+        return Agent(config=self.agents["content_reviewer"], verbose=True)
 
-    @agent
     def ai_integrationist(self) -> Agent:
-        return Agent(**all_agents["ai_integrationist"])
+        return Agent(config=self.agents["ai_integrationist"], verbose=True)
 
-    @agent
     def researcher(self) -> Agent:
-        return Agent(**all_agents["researcher"])
+        return Agent(config=self.agents["researcher"], verbose=True)
 
-    @agent
     def reporting_analyst(self) -> Agent:
-        return Agent(**all_agents["reporting_analyst"])
+        return Agent(config=self.agents["reporting_analyst"], verbose=True)
 
     # === TASKS ===
-    @task
     def develop_curriculum_task(self) -> Task:
-        return Task(**all_tasks["curriculum_development_task"])
+        return Task(config=self.tasks["curriculum_development_task"])
 
-    @task
     def accuracy_check_task(self) -> Task:
         return Task(
-            **all_tasks["content_accuracy_check_task"],
+            config=self.tasks["content_accuracy_check_task"],
             context=[self.develop_curriculum_task()]
         )
 
-    @task
     def revision_task(self) -> Task:
         return Task(
-            **all_tasks["revision_task"],
+            config=self.tasks["revision_task"],
             context=[self.accuracy_check_task()]
         )
 
-    @task
     def ai_toolkit_task(self) -> Task:
         return Task(
-            **all_tasks["ai_toolkit_task"],
+            config=self.tasks["ai_toolkit_task"],
             context=[self.revision_task()]
         )
 
-    @task
     def research_task(self) -> Task:
-        return Task(**all_tasks["research_task"])
+        return Task(config=self.tasks["research_task"])
 
-    @task
     def reporting_task(self) -> Task:
         return Task(
-            **all_tasks["reporting_task"],
+            config=self.tasks["reporting_task"],
             context=[self.research_task()]
         )
 
     # === CREW ===
-    @crew
     def build_curriculum_crew(self) -> Crew:
         return Crew(
             agents=[

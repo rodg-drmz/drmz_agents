@@ -2,24 +2,18 @@
 
 import os
 import json
-import yaml
 from dotenv import load_dotenv
 from crewai import Agent, Task, Crew, Process
 from langchain_openai import ChatOpenAI
 
+from drmz.config_loader import load_agents, load_tasks  # ✅ use dynamic config loading
+
 # Load environment variables
 load_dotenv()
 
-# Config paths
-CONFIG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "config"))
-AGENTS_PATH = os.path.join(CONFIG_PATH, "agents.yaml")
-TASKS_PATH = os.path.join(CONFIG_PATH, "tasks.yaml")
-
-# Load YAML configs
-with open(AGENTS_PATH, "r", encoding="utf-8") as f:
-    agent_config = yaml.safe_load(f)
-with open(TASKS_PATH, "r", encoding="utf-8") as f:
-    task_config = yaml.safe_load(f)
+# Load YAML configs dynamically
+agent_config = load_agents()
+task_config = load_tasks()
 
 def substitute_placeholders(config, inputs):
     if isinstance(config, dict):
@@ -59,7 +53,7 @@ def run_plan(plan_file_path: str):
             description=task_config_copy["description"],
             expected_output=task_config_copy["expected_output"],
             agent=agents_map[task_config_copy["agent"]],
-            # context will be set in next pass
+            # context added in second pass
         )
 
     # === Second pass: resolve context references ===

@@ -1,14 +1,18 @@
-# src/drmz/config_loader.py
-import os
+from pathlib import Path
 import yaml
 
-# Always resolve config relative to src/drmz/config
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config")
+BASE_DIR = Path(__file__).resolve().parent / "config"
 
-def load_agents():
-    with open(os.path.join(CONFIG_PATH, "agents.yaml"), "r", encoding="utf-8") as f:
+def load_agents(path: Path | str = BASE_DIR / "agents.yaml"):
+    path = Path(path)  # ensure path is a Path object
+    with path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
-def load_tasks():
-    with open(os.path.join(CONFIG_PATH, "tasks.yaml"), "r", encoding="utf-8") as f:
+def load_tasks(path: Path | str = BASE_DIR / "tasks.yaml"):
+    path = Path(path)  # ensure path is a Path object
+    with path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+if __name__ == "__main__":
+    print("Agents path:", (BASE_DIR / "agents.yaml").resolve())
+    print("Tasks path:", (BASE_DIR / "tasks.yaml").resolve())

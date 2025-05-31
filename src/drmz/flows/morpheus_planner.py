@@ -16,28 +16,22 @@ from dotenv import load_dotenv
 # ── crewai core ───────────────────────────────────────────────────────────
 from crewai import Agent, Task, Crew, Process
 
-# Knowledge imports – works on *both* new and old CrewAI versions
-try:
-    # ≥ 0.110
-    from crewai.knowledge.knowledge import Knowledge
-    from crewai.knowledge.source.crew_docling_source import CrewDoclingSource
-except ImportError:                       # ≤ 0.109 fallback
-    from crewai.knowledge import Knowledge          # type: ignore
-    from crewai.knowledge import LocalSource as CrewDoclingSource  # type: ignore
-
 # LLM wrapper
 from langchain_openai import ChatOpenAI
 
 # ──────────────────────────────────────────────────────────────────────────
 # 1.  Paths & env
 # ──────────────────────────────────────────────────────────────────────────
-load_dotenv()            # OPENAI_API_KEY, etc.
+load_dotenv()  # Loads OPENAI_API_KEY, etc.
 
-BASE_DIR    = Path(__file__).resolve().parent          # …/src/drmz/flows
-CONFIG_PATH = BASE_DIR.parent / "config"               # …/src/drmz/config  ✅
+BASE_DIR    = Path(__file__).resolve().parent
+CONFIG_PATH = BASE_DIR.parent / "config"
 AGENTS_PATH = CONFIG_PATH / "agents.yaml"
 TASKS_PATH  = CONFIG_PATH / "tasks.yaml"
-KNOWLEDGE_DIR = (BASE_DIR.parent.parent / "knowledge").resolve()
+KNOWLEDGE_DIR = (BASE_DIR.parent.parent.parent / "knowledge").resolve()
+
+print(f"[DEBUG] KNOWLEDGE_DIR resolved to: {KNOWLEDGE_DIR}")
+print(f"[DEBUG] Directory contents: {list(KNOWLEDGE_DIR.glob('*'))}")
 
 # ──────────────────────────────────────────────────────────────────────────
 # 2.  Load YAML configs
@@ -49,27 +43,14 @@ with TASKS_PATH.open("r", encoding="utf-8") as f:
     task_cfg = yaml.safe_load(f)
 
 # ──────────────────────────────────────────────────────────────────────────
-# 3.  Build knowledge store
-#     • New CrewAI → CrewDoclingSource ingests *all* file-types in the folder
-#     • Old CrewAI → LocalSource behaves the same way
+# 3.  Skip knowledge ingestion temporarily
 # ──────────────────────────────────────────────────────────────────────────
-knowledge_source = CrewDoclingSource(
-    # New API expects a *list of paths*  (old LocalSource uses "path")
-    file_paths=[str(KNOWLEDGE_DIR)],
-)
-
-morpheus_knowledge = Knowledge.from_sources(
-    sources=[knowledge_source],
-    collection_name="morpheus-knowledge",
-    embedder="openai",          # change to "ollama", "cohere", etc. if preferred
-)
 
 # ──────────────────────────────────────────────────────────────────────────
 # 4.  Define agent & planning task
 # ──────────────────────────────────────────────────────────────────────────
 morpheus = Agent(
     config=agent_cfg["morpheus"],
-    knowledge=morpheus_knowledge,
     llm=ChatOpenAI(model_name="gpt-4o"),
     verbose=True,
 )
@@ -83,7 +64,6 @@ planning_task = Task(
 # 5.  Planner wrapper
 # ──────────────────────────────────────────────────────────────────────────
 def plan_mission(topic: str, current_year: str = "2025") -> None:
-    """Run Morpheus’ planning crew and emit plan_<topic>.json."""
     inputs = {"topic": topic, "current_year": current_year}
 
     planning_crew = Crew(
@@ -95,7 +75,6 @@ def plan_mission(topic: str, current_year: str = "2025") -> None:
 
     planning_crew.kickoff(inputs=inputs)
 
-    # Assemble execution blueprint (you can tweak as needed)
     plan_data = {
         "topic": topic,
         "crew": "morpheus_master_crew",

@@ -21,12 +21,18 @@ Outputs:
 
 from __future__ import annotations
 
-import os, json
+import os, json, sys
+from pathlib import Path
+
+# Add the 'src' directory to sys.path to resolve 'drmz' module
+sys.path.append(str(Path(__file__).resolve().parents[2] / "src"))
+
 from typing import Dict, List
 from pydantic import BaseModel
 from crewai import LLM
 from crewai.flow.flow import Flow, listen, start
 
+from drmz.config_loader import load_agents, load_tasks
 from drmz.crews.curriculum_crew import CurriculumCrew
 from drmz.crews.content_crew import ContentCrew
 from drmz.crews.morpheus_crew import MorpheusCrew
@@ -57,6 +63,14 @@ class CurriculumState(BaseModel):
 # ---- Flow -------------------------------------------------------------
 class CurriculumCreatorFlow(Flow[CurriculumState]):
     """Generate a standards‑aligned unit with full lesson plans."""
+
+    def __init__(self):
+        super().__init__()
+        self.agents = load_agents()
+        self.tasks = load_tasks()
+        self.morpheus = MorpheusCrew(self.agents, self.tasks)
+        self.curriculum = CurriculumCrew(self.agents, self.tasks)
+        self.content = ContentCrew(self.agents, self.tasks)
 
     @start()
     def get_requirements(self):
@@ -141,7 +155,7 @@ in 1–2 sentences. Ensure the unit intro and closing reference the standards.
             )
 
             # Morpheus intro
-            intro_result = MorpheusCrew().lesson_intro_crew().kickoff(
+            intro_result = self.morpheus.lesson_intro_crew().kickoff(
                 inputs={
                     "topic": self.state.subject,
                     "lesson_title": lesson.title,
@@ -156,7 +170,7 @@ in 1–2 sentences. Ensure the unit intro and closing reference the standards.
                 f.write(intro_md)
 
             # Curriculum lesson build
-            result = CurriculumCrew().build_curriculum_crew().kickoff(
+            result = self.curriculum.build_curriculum_crew().kickoff(
                 inputs={
                     "subject": self.state.subject,
                     "topic": self.state.subject,
@@ -173,7 +187,7 @@ in 1–2 sentences. Ensure the unit intro and closing reference the standards.
             print("   ✔ done")
 
         # Wrap-up
-        wrapup_result = MorpheusCrew().wrapup_crew().kickoff(inputs={
+        wrapup_result = self.morpheus.wrapup_crew().kickoff(inputs={
             "topic": self.state.subject,
             "audience": self.state.audience_level,
             "length": self.state.duration_weeks,
@@ -200,8 +214,7 @@ in 1–2 sentences. Ensure the unit intro and closing reference the standards.
         raw_handbook = "\n".join(md_parts)
 
         polished = (
-            ContentCrew()
-            .crew()
+            self.content.crew()
             .kickoff(
                 inputs={
                     "section_title": "Complete Curriculum Handbook",

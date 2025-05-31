@@ -2,6 +2,7 @@
 .env
 .env.local
 .venv/
+Scripts/
 
 # System
 __pycache__/
