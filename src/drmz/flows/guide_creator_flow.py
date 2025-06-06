@@ -1,24 +1,12 @@
 #!/usr/bin/env python
-"""
-Guide Creator Flow
---------------------------------------------------
-Generates a complete beginner/intermediate/advanced-level guide
-based on a user-defined topic using the following process:
-
-1. Outline Generation - via direct LLM call, schema-bound to `GuideOutline`
-2. Section Writing - each section is generated via ContentCrew
-3. Compilation - sections, intro, and conclusion are merged into a final .md
-
-Outputs:
-- output/guides/guide_outline.json
-- output/guides/complete_guide_<topic>.md
-"""
-
 import json, os
 from typing import List, Dict
 from pydantic import BaseModel, Field
 from crewai import LLM
 from crewai.flow.flow import Flow, listen, start
+
+# ✅ Load correct config from src/drmz/config
+from drmz.config_loader import load_agents, load_tasks
 from drmz.crews.content_crew import ContentCrew
 
 # === Models ===
@@ -91,6 +79,15 @@ Include:
         print("Writing and compiling guide...\n")
         completed = []
 
+        # ✅ Load agent/task config and confirm they're valid
+        agents = load_agents()
+        tasks = load_tasks()
+
+        print("[Debug] Loaded agents:", agents.keys())
+        print("[Debug] Loaded tasks:", tasks.keys())
+
+        content_crew = ContentCrew()
+
         for section in outline.sections:
             print(f"→ {section.title}")
 
@@ -99,11 +96,12 @@ Include:
                 if completed else "No previous sections written yet."
             )
 
-            result = ContentCrew().crew().kickoff(inputs={
-                "section_title": section.title,
-                "section_description": section.description,
+            result = content_crew.crew().kickoff(inputs={
+                "topic": self.state.topic,
                 "audience_level": self.state.audience_level,
-                "previous_sections": context,
+                "duration_weeks": self.state.duration_weeks,  # ✅ add this line
+                "section_title": "Complete Educational Guide",
+                "section_description": self.state.outline_title,
                 "draft_content": ""
             })
 

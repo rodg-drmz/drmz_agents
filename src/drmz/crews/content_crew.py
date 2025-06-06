@@ -1,47 +1,50 @@
-from crewai import Agent, Crew, Task, Process
-from crewai.agents.agent_builder.base_agent import BaseAgent
+from crewai import Crew, Agent, Task
+from drmz.config_loader import load_agents, load_tasks
 
 class ContentCrew:
-    def __init__(self, agents: dict, tasks: dict):
-        self.agents = agents
-        self.tasks = tasks
+    def __init__(self, agent_configs=None, task_configs=None):
+        self.agent_configs = load_agents()
+        self.task_configs = load_tasks()
+        self._built_tasks = {}
 
-    def researcher(self) -> Agent:
-        return Agent(config=self.agents["researcher"])
+    def get_agent(self, name: str) -> Agent:
+        return Agent(config=self.agent_configs[name])
 
-    def writer(self) -> Agent:
-        return Agent(config=self.agents["writer"])
+    def get_task(self, name: str) -> Task:
+        if name in self._built_tasks:
+            return self._built_tasks[name]
 
-    def editor(self) -> Agent:
-        return Agent(config=self.agents["editor"])
+        raw = self.task_configs[name].copy()
+        print(f"[Debug] Raw task config for {name}: {raw!r}")
 
-    def outline_task(self) -> Task:
-        return Task(config=self.tasks["outline_task"])
+        agent_name = raw.pop("agent")
+        context_ids = raw.pop("context", [])
 
-    def write_sections_task(self) -> Task:
-        return Task(
-            config=self.tasks["write_sections_task"],
-            context=[self.outline_task()]
+        agent_obj = self.get_agent(agent_name)
+        context_tasks = [self.get_task(ctx_name) for ctx_name in context_ids]
+
+        task = Task(
+            description=raw["description"],
+            expected_output=raw["expected_output"],
+            agent=agent_obj,
+            context=context_tasks
         )
+        self._built_tasks[name] = task
+        return task
 
-    def edit_sections_task(self) -> Task:
-        return Task(
-            config=self.tasks["edit_sections_task"],
-            context=[self.write_sections_task()]
-        )
-
-    def content_crew(self) -> Crew:
+    def crew(self) -> Crew:
         return Crew(
             agents=[
-                self.researcher(),
-                self.writer(),
-                self.editor()
+                self.get_agent("researcher"),
+                self.get_agent("morpheus"),
+                self.get_agent("content_reviewer"),
+                self.get_agent("writing_coach"),
             ],
             tasks=[
-                self.outline_task(),
-                self.write_sections_task(),
-                self.edit_sections_task()
+                self.get_task("write_section_task"),
+                self.get_task("review_section_task"),
+                self.get_task("revision_task"),
+                self.get_task("morpheus_compile_task"),
             ],
-            process=Process.sequential,
-            verbose=True
+            verbose=True,
         )

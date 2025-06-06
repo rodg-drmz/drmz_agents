@@ -1,76 +1,55 @@
 from crewai import Agent, Crew, Task, Process
-from crewai.agents.agent_builder.base_agent import BaseAgent
 from typing import List
 
 class CurriculumCrew:
     def __init__(self, agents: dict, tasks: dict):
         self.agents = agents
         self.tasks = tasks
+        self._built_tasks = {}
 
     # === AGENTS ===
-    def curriculum_developer(self) -> Agent:
-        return Agent(config=self.agents["curriculum_developer"], verbose=True)
-
-    def content_reviewer(self) -> Agent:
-        return Agent(config=self.agents["content_reviewer"], verbose=True)
-
-    def ai_integrationist(self) -> Agent:
-        return Agent(config=self.agents["ai_integrationist"], verbose=True)
-
-    def researcher(self) -> Agent:
-        return Agent(config=self.agents["researcher"], verbose=True)
-
-    def reporting_analyst(self) -> Agent:
-        return Agent(config=self.agents["reporting_analyst"], verbose=True)
+    def get_agent(self, name: str) -> Agent:
+        return Agent(config=self.agents[name], verbose=True)
 
     # === TASKS ===
-    def develop_curriculum_task(self) -> Task:
-        return Task(config=self.tasks["curriculum_development_task"])
+    def get_task(self, name: str) -> Task:
+        if name in self._built_tasks:
+            return self._built_tasks[name]
 
-    def accuracy_check_task(self) -> Task:
-        return Task(
-            config=self.tasks["content_accuracy_check_task"],
-            context=[self.develop_curriculum_task()]
+        raw = self.tasks[name].copy()
+        agent_name = raw.pop("agent")
+        context_names = raw.pop("context", [])
+
+        agent_obj = self.get_agent(agent_name)
+        context_tasks = [self.get_task(ctx) for ctx in context_names]
+
+        task = Task(
+            description=raw["description"],
+            expected_output=raw["expected_output"],
+            agent=agent_obj,
+            context=context_tasks,
         )
 
-    def revision_task(self) -> Task:
-        return Task(
-            config=self.tasks["revision_task"],
-            context=[self.accuracy_check_task()]
-        )
-
-    def ai_toolkit_task(self) -> Task:
-        return Task(
-            config=self.tasks["ai_toolkit_task"],
-            context=[self.revision_task()]
-        )
-
-    def research_task(self) -> Task:
-        return Task(config=self.tasks["research_task"])
-
-    def reporting_task(self) -> Task:
-        return Task(
-            config=self.tasks["reporting_task"],
-            context=[self.research_task()]
-        )
+        self._built_tasks[name] = task
+        return task
 
     # === CREW ===
     def build_curriculum_crew(self) -> Crew:
         return Crew(
             agents=[
-                self.curriculum_developer(),
-                self.content_reviewer(),
-                self.ai_integrationist(),
-                self.researcher(),
-                self.reporting_analyst(),
+                self.get_agent("curriculum_developer"),
+                self.get_agent("content_reviewer"),
+                self.get_agent("ai_integrationist"),
+                self.get_agent("researcher"),
+                self.get_agent("reporting_analyst"),
             ],
             tasks=[
-                self.develop_curriculum_task(),
-                self.accuracy_check_task(),
-                self.revision_task(),
-                self.ai_toolkit_task(),
-                self.research_task(),
-                self.reporting_task(),
+                self.get_task("curriculum_development_task"),
+                self.get_task("content_accuracy_check_task"),
+                self.get_task("revision_task"),
+                self.get_task("ai_toolkit_task"),
+                self.get_task("research_task"),
+                self.get_task("reporting_task"),
             ],
             process=Process.sequential,
             verbose=True,

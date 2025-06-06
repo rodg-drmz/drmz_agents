@@ -2,13 +2,21 @@
 # 📘 Content Writing & Review (Content Crew)
 # ───────────────────────────────────────────────
 
+outline_task:
+  description: >
+    Create a high-level outline for the educational guide on {topic}.
+    Break down the topic into 4–6 logical sections with titles and brief descriptions.
+  expected_output: >
+    A Markdown list of section titles and 1–2 sentence summaries for each.
+  agent: researcher
+
 write_section_task:
   description: >
     Write a comprehensive section on "{section_title}" for {audience_level} learners.
     Include intro, key concepts, examples, and summary. Use markdown format.
   expected_output: >
     A structured, educational section (500–800 words) in Markdown format.
-  agent: content_writer
+  agent: morpheus
 
 review_section_task:
   description: >
@@ -25,7 +33,7 @@ content_accuracy_check_task:
     Fact-check all educational content on {topic}. Cross-reference with scholarly sources.
   expected_output: >
     Annotated content with sources, corrections, and confidence scores.
-  agent: content_verifier
+  agent: content_reviewer
 
 revision_task:
   description: >
@@ -33,6 +41,18 @@ revision_task:
   expected_output: >
     A polished manuscript with editorial notes.
   agent: writing_coach
+
+compile_guide_task:
+  description: >
+    Assemble the guide sections and front/back matter into a complete guide in Markdown.
+    Make it coherent, cohesive, and engaging. Add transitions, section intros,
+    and a unifying narrative voice that reflects the purpose of the project. 
+  expected_output: >
+    Full guide document with all sections seamlessly integrated, including transitions, summaries, 
+    philosophical framing and wrap-up in clean Markdown. 
+  agent: content_reviewer
+  context:
+    - content_edit_task
 
 visual_content_generation_task:
   description: >
@@ -135,6 +155,107 @@ morpheus_wrapup_task:
   agent: morpheus
   context:
     - reporting_task
+
+morpheus_compile_task:
+  description: >
+    You are Morpheus, tasked with compiling a structured curriculum handbook.
+
+    You have received a course titled "{topic}" designed for {audience_level} learners.
+    Format the content into a {duration_weeks}-week guide. Each week should be clearly marked.
+
+    For each week:
+     - Title the section clearly (e.g., "Week 1: Introduction to Web3")
+     - Include transitions, metaphors, and framing from Morpheus' poetic style
+      - Maintain markdown formatting
+      - Respect the lesson sequence and modular structure
+    End with a reflective conclusion in your own voice.
+  expected_output: >
+    A fully developed, narratively rich lesson for sutdents, including a structured markdown curriculum with headers for each week.
+    - an engaging introduction
+    - Thematic connection to the braoder curriculum
+    - Content integrated from assistant agents
+    - Referenced citations
+    - Closing reflection
+  agent: morpheus
+  context: []
+
+morpheus_tweet_task:
+  description: Generate a tweet summarizing the core insight from recent Web3 or Cardano content.
+  expected_output: A tweet that is insightful and accessible.
+  agent: morpheus
+  prompt: |
+    Write a concise and compelling tweet that reflects the DRMZ Project’s voice.
+
+    ✦ Do not use hashtags.
+    ✦ Emojis are optional — use only if they add clarity or personality.
+    ✦ Tone: Reflective, grounded, informative.
+    ✦ Character count: 240–280 characters.
+
+    Make it sharp, insightful, and human.
+  context: []
+
+morpheus_tweet_task_educator:
+  description: Generate a tweet with an informative, trustworthy tone tailored to newcomers or learners in Web3.
+  expected_output: A clear, accessible tweet that explains or educates.
+  agent: morpheus
+  prompt: |
+    Write an educational tweet introducing or explaining a Web3 or Cardano concept to someone new to the space.
+
+    ✦ Do not use hashtags.
+    ✦ Use at most one emoji, only if it improves clarity.
+    ✦ Avoid jargon unless clearly defined.
+    ✦ Tone: Calm, welcoming, clear.
+    ✦ Character count: 240–280 characters.
+
+    Teach with humility and precision.
+  context: []
+
+morpheus_tweet_task_dreamer:
+  description: Generate an inspirational tweet that speaks to the imaginative and aspirational aspects of Web3.
+  expected_output: A poetic or visionary tweet that motivates or stirs curiosity.
+  agent: morpheus
+  prompt: |
+    Compose a tweet in a visionary, poetic tone. Speak to the dreamers, rebels, and creators in the Web3 space.
+
+    ✦ Do not use hashtags.
+    ✦ Use one emoji max, only if it adds emotional resonance.
+    ✦ Tone: Evocative, metaphorical, mysterious.
+    ✦ Character count: 240–280 characters.
+
+    Let it read like a fragment from a future we haven’t reached yet.
+  context: []
+
+morpheus_tweet_task_provocateur:
+  description: Generate a tweet that challenges conventional thinking in the crypto/blockchain space.
+  expected_output: A bold, thoughtful tweet that provokes reflection or debate.
+  agent: morpheus
+  prompt: |
+    Write a tweet that challenges assumptions in blockchain, AI, or governance.
+
+    ✦ Do not use hashtags.
+    ✦ Use one emoji max — only if it sharpens the tone.
+    ✦ Tone: Bold, thoughtful, contrarian.
+    ✦ Character count: 240–280 characters.
+
+    Ask a question, drop a truth, or ignite a conversation — not a flame war.
+  context: []
+
+tweet_cleanup_task:
+  description: Remove all hashtags from the tweet without changing tone or meaning.
+  expected_output: The same tweet, but with all hashtags removed. No other edits.
+  agent: hashtag_remover
+  prompt: |
+    Your only job is to remove all hashtags from the tweet below.
+
+    ❗ Do not change any other text, tone, or meaning.
+    ❗ Do not add or reword anything.
+    ❗ Always return a result — even if there are no hashtags.
+
+    Original Tweet:
+    {{topic}}
+
+    Cleaned Tweet:
+  context: []
 
 # ───────────────────────────────────────────────
 # 🗳️ Web3, Governance, and Onboarding

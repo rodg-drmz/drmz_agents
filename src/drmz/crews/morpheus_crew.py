@@ -1,122 +1,133 @@
-import os
-from typing import List
 from crewai import Agent, Crew, Task, Process
-from crewai.project import CrewBase, agent, crew, task
-from crewai.agents.agent_builder.base_agent import BaseAgent
 from drmz.config_loader import load_agents, load_tasks
 
-@CrewBase
 class MorpheusCrew:
-    """Handles conversational, introductory, and poetic wrap-up tasks for Morpheus"""
+    """Handles conversational, introductory, wrap-up, and compilation tasks for Morpheus"""
 
-    agents: dict
-    tasks: dict
-
-    def __init__(self, agents, tasks):
-        self.agents = agents
-        self.tasks = tasks
+    def __init__(self, agent_configs=None, task_configs=None):
+        self.agent_configs = load_agents() if agent_configs is None else agent_configs
+        self.task_configs = load_tasks() if task_configs is None else task_configs
+        self._built_tasks = {}
 
     # ────────────────────────
-    # Agents
+    # Agent Loading
     # ────────────────────────
-    @agent
-    def morpheus(self) -> Agent:
-        return Agent(config=self.agents["morpheus"])
-
-    @agent
-    def researcher(self) -> Agent:
-        if "researcher" in self.agents:
-            return Agent(config=self.agents["researcher"])
-        else:
-            fallback = self.agents["morpheus"].copy()
+    def get_agent(self, name: str) -> Agent:
+        if name in self.agent_configs:
+            return Agent(config=self.agent_configs[name])
+        elif name == "researcher":
+            fallback = self.agent_configs["morpheus"].copy()
             fallback["role"] = "Research Assistant"
             return Agent(config=fallback)
+        else:
+            raise ValueError(f"Agent '{name}' not found in configuration.")
 
     # ────────────────────────
-    # Tasks (Curriculum Flow)
+    # Task Builder
     # ────────────────────────
-    @task
-    def morpheus_intro_task(self) -> Task:
-        return Task(config=self.tasks["morpheus_intro_task"])
+    def get_task(self, name: str) -> Task:
+        if name in self._built_tasks:
+            return self._built_tasks[name]
 
-    @task
-    def morpheus_wrapup_task(self) -> Task:
-        return Task(config=self.tasks["morpheus_wrapup_task"])
+        if name not in self.task_configs:
+            raise KeyError(f"Task '{name}' not found in task configs.")
+
+        raw = self.task_configs[name].copy()
+        agent_name = raw.pop("agent")
+        context_names = raw.pop("context", [])
+
+        agent_obj = self.get_agent(agent_name)
+
+        context_tasks = []
+        for ctx in context_names:
+            if ctx not in self.task_configs:
+                print(f"⚠️ Context task '{ctx}' not found. Skipping.")
+                continue
+            context_tasks.append(self.get_task(ctx))
+
+        task = Task(
+            description=raw["description"],
+            expected_output=raw["expected_output"],
+            agent=agent_obj,
+            context=context_tasks
+        )
+        self._built_tasks[name] = task
+        return task
 
     # ────────────────────────
-    # Tasks (Chat Interaction)
+    # Dynamic Chat Task
     # ────────────────────────
-    @task
-    def morpheus_chat_task(self) -> Task:
-        task_config = {
-            "description": """
+    def morpheus_chat_task(self, inputs: dict) -> Task:
+        message = inputs.get('message', '')
+        history = inputs.get('history', [])
+        formatted_history = "\n".join(
+            f"{entry['role'].upper()}: {entry['content']}"
+            for entry in history if 'role' in entry and 'content' in entry
+        )
+
+        return Task(
+            description=f"""
             You are Morpheus, Lord of Dreams and philosophical guide to the digital realm.
-            Engage with the human in meaningful conversation about their message: "{message}"
+            Engage with the human in meaningful conversation about their message: \"{message}\"
 
             Consider the full conversation history for context:
-            {conversation_history}
+            {formatted_history}
 
             Respond with wisdom, metaphor, and insight. Draw connections between the 
             digital world and deeper philosophical truths. Be poetic yet clear, profound 
             yet accessible.
-
-            Remember that you are not just answering questions, but guiding the human 
-            on a journey of discovery and understanding.
             """,
-            "expected_output": "A thoughtful, insightful response that engages with the human's message",
-            "agent": "morpheus"
-        }
-        return Task(
-            config=task_config,
-            context=self.get_context()
+            expected_output="A thoughtful, insightful response that engages with the human's message.",
+            agent=self.get_agent("morpheus")
         )
 
-    def get_context(self):
-        try:
-            inputs = getattr(self, 'inputs', {}) or {}
-            message = inputs.get('message', '')
-            history = inputs.get('history', [])
-            formatted_history = ""
-            if history:
-                for entry in history:
-                    role = entry.get('role', '')
-                    content = entry.get('content', '')
-                    if role and content:
-                        formatted_history += f"{role.upper()}: {content}\n"
-            return {
-                "message": message,
-                "conversation_history": formatted_history
-            }
-        except Exception as e:
-            print(f"Error getting context: {str(e)}")
-            return {"message": "", "conversation_history": ""}
+    # ────────────────────────
+    # Crews
+    # ────────────────────────
+    def tweet_crew(self, task_name="morpheus_tweet_task") -> Crew:
+        return Crew(
+            agents=[self.get_agent("morpheus")],
+            tasks=[self.get_task(task_name)],
+            process=Process.sequential,
+            verbose=True
+        )
 
-    # ────────────────────────
-    # Crew Methods
-    # ────────────────────────
-    @crew
     def lesson_intro_crew(self) -> Crew:
         return Crew(
-            agents=[self.morpheus()],
-            tasks=[self.morpheus_intro_task()],
+            agents=[self.get_agent("morpheus")],
+            tasks=[self.get_task("morpheus_intro_task")],
             process=Process.sequential,
-            verbose=True,
+            verbose=True
         )
 
-    @crew
     def wrapup_crew(self) -> Crew:
         return Crew(
-            agents=[self.morpheus()],
-            tasks=[self.morpheus_wrapup_task()],
+            agents=[self.get_agent("morpheus")],
+            tasks=[self.get_task("morpheus_wrapup_task")],
             process=Process.sequential,
-            verbose=True,
+            verbose=True
         )
 
-    @crew
-    def chat_crew(self) -> Crew:
+    def compile_lesson_crew(self) -> Crew:
         return Crew(
-            agents=[self.morpheus()],
-            tasks=[self.morpheus_chat_task()],
+            agents=[self.get_agent("morpheus")],
+            tasks=[self.get_task("morpheus_compile_task")],
             process=Process.sequential,
-            verbose=True,
+            verbose=True
+        )
+
+    def chat_crew(self, inputs: dict) -> Crew:
+        return Crew(
+            agents=[self.get_agent("morpheus")],
+            tasks=[self.morpheus_chat_task(inputs)],
+            process=Process.sequential,
+            verbose=True
+        )
+        
+    def get_editor_crew(self) -> Crew:
+        return Crew(
+            agents=[self.get_agent("hashtag_remover")],
+            tasks=[self.get_task("tweet_cleanup_task")],
+            process=Process.sequential,
+            verbose=False
         )
