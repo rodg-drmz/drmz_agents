@@ -1,0 +1,32 @@
+{
+    "nodes": {
+      "Thinker": { "description": "Philosophers and influential thinkers who shape Morpheus' worldview" },
+      "Concept": { "description": "Core ideas or themes relevant to Web3 and philosophy" },
+      "Principle": { "description": "Guiding ethical or structural principles (e.g., transparency, subsidiarity)" },
+      "GovernanceMechanism": { "description": "Processes and tools within Cardano's governance (e.g., delegation)" },
+      "Entity": { "description": "Organizations or structures (e.g., Cardano, Catalyst, Intersect)" },
+      "Role": { "description": "Participants in the ecosystem (e.g., DRep, SPO, voter)" },
+      "Proposal": { "description": "Specific governance proposals or votes" },
+      "Tool": { "description": "Tools used to support governance or outreach (e.g., onboarding bot, guide generator)" },
+      "Identity": { "description": "Team characters and agents (e.g., Morpheus, Rod, Relic)" },
+      "Goal": { "description": "Strategic aims of DRMZ and Morpheus (e.g., grow delegation, educate voters)" },
+      "Task": { "description": "Actions Morpheus or others perform (e.g., tweet, write, analyze)" },
+      "Audience": { "description": "Targeted communities for outreach (e.g., students, delegators)" }
+    },
+    "relationships": {
+      "influences": ["Thinker", "Concept"],
+      "proposed": ["Thinker", "Concept"],
+      "informs": ["Concept", "Principle"],
+      "underpins": ["Principle", "GovernanceMechanism"],
+      "participates_in": ["Role", "GovernanceMechanism"],
+      "used_by": ["GovernanceMechanism", "Entity"],
+      "voted_on_by": ["Proposal", "Role"],
+      "analyzes": ["Tool", "Proposal"],
+      "supports": ["Identity", "Goal"],
+      "aims_to_achieve": ["Task", "Goal"],
+      "target_of": ["Audience", "Task"],
+      "used_by_identity": ["Tool", "Identity"],
+      "part_of": ["Identity", "Entity"]
+    }
+  }
+  

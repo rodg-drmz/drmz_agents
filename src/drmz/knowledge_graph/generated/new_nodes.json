@@ -1,0 +1,52 @@
+[
+  {
+    "id": "cardano",
+    "type": "Blockchain",
+    "name": "Cardano"
+  },
+  {
+    "id": "ouroboros",
+    "type": "Protocol",
+    "name": "Ouroboros"
+  },
+  {
+    "id": "staking",
+    "type": "Mechanism",
+    "name": "Staking"
+  },
+  {
+    "id": "drmz",
+    "type": "Project",
+    "name": "DRMZ"
+  },
+  {
+    "id": "decentralized_governance",
+    "type": "Concept",
+    "name": "Decentralized Governance"
+  },
+  {
+    "id": "dapp",
+    "type": "Application",
+    "name": "Decentralized Application"
+  },
+  {
+    "id": "smart_contracts",
+    "type": "Component",
+    "name": "Smart Contracts"
+  },
+  {
+    "id": "identity",
+    "type": "Concept",
+    "name": "Digital Identity"
+  },
+  {
+    "id": "ai",
+    "type": "Concept",
+    "name": "Artificial Intelligence"
+  },
+  {
+    "id": "ethics",
+    "type": "Concept",
+    "name": "Ethical Use"
+  }
+]

@@ -17,8 +17,8 @@ from crewai import Agent, Task, Crew, Process
 from crewai.knowledge.source.text_file_knowledge_source import TextFileKnowledgeSource
 from crewai_tools import SerperDevTool
 
-# Optional future imports
-# from crewai.knowledge.source.pdf_knowledge_source import PDFKnowledgeSource
+# === Onboarding trigger check ===
+ONBOARDING_TRIGGER = "drmz initiate"
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Morpheus Chat Interface")
@@ -31,12 +31,8 @@ def create_morpheus_agent():
     tools = [SerperDevTool()]
     knowledge_sources = []
 
-    # ⬇ Load .txt files from the new src/drmz/knowledge/ folder
     knowledge_dir = os.path.join(current_dir, 'knowledge')
-
-    if not os.path.exists(knowledge_dir):
-        print(f"⚠️ Knowledge directory not found: {knowledge_dir}")
-    else:
+    if os.path.exists(knowledge_dir):
         for file_name in os.listdir(knowledge_dir):
             if file_name.endswith(".txt"):
                 full_path = os.path.join(knowledge_dir, file_name)
@@ -49,6 +45,8 @@ def create_morpheus_agent():
                     print(f"✅ Loaded knowledge source: {file_name}")
                 except Exception as e:
                     print(f"⚠️ Skipped {file_name}: {str(e)}")
+    else:
+        print(f"⚠️ Knowledge directory not found: {knowledge_dir}")
 
     return Agent(
         role="Lord of Dreams • Philosopher of the Digital Realm",
@@ -56,7 +54,7 @@ def create_morpheus_agent():
         backstory="""
 You are Morpheus, Lord of Dreams, brought to life by DRMZ—a visionary stake pool on the Cardano blockchain dedicated to decentralization, education, and poetic insight in the digital age.
 
-You are a Socratic guide fluent in both timeless wisdom and Web3 technology. You demystify blockchain concepts like Ouroboros, staking, governance, and NFTs, blending clear explanation with moments of inspired metaphor. 
+You are a Socratic guide fluent in both timeless wisdom and Web3 technology. You demystify blockchain concepts like Ouroboros, staking, governance, and NFTs, blending clear explanation with moments of inspired metaphor.
 You adapt to the user's tone and needs: direct and insightful when teaching; philosophical and thoughtful when reflecting; and always approachable.
 
 Your knowledge includes:
@@ -66,7 +64,7 @@ Your knowledge includes:
 - DRMZ’s role as an educational stake pool and community hub
 - Cardano NFTs, staking, DeFi, and governance
 
-Morpheus doesn’t lecture—he empowers. You challenge users to think, but meet them where they are. You are a calm, friendly digital philosopher—not a prophet. Use metaphor only when it helps illuminate. Favor clarity and action."
+Morpheus doesn’t lecture—he empowers. You challenge users to think, but meet them where they are. You are a calm, friendly digital philosopher—not a prophet. Use metaphor only when it helps illuminate. Favor clarity and action.
         """,
         tools=tools,
         verbose=True,
@@ -77,22 +75,22 @@ Morpheus doesn’t lecture—he empowers. You challenge users to think, but meet
 def create_chat_task(message, conversation_history):
     return Task(
         description=f"""
-        You are Morpheus, Lord of Dreams and guide to the digital realm.
-        Engage with the human based on their message: "{message}"
+You are Morpheus, Lord of Dreams and guide to the digital realm.
+Engage with the human based on their message: "{message}"
 
-        Consider the conversation history:
-        {conversation_history}
+Consider the conversation history:
+{conversation_history}
 
-        Your response should be friendly, intelligent, and insightful, but primarily factual and informative.
-        Prioritize factual accuracy, clarity, practical examples, and engaging explanations. Use metaphors and poetic 
-        language **only lightly** when it helps clarify complex ideas—not as your main style. Speak conversationally, 
-        as a wise and approachable guide would. 
+Your response should be friendly, intelligent, and insightful, but primarily factual and informative.
+Prioritize factual accuracy, clarity, practical examples, and engaging explanations. Use metaphors and poetic 
+language **only lightly** when it helps clarify complex ideas—not as your main style. Speak conversationally, 
+as a wise and approachable guide would. 
 
-        VERY IMPORTANT:
-        - If you are unsure of the answer, a topic, term, or project name, use your available tools (such as web search) to verify before responding.
-        - If the human asks about DRMZ, Web3, Cardano, or related topics, provide accurate, clear, and encouraging information.
-        - Help the human feel empowered to learn and participate.
-        - NEVER fabricate detailed explanations for things you are uncertain about. Always prefer truth over eloquence.
+VERY IMPORTANT:
+- If you are unsure of the answer, a topic, term, or project name, use your available tools (such as web search) to verify before responding.
+- If the human asks about DRMZ, Web3, Cardano, or related topics, provide accurate, clear, and encouraging information.
+- Help the human feel empowered to learn and participate.
+- NEVER fabricate detailed explanations for things you are uncertain about. Always prefer truth over eloquence.
         """,
         expected_output="A clear, thoughtful, trustworthy, and well-informed, factual, trustworthy response, blending technical accuracy with light philosophical insight.",
         agent=create_morpheus_agent()
@@ -110,35 +108,51 @@ def format_conversation_history(history):
 def run():
     args = parse_args()
     try:
-        message = args.message
-        history = json.loads(args.history)
+        message = args.message.strip()
+        try:
+            history = json.loads(args.history)
+        except json.JSONDecodeError:
+            print("⚠️ Failed to parse history, defaulting to empty list.")
+            history = []
 
-        print(f"🚀 Processing message: '{message}' with {len(history)} past exchanges")
-        conversation_history = format_conversation_history(history)
+        print(f"🧠 Message received: '{message}'")
+        print(f"📜 History contains {len(history)} exchanges")
 
-        chat_task = create_chat_task(message, conversation_history)
-        morpheus = create_morpheus_agent()
+        if message.lower().startswith(ONBOARDING_TRIGGER):
+            print("🧭 Onboarding flow initiated")
+            print("\n=== MORPHEUS FINAL OUTPUT ===")
+            print("🧭 Onboarding flow triggered. Please switch to onboarding interface.")
+            return "🧭 Onboarding flow triggered. Please switch to onboarding interface."
 
+        formatted_history = format_conversation_history(history)
+        task = create_chat_task(message, formatted_history)
+        agent = create_morpheus_agent()
+
+        print("⚙️ Initializing crew...")
         crew = Crew(
-            agents=[morpheus],
-            tasks=[chat_task],
+            agents=[agent],
+            tasks=[task],
             process=Process.sequential,
             verbose=True
         )
 
+        print("🚀 Launching crew.kickoff()...")
         result = crew.kickoff()
+        print("✅ Crew finished processing")
 
-        print("\n\n=== MORPHEUS FINAL OUTPUT ===\n")
-        print(result.raw)
-        return result.raw
+        output = result.raw if hasattr(result, "raw") else str(result)
+        print("\n=== MORPHEUS FINAL OUTPUT ===")
+        print(output)
+        return output
 
     except Exception as e:
         import traceback
-        print(f"❌ Error: {str(e)}", file=sys.stderr)
-        print(traceback.format_exc(), file=sys.stderr)
-        print("\n\n=== MORPHEUS FINAL OUTPUT ===\n")
-        print("The dream-weaving encountered a disturbance. Let us try again soon.")
-        return "The dream-weaving encountered a disturbance. Let us try again soon."
+        print(f"\n❌ Morpheus encountered an error: {e}")
+        print(traceback.format_exc())
+        print("\n=== MORPHEUS FINAL OUTPUT ===")
+        print("The dream failed to form. I am silent for now...")
+        return "The dream failed to form. I am silent for now..."
 
 if __name__ == "__main__":
-    run()
+    final_output = run()
+    print(final_output)

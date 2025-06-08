@@ -1,0 +1,42 @@
+[
+  {
+    "source": "ouroboros",
+    "target": "cardano",
+    "type": "powers"
+  },
+  {
+    "source": "staking",
+    "target": "ouroboros",
+    "type": "enables"
+  },
+  {
+    "source": "drmz",
+    "target": "staking",
+    "type": "utilizes"
+  },
+  {
+    "source": "drmz",
+    "target": "decentralized_governance",
+    "type": "employs"
+  },
+  {
+    "source": "dapp",
+    "target": "cardano",
+    "type": "operates_on"
+  },
+  {
+    "source": "smart_contracts",
+    "target": "dapp",
+    "type": "enhances"
+  },
+  {
+    "source": "identity",
+    "target": "decentralized_governance",
+    "type": "integrates_with"
+  },
+  {
+    "source": "ai",
+    "target": "ethics",
+    "type": "requires_consideration_of"
+  }
+]

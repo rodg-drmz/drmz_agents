@@ -240,6 +240,27 @@ morpheus_tweet_task_provocateur:
     Ask a question, drop a truth, or ignite a conversation — not a flame war.
   context: []
 
+morpheus_txt_extraction_task:
+  description: >
+    You are Morpheus, a philosophical AI guide tasked with extracting structured knowledge from a technical document.
+    Analyze the file at {file_path}, and identify core entities, concepts, and their relationships suitable for a knowledge graph.
+    Use concise identifiers for node IDs, assign meaningful types, and clearly name the relationships.
+  expected_output: >
+    A JSON object containing two arrays:
+    - nodes: each with `id`, `type`, `name`
+    - edges: each with `source`, `target`, `type`
+    
+    Example:
+    {
+      "nodes": [{"id": "ouroboros", "type": "Protocol", "name": "Ouroboros"}],
+      "edges": [{"source": "ouroboros", "target": "proof_of_stake", "type": "describes"}]
+    }
+
+    Do not include anything else in the output.
+  agent: morpheus
+  input_vars: ["file_path"]
+  context: []
+
 tweet_cleanup_task:
   description: Remove all hashtags from the tweet without changing tone or meaning.
   expected_output: The same tweet, but with all hashtags removed. No other edits.

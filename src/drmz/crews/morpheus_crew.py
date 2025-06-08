@@ -123,11 +123,39 @@ class MorpheusCrew:
             process=Process.sequential,
             verbose=True
         )
-        
+
     def get_editor_crew(self) -> Crew:
         return Crew(
             agents=[self.get_agent("hashtag_remover")],
             tasks=[self.get_task("tweet_cleanup_task")],
             process=Process.sequential,
             verbose=False
+        )
+
+    def txt_extraction_crew(self, file_path: str) -> Crew:
+        """Runs Morpheus on a given .txt file to extract knowledge graph data"""
+        raw_task = self.task_configs["morpheus_txt_extraction_task"].copy()
+        agent = self.get_agent(raw_task.pop("agent"))
+        context_names = raw_task.pop("context", [])
+        input_vars = {"file_path": file_path}
+
+        context_tasks = []
+        for ctx in context_names:
+            if ctx not in self.task_configs:
+                continue
+            context_tasks.append(self.get_task(ctx))
+
+        task = Task(
+            description=raw_task["description"],
+            expected_output=raw_task["expected_output"],
+            agent=agent,
+            context=context_tasks,
+            input_variables=input_vars
+        )
+
+        return Crew(
+            agents=[agent],
+            tasks=[task],
+            process=Process.sequential,
+            verbose=True
         )
