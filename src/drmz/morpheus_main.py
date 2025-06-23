@@ -105,6 +105,32 @@ def format_conversation_history(history):
             formatted += f"{role}: {content}\n"
     return formatted
 
+def run_morpheus_chat(message: str, history: list[dict]) -> str:
+    try:
+        print(f"🧠 [API] Message received: '{message}'")
+        print(f"📜 [API] History contains {len(history)} exchanges")
+
+        if message.lower().startswith(ONBOARDING_TRIGGER):
+            return "🧭 Onboarding flow triggered. Please switch to onboarding interface."
+
+        formatted_history = format_conversation_history(history)
+        task = create_chat_task(message, formatted_history)
+        agent = create_morpheus_agent()
+
+        crew = Crew(
+            agents=[agent],
+            tasks=[task],
+            process=Process.sequential,
+            verbose=True
+        )
+
+        result = crew.kickoff()
+        return result.raw if hasattr(result, "raw") else str(result)
+
+    except Exception as e:
+        print(f"❌ Morpheus API error: {e}")
+        return "The dream failed to form. I am silent for now..."
+
 def run():
     args = parse_args()
     try:
@@ -118,29 +144,8 @@ def run():
         print(f"🧠 Message received: '{message}'")
         print(f"📜 History contains {len(history)} exchanges")
 
-        if message.lower().startswith(ONBOARDING_TRIGGER):
-            print("🧭 Onboarding flow initiated")
-            print("\n=== MORPHEUS FINAL OUTPUT ===")
-            print("🧭 Onboarding flow triggered. Please switch to onboarding interface.")
-            return "🧭 Onboarding flow triggered. Please switch to onboarding interface."
+        output = run_morpheus_chat(message, history)
 
-        formatted_history = format_conversation_history(history)
-        task = create_chat_task(message, formatted_history)
-        agent = create_morpheus_agent()
-
-        print("⚙️ Initializing crew...")
-        crew = Crew(
-            agents=[agent],
-            tasks=[task],
-            process=Process.sequential,
-            verbose=True
-        )
-
-        print("🚀 Launching crew.kickoff()...")
-        result = crew.kickoff()
-        print("✅ Crew finished processing")
-
-        output = result.raw if hasattr(result, "raw") else str(result)
         print("\n=== MORPHEUS FINAL OUTPUT ===")
         print(output)
         return output
@@ -154,5 +159,4 @@ def run():
         return "The dream failed to form. I am silent for now..."
 
 if __name__ == "__main__":
-    final_output = run()
-    print(final_output)
+    run()  # already prints internally
