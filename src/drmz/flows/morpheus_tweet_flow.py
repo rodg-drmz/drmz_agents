@@ -10,7 +10,7 @@ sys.path.append(str(Path(__file__).resolve().parents[2] / "src"))
 from crewai.flow.flow import Flow, start, listen
 from drmz.tools.fixed_scrapegraph_tool import FixedScrapegraphTool
 from drmz.crews.morpheus_crew import MorpheusCrew
-from drmz.config_loader import load_agents, load_tasks
+from src.drmz.crews.config_loader import load_agents, load_tasks
 from drmz.tools.fixed_serper_tool import FixedSerperTool  # 👈 Replaces default SerperDevTool
 
 # ───────────────────────────────────────────────────────────────

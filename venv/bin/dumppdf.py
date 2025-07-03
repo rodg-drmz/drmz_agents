@@ -1,4 +1,4 @@
-#!/Users/rodg/Documents/Projects/drmz_agents/venv/bin/python3.11
+#!/Users/rodg/Documents/Projects/drmz_agents/venv/bin/python3.12
 """Extract pdf structure in XML format"""
 
 import logging

@@ -1,0 +1,42 @@
+AI Policy for SP23 English Courses
+The following policy was developed specifically for my SP23 English courses. 
+It takes into account what I intend to do with AI (ChatGPT and Midjourney) in my classes.
+
+This is not a mandatory policy for anyone else’s syllabi, but I do suggest that everyone 
+include some language in their own that acknowledges these tools and clarifies how you 
+intend to use them (or not use them):
+
+AI Policy – Artificial Intelligence (AI)
+Artificial Intelligence (AI) is one of the emerging Web3 tools that promises to shake up 
+both the academic and professional landscape. Regardless of how you feel about it, learning 
+to use it well is an emerging and valuable skill.
+
+That being said, you can expect to use AI in my classes (ChatGPT and Midjourney AI, at a minimum), 
+and I will provide tutorials in Canvas about how to use them. I’m also happy to help with these 
+tools during office hours.
+
+Please be aware:
+
+If you provide minimum prompts, you will get low-quality results.
+You will need to refine your prompts in order to achieve better outcomes. This will take work.
+
+Don’t trust anything AI (ChatGPT) says.
+Assume facts it gives you are wrong unless you already know the answer or can check it with 
+another source. You will be responsible for any errors or omissions provided by the tool. 
+It works best for topics you understand.
+
+Any use of AI tools must be acknowledged.
+Please be sure to include a paragraph at the end of any assignment that uses AI explaining:
+
+What you used it for
+
+The specific prompts you used to get your results
+
+Failure to do so is a violation of academic honesty policies.
+
+— adapted from the work of Ethan Mollick (Wharton School)
+
+Useful Articles for Working with AI
+NPR – ChatGPT, AI, and Education
+
+The Practical Guide to Using AI to Work Smarter

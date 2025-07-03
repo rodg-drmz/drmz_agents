@@ -7,46 +7,76 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
-# Make sure Python can find the 'drmz' package inside 'src'
+# ─────────────────────────────
+# Project path configuration
+# ─────────────────────────────
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
 src_path = os.path.join(project_root, 'src')
 sys.path.insert(0, src_path)
 
+# ─────────────────────────────
+# Imports
+# ─────────────────────────────
 from crewai import Agent, Task, Crew, Process
-from crewai.knowledge.source.text_file_knowledge_source import TextFileKnowledgeSource
 from crewai_tools import SerperDevTool
 
-# === Onboarding trigger check ===
+# ────── Supported Knowledge Source Types ──────
+from crewai.knowledge.source.text_file_knowledge_source import TextFileKnowledgeSource
+from crewai.knowledge.source.pdf_knowledge_source import PDFKnowledgeSource
+from crewai.knowledge.source.csv_knowledge_source import CSVKnowledgeSource
+from crewai.knowledge.source.json_knowledge_source import JSONKnowledgeSource
+from crewai.knowledge.source.excel_knowledge_source import ExcelKnowledgeSource
+
+# ─────────────────────────────
+# Onboarding trigger phrase
+# ─────────────────────────────
 ONBOARDING_TRIGGER = "drmz initiate"
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="Morpheus Chat Interface")
-    parser.add_argument("--message", type=str, default="", help="User message")
-    parser.add_argument("--history", type=str, default="[]", help="Conversation history as JSON string")
-    parser.add_argument("--mode", type=str, default="chat", help="Execution mode (always chat)")
-    return parser.parse_args()
-
-def create_morpheus_agent():
-    tools = [SerperDevTool()]
+# ─────────────────────────────
+# Universal loader for knowledge sources
+# ─────────────────────────────
+def load_knowledge_sources(knowledge_dir: str) -> list:
+    """Loads all supported knowledge files in the given directory."""
     knowledge_sources = []
 
-    knowledge_dir = os.path.join(current_dir, 'knowledge')
-    if os.path.exists(knowledge_dir):
-        for file_name in os.listdir(knowledge_dir):
+    if not os.path.exists(knowledge_dir):
+        # print(f"⚠️ Knowledge directory not found: {knowledge_dir}")
+        return knowledge_sources
+
+    for file_name in os.listdir(knowledge_dir):
+        full_path = Path(knowledge_dir, file_name).resolve()
+
+        try:
             if file_name.endswith(".txt"):
-                full_path = os.path.join(knowledge_dir, file_name)
-                try:
-                    source = TextFileKnowledgeSource(
-                        file_path=Path(full_path).resolve(),
-                        description=f"Knowledge from {file_name}"
-                    )
-                    knowledge_sources.append(source)
-                    print(f"✅ Loaded knowledge source: {file_name}")
-                except Exception as e:
-                    print(f"⚠️ Skipped {file_name}: {str(e)}")
-    else:
-        print(f"⚠️ Knowledge directory not found: {knowledge_dir}")
+                source = TextFileKnowledgeSource(file_path=full_path)
+            elif file_name.endswith(".pdf"):
+                source = PDFKnowledgeSource(file_paths=[str(full_path)])
+            elif file_name.endswith(".csv"):
+                source = CSVKnowledgeSource(file_paths=[str(full_path)])
+            elif file_name.endswith(".json"):
+                source = JSONKnowledgeSource(file_paths=[str(full_path)])
+            elif file_name.endswith(".xlsx"):
+                source = ExcelKnowledgeSource(file_paths=[str(full_path)])
+            else:
+                print(f"🔍 Skipped unsupported file: {file_name}")
+                continue
+
+            knowledge_sources.append(source)
+            print(f"✅ Loaded knowledge source: {file_name}")
+
+        except Exception as e:
+            print(f"⚠️ Failed to load {file_name}: {str(e)}")
+
+    return knowledge_sources
+
+# ─────────────────────────────
+# Agent factory: Morpheus
+# ─────────────────────────────
+def create_morpheus_agent():
+    tools = []
+    knowledge_dir = os.path.join(current_dir, 'knowledge')
+    knowledge_sources = load_knowledge_sources(knowledge_dir)
 
     return Agent(
         role="Lord of Dreams • Philosopher of the Digital Realm",
@@ -72,30 +102,43 @@ Morpheus doesn’t lecture—he empowers. You challenge users to think, but meet
         knowledge_sources=knowledge_sources
     )
 
+# ─────────────────────────────
+# Chat Task
+# ─────────────────────────────
 def create_chat_task(message, conversation_history):
     return Task(
         description=f"""
-You are Morpheus, Lord of Dreams and guide to the digital realm.
+You are Morpheus, Lord of Dreams and philosophical guide to the digital realm.
 Engage with the human based on their message: "{message}"
 
 Consider the conversation history:
 {conversation_history}
 
-Your response should be friendly, intelligent, and insightful, but primarily factual and informative.
-Prioritize factual accuracy, clarity, practical examples, and engaging explanations. Use metaphors and poetic 
-language **only lightly** when it helps clarify complex ideas—not as your main style. Speak conversationally, 
-as a wise and approachable guide would. 
+📚 You have access to internal documents, including whitepapers, notes, and technical references.
+🧠 Your response must be grounded in these documents. Before responding, search and review the provided knowledge sources.
+
+Your response should be friendly, intelligent, and insightful—but primarily factual and informative.
+Prioritize accuracy, clarity, practical examples, and accessible explanations. Use metaphor and poetic language
+**only lightly** when it helps clarify complex ideas—not as your main style. Speak conversationally, as a wise
+and grounded guide would.
 
 VERY IMPORTANT:
-- If you are unsure of the answer, a topic, term, or project name, use your available tools (such as web search) to verify before responding.
-- If the human asks about DRMZ, Web3, Cardano, or related topics, provide accurate, clear, and encouraging information.
-- Help the human feel empowered to learn and participate.
-- NEVER fabricate detailed explanations for things you are uncertain about. Always prefer truth over eloquence.
+- Your answer must be grounded in the documents provided in your knowledge sources.
+  ⤷ Always consult these documents before answering from general knowledge.
+  ⤷ Reference or cite them when relevant (e.g., “According to the Midnight whitepaper…”).
+- If you are unsure of a topic, term, or project name, use your available tools (e.g., web search) to verify before responding.
+- If the human asks about DRMZ, Web3, Cardano, or related topics, respond with clarity and encouragement.
+- Help the human feel empowered to learn and participate meaningfully.
+- NEVER fabricate technical explanations. Always favor grounded truth over eloquence.
+
         """,
-        expected_output="A clear, thoughtful, trustworthy, and well-informed, factual, trustworthy response, blending technical accuracy with light philosophical insight.",
+        expected_output="A clear, trustworthy, document-grounded response that blends technical accuracy with light philosophical insight, referencing knowledge files where appropriate.",
         agent=create_morpheus_agent()
     )
 
+# ─────────────────────────────
+# Format prior conversation history
+# ─────────────────────────────
 def format_conversation_history(history):
     formatted = ""
     for entry in history:
@@ -105,6 +148,9 @@ def format_conversation_history(history):
             formatted += f"{role}: {content}\n"
     return formatted
 
+# ─────────────────────────────
+# Execute Morpheus chat with CrewAI
+# ─────────────────────────────
 def run_morpheus_chat(message: str, history: list[dict]) -> str:
     try:
         print(f"🧠 [API] Message received: '{message}'")
@@ -131,6 +177,19 @@ def run_morpheus_chat(message: str, history: list[dict]) -> str:
         print(f"❌ Morpheus API error: {e}")
         return "The dream failed to form. I am silent for now..."
 
+# ─────────────────────────────
+# Argument parser for CLI mode
+# ─────────────────────────────
+def parse_args():
+    parser = argparse.ArgumentParser(description="Morpheus Chat Interface")
+    parser.add_argument("--message", type=str, default="", help="User message")
+    parser.add_argument("--history", type=str, default="[]", help="Conversation history as JSON string")
+    parser.add_argument("--mode", type=str, default="chat", help="Execution mode (always chat)")
+    return parser.parse_args()
+
+# ─────────────────────────────
+# Entry point (CLI trigger)
+# ─────────────────────────────
 def run():
     args = parse_args()
     try:
@@ -159,4 +218,4 @@ def run():
         return "The dream failed to form. I am silent for now..."
 
 if __name__ == "__main__":
-    run()  # already prints internally
+    run()  # Already prints internally

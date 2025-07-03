@@ -1,0 +1,59 @@
+Miramar College AI Resolution
+Resolution Regarding the Use of Artificial Intelligence (AI) in Courses
+
+WHEREAS, Miramar College is committed to fostering academic excellence, innovation, 
+and equitable access to education for all students;
+
+WHEREAS, the Academic Senate of Miramar College represents the faculty and is dedicated 
+to upholding the integrity of the teaching and learning experience;
+
+WHEREAS, the integration of emerging technologies, including Artificial Intelligence (AI), 
+is transforming the landscape of education, offering both opportunities and challenges 
+for educators and students;
+
+WHEREAS, AI tools have the potential to support teaching methodologies, enhance learning experiences, 
+and expand research capabilities, when used responsibly and ethically;
+
+WHEREAS, Miramar College values the intellectual development, critical thinking, and creativity of its students, 
+and recognizes the importance of guiding students in the ethical use of technology;
+
+WHEREAS, the responsible use of AI is critical to preparing students for emerging forms of work 
+that increasingly require a fundamental understanding of AI and digital literacy skills, aligning 
+with Miramar College’s mission to equip students for success in a rapidly evolving workforce;
+
+WHEREAS, the use of AI in academic work raises important questions regarding academic integrity, 
+authorship, and proper attribution of AI-generated content;
+
+Now, therefore, be it
+
+Resolved,
+That the Miramar College Academic Senate endorses the following statements for faculty 
+consideration when incorporating AI tools into their syllabi:
+
+1. Prohibition of AI Tools
+In this course, students are not permitted to use AI tools for assignments, exams, 
+or other coursework submissions. The objective is to promote direct engagement with the 
+material and ensure the development of students’ critical thinking, problem-solving, and 
+writing skills. Violations, including plagiarism or submission of AI-generated content as 
+original work, will be treated as academic misconduct according to the college's academic 
+integrity policies.
+
+2. Permissive Use of AI Tools
+In this course, students are allowed to use AI tools to assist with certain aspects of their 
+coursework, such as research, drafting, and problem-solving. However, students must exercise critical 
+judgment when evaluating AI-generated content for accuracy and relevance. All submissions must include 
+a statement explaining the extent of AI assistance. Adherence to academic integrity policies is expected, 
+and AI-generated content must not be presented as original work without proper citation.
+
+3. Encouraged Use of AI Tools
+In this course, students are encouraged to explore the use of AI tools to enhance their learning 
+experience. These tools can be used for brainstorming, research, and deepening understanding of complex 
+concepts. Students must document the role AI played in their work and follow academic integrity guidelines, 
+including proper attribution of AI-generated content. This approach aims to foster critical engagement with 
+technology and innovation.
+
+Resolved,
+That the Miramar College Academic Senate encourages the administration to offer faculty professional 
+development and resources on the ethical and effective use of AI tools in education. Furthermore, it 
+calls for interdisciplinary collaboration on AI applications in teaching, learning, and research to 
+advance the college’s commitment to academic excellence.

@@ -1,5 +1,5 @@
 from crewai import Crew, Agent, Task
-from drmz.config_loader import load_agents, load_tasks
+from src.drmz.crews.config_loader import load_agents, load_tasks
 
 class ContentCrew:
     def __init__(self, agent_configs=None, task_configs=None):

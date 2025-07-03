@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 import json, os
-from typing import List, Dict
+from typing import List, Dict, Optional
 from pydantic import BaseModel, Field
 from crewai import LLM
 from crewai.flow.flow import Flow, listen, start
 
-# ✅ Load correct config from src/drmz/config
-from drmz.config_loader import load_agents, load_tasks
+from drmz.crews.config_loader import load_agents, load_tasks
 from drmz.crews.content_crew import ContentCrew
 
 # === Models ===
@@ -24,26 +23,36 @@ class GuideOutline(BaseModel):
 class GuideCreatorState(BaseModel):
     topic: str = ""
     audience_level: str = ""
-    guide_outline: GuideOutline | None = None
+    duration_weeks: Optional[int] = 4
+    guide_outline: Optional[GuideOutline] = None
     sections_content: Dict[str, str] = {}
 
 # === Flow ===
 class GuideCreatorFlow(Flow[GuideCreatorState]):
     """Flow to generate a detailed educational guide on any topic."""
 
+    def __init__(self):
+        super().__init__(flow_ui=False)
+
     @start()
     def get_user_input(self):
-        print("\n=== Create Your Comprehensive Guide ===\n")
-        self.state.topic = input("What topic would you like to create a guide for? ")
+        print("\n=== DRMZ Guide Builder ===\n")
+        self.state.topic = input("📘 Topic: ")
 
         while True:
-            audience = input("Who is your target audience? (beginner/intermediate/advanced) ").lower()
+            audience = input("🎯 Audience (beginner / intermediate / advanced): ").strip().lower()
             if audience in ["beginner", "intermediate", "advanced"]:
                 self.state.audience_level = audience
                 break
-            print("Please enter 'beginner', 'intermediate', or 'advanced'.")
+            print("❌ Please enter one of: beginner, intermediate, or advanced.")
 
-        print(f"\nCreating a guide on {self.state.topic} for {self.state.audience_level} audience...\n")
+        try:
+            weeks = input("🗓 Duration (weeks, default 4): ").strip()
+            self.state.duration_weeks = int(weeks) if weeks else 4
+        except ValueError:
+            print("⚠️ Invalid number, defaulting to 4 weeks.")
+            self.state.duration_weeks = 4
+
         return self.state
 
     @listen(get_user_input)
@@ -79,7 +88,6 @@ Include:
         print("Writing and compiling guide...\n")
         completed = []
 
-        # ✅ Load agent/task config and confirm they're valid
         agents = load_agents()
         tasks = load_tasks()
 
@@ -91,17 +99,12 @@ Include:
         for section in outline.sections:
             print(f"→ {section.title}")
 
-            context = (
-                "\n".join(f"## {t}\n\n{self.state.sections_content[t]}" for t in completed)
-                if completed else "No previous sections written yet."
-            )
-
             result = content_crew.crew().kickoff(inputs={
                 "topic": self.state.topic,
                 "audience_level": self.state.audience_level,
-                "duration_weeks": self.state.duration_weeks,  # ✅ add this line
-                "section_title": "Complete Educational Guide",
-                "section_description": self.state.outline_title,
+                "duration_weeks": self.state.duration_weeks,
+                "section_title": section.title,
+                "section_description": section.description,
                 "draft_content": ""
             })
 

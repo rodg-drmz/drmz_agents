@@ -3,7 +3,7 @@ import argparse
 from crewai import Crew, Process, Task, Agent
 from langchain_openai import ChatOpenAI
 
-from drmz.config_loader import load_agents, load_tasks
+from src.drmz.crews.config_loader import load_agents, load_tasks
 
 # === CLI: get filename ===
 parser = argparse.ArgumentParser(description="Translate an educational Markdown file into Spanish.")

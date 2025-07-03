@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from crewai import Agent, Task, Crew, Process
 from langchain_openai import ChatOpenAI
 
-from drmz.config_loader import load_agents, load_tasks  # ✅ use dynamic config loading
+from src.drmz.crews.config_loader import load_agents, load_tasks  # ✅ use dynamic config loading
 
 # Load environment variables
 load_dotenv()

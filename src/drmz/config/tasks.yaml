@@ -1,6 +1,96 @@
 # ───────────────────────────────────────────────
+# 🛠️ Task Configuration for DRMZ Dapp for Educators
+# ───────────────────────────────────────────────
+
+review_ai_policy_task:
+  description: >
+    Analyze the syllabus to determine whether it includes a clear AI policy.
+
+    If an AI policy is present:
+    - Identify and cite the relevant text.
+    - Assess its tone, clarity, and enforcement expectations.
+    - Classify it as either a Prohibition, Permissive, or Encouraged model based on alignment with the definitions below.
+
+    If no policy is found:
+    - Clearly acknowledge the absence of an AI policy in the syllabus.
+    - Then present the **full, verbatim language** of all three official Miramar College policy models (below), as a reference for the instructor:
+
+      1. **Prohibition of AI Tools**  
+         In this course, students are not permitted to use AI tools for assignments, exams, or other coursework submissions.  
+         The objective is to promote direct engagement with the material and ensure the development of students’ critical thinking,  
+         problem-solving, and writing skills. Violations, including plagiarism or submission of AI-generated content as original work,  
+         will be treated as academic misconduct according to the college's academic integrity policies.
+
+      2. **Permissive Use of AI Tools**  
+         In this course, students are allowed to use AI tools to assist with certain aspects of their coursework, such as research,  
+         drafting, and problem-solving. However, students must exercise critical judgment when evaluating AI-generated content for accuracy and relevance.  
+         All submissions must include a statement explaining the extent of AI assistance. Adherence to academic integrity policies is expected,  
+         and AI-generated content must not be presented as original work without proper citation.
+
+      3. **Encouraged Use of AI Tools**  
+         In this course, students are encouraged to explore the use of AI tools to enhance their learning experience. These tools can be used for brainstorming,  
+         research, and deepening understanding of complex concepts. Students must document the role AI played in their work and follow academic integrity guidelines,  
+         including proper attribution of AI-generated content. This approach aims to foster critical engagement with technology and innovation.
+
+    After reviewing the syllabus, provide:
+    - A summary of the three models' key use cases
+    - A recommendation for which model best fits the course context
+    - Practical suggestions for implementation and revision
+
+  expected_output: >
+    Return your response in three clearly labeled sections:
+
+    ## Policy Status  
+    - State whether the syllabus includes an AI policy.  
+    - If yes, quote it directly and classify it (Prohibition, Permissive, or Encouraged).  
+    - If not, note its absence and include the three official Miramar models (quoted exactly from the description).
+
+    ## Recommendations  
+    - Recommend which model (or hybrid) best fits the course under review.  
+    - Provide reasoning based on course content, discipline, and goals.  
+    - Summarize how each model could serve different instructional needs.
+
+    ## Implementation Notes and Suggestions  
+    - Offer 2–4 clear suggestions for revising or adding an AI policy.  
+    - Use language and examples that are practical for instructors.  
+    - If no policy is found, suggest where and how to insert one using the Miramar models as templates.
+
+    Use line breaks between sections and paragraphs to improve readability. Avoid overly rigid formatting or numbered lists unless helpful.
+
+  config: {}
+
+  agent: morpheus
+
+# ───────────────────────────────────────────────
 # 📘 Content Writing & Review (Content Crew)
 # ───────────────────────────────────────────────
+
+graph_ingestion_task:
+  description: >
+    Perform full ingestion of new knowledge sources in the `/knowledge` folder.
+
+    1. Search for `.pdf` and `.txt` files in `/knowledge`.
+    2. Convert any `.pdf` files to `.txt` format (preserving semantic meaning and structure).
+    3. Archive the original `.pdf` files after successful conversion.
+    4. For each `.txt` file, extract entities, concepts, and relationships suitable for a semantic knowledge graph.
+    5. Organize this output into two lists: `nodes` and `edges`, with clear types, labels, and relationships.
+    6. Validate the output against the knowledge graph schema.
+    7. Append new entries to `nodes.json` and `edges.json`, ensuring no duplication.
+    8. Export updated graph data to CSV in `/csv/nodes.csv` and `/csv/edges.csv`.
+
+  expected_output: >
+    {
+      "nodes": [...],
+      "edges": [...]
+    }
+
+    The system will save the updated graph as:
+    - nodes.json / edges.json
+    - csv/nodes.csv / csv/edges.csv
+
+    All processed PDFs will be archived in `/knowledge/archive/`. Text files will remain in `/knowledge/` for future reference.
+
+  agent: knowledge_extractor
 
 outline_task:
   description: >

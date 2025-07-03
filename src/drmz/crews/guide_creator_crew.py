@@ -2,15 +2,15 @@ from crewai import Agent, Crew, Task, Process
 from crewai.project import CrewBase, agent, crew, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from typing import List
-from drmz.config_loader import load_agents, load_tasks
+from src.drmz.crews.config_loader import load_agents, load_tasks
 import os
 
 # Dynamically resolve absolute paths for config files
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(current_dir, "../../.."))
 
-agents_path = os.path.join(project_root, "src", "drmz", "config", "content", "agents.yaml")
-tasks_path = os.path.join(project_root, "src", "drmz", "config", "content", "tasks.yaml")
+agents_path = os.path.join(project_root, "src", "drmz", "config", "agents.yaml")
+tasks_path = os.path.join(project_root, "src", "drmz", "config", "tasks.yaml")
 
 # Load agents and tasks from resolved paths
 all_agents = load_agents(path=agents_path)

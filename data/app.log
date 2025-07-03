@@ -1,0 +1,127 @@
+2025-07-01 08:53:41,082 INFO kodo - app server started at http://localhost:3370
+2025-07-01 08:53:41,082 INFO kodo - exec source path ./data/execution
+2025-07-01 08:53:41,082 DEBUG kodo - admin database at sqlite+aiosqlite:///./data/admin.db
+2025-07-01 08:53:41,082 DEBUG kodo - screen log level: INFO, file log level: DEBUG, uvicorn log level: WARNING
+2025-07-01 08:53:56,135 INFO kodo - GET / - 200 in 0.0031s (-)
+2025-07-01 08:53:56,141 INFO kodo - GET /static/beer.min.css - 200 in 0.0027s (-)
+2025-07-01 08:53:56,141 INFO kodo - GET /static/kodosumi.css - 200 in 0.0020s (-)
+2025-07-01 08:53:56,141 INFO kodo - GET /static/beer.min.js - 200 in 0.0019s (-)
+2025-07-01 08:53:56,141 INFO kodo - GET /static/material-dynamic-colors.min.js - 200 in 0.0020s (-)
+2025-07-01 08:53:56,152 INFO kodo - GET /static/material-symbols-outlined.woff2 - 200 in 0.0011s (-)
+2025-07-01 08:53:56,163 INFO kodo - GET /static/favicon.ico - 200 in 0.0011s (-)
+2025-07-01 08:54:04,707 INFO kodo - created defaultuser admin (fdb02616-6376-4475-be92-c2822c06538f)
+2025-07-01 08:54:04,877 INFO kodo - role admin (fdb02616-6376-4475-be92-c2822c06538f) logged in
+2025-07-01 08:54:04,883 INFO kodo - POST /login - 302 in 0.3926s (-)
+2025-07-01 08:54:04,892 INFO kodo - GET /admin - 302 in 0.0002s (fdb02616-6376-4475-be92-c2822c06538f)
+2025-07-01 08:54:04,899 INFO kodo - GET /admin/flow - 200 in 0.0044s (fdb02616-6376-4475-be92-c2822c06538f)
+2025-07-01 08:54:04,903 INFO kodo - GET /static/d3.v7.min.js - 200 in 0.0013s (-)
+2025-07-01 08:54:04,903 INFO kodo - GET /static/black-word.png - 200 in 0.0008s (-)
+2025-07-01 08:54:04,904 INFO kodo - GET /static/white-word.png - 200 in 0.0008s (-)
+2025-07-01 08:54:04,905 INFO kodo - GET /static/logo.avif - 200 in 0.0008s (-)
+2025-07-01 08:54:04,925 INFO kodo - GET /flow - 200 in 0.0004s (fdb02616-6376-4475-be92-c2822c06538f)
+2025-07-01 08:54:08,604 INFO kodo - GET /admin/flow - 200 in 0.0005s (fdb02616-6376-4475-be92-c2822c06538f)
+2025-07-01 08:54:08,623 INFO kodo - GET /flow - 200 in 0.0003s (fdb02616-6376-4475-be92-c2822c06538f)
+2025-07-01 08:54:09,832 INFO kodo - GET /timeline/view - 200 in 0.0079s (fdb02616-6376-4475-be92-c2822c06538f)
+2025-07-01 08:54:09,850 INFO kodo - GET /timeline - 200 in 0.0007s (fdb02616-6376-4475-be92-c2822c06538f)
+2025-07-01 08:54:10,054 INFO kodo - GET /timeline - 200 in 0.0004s (fdb02616-6376-4475-be92-c2822c06538f)
+2025-07-01 08:54:11,052 INFO kodo - GET /timeline - 200 in 0.0007s (fdb02616-6376-4475-be92-c2822c06538f)
+2025-07-01 08:54:11,318 INFO kodo - GET /admin/routes - 200 in 0.0082s (fdb02616-6376-4475-be92-c2822c06538f)
+2025-07-01 08:54:12,446 INFO kodo - GET /admin/logout - 302 in 0.0004s (fdb02616-6376-4475-be92-c2822c06538f)
+2025-07-01 08:54:12,451 INFO kodo - GET / - 200 in 0.0003s (-)
+2025-07-01 08:54:19,078 INFO kodo - role admin (fdb02616-6376-4475-be92-c2822c06538f) logged in
+2025-07-01 08:54:19,078 INFO kodo - POST /login - 302 in 0.1815s (-)
+2025-07-01 08:54:19,087 INFO kodo - GET /admin - 302 in 0.0002s (fdb02616-6376-4475-be92-c2822c06538f)
+2025-07-01 08:54:19,089 INFO kodo - GET /admin/flow - 200 in 0.0003s (fdb02616-6376-4475-be92-c2822c06538f)
+2025-07-01 08:54:19,101 INFO kodo - GET /flow - 200 in 0.0003s (fdb02616-6376-4475-be92-c2822c06538f)
+2025-07-01 09:01:36,232 INFO kodo - GET / - 302 in 0.0001s (-)
+2025-07-01 09:01:36,235 INFO kodo - GET /admin/flow - 200 in 0.0005s (386337db-5eb4-46bc-b55b-5991b61e9db6)
+2025-07-01 09:01:36,254 INFO kodo - GET /static/beer.min.css - 200 in 0.0018s (-)
+2025-07-01 09:01:36,263 INFO kodo - GET /static/kodosumi.css - 200 in 0.0044s (-)
+2025-07-01 09:01:36,264 INFO kodo - GET /static/black-word.png - 200 in 0.0033s (-)
+2025-07-01 09:01:36,264 INFO kodo - GET /static/white-word.png - 200 in 0.0031s (-)
+2025-07-01 09:01:36,264 INFO kodo - GET /static/material-dynamic-colors.min.js - 200 in 0.0043s (-)
+2025-07-01 09:01:36,264 INFO kodo - GET /static/d3.v7.min.js - 200 in 0.0042s (-)
+2025-07-01 09:01:36,264 INFO kodo - GET /static/favicon.ico - 200 in 0.0046s (-)
+2025-07-01 09:01:36,264 INFO kodo - GET /static/beer.min.js - 200 in 0.0047s (-)
+2025-07-01 09:01:36,520 INFO kodo - GET /static/logo.avif - 200 in 0.0011s (-)
+2025-07-01 09:01:36,538 INFO kodo - GET /static/material-symbols-outlined.woff2 - 200 in 0.0012s (-)
+2025-07-01 09:01:36,543 INFO kodo - GET /static/favicon.ico - 200 in 0.0008s (-)
+2025-07-01 09:01:36,595 INFO kodo - GET /flow - 200 in 0.0003s (386337db-5eb4-46bc-b55b-5991b61e9db6)
+2025-07-01 09:01:38,399 INFO kodo - GET /admin/flow - 200 in 0.0007s (386337db-5eb4-46bc-b55b-5991b61e9db6)
+2025-07-01 09:01:38,517 INFO kodo - GET /flow - 200 in 0.0002s (386337db-5eb4-46bc-b55b-5991b61e9db6)
+2025-07-01 09:01:39,188 INFO kodo - GET /timeline/view - 200 in 0.0006s (386337db-5eb4-46bc-b55b-5991b61e9db6)
+2025-07-01 09:01:39,363 INFO kodo - GET /timeline - 200 in 0.0004s (386337db-5eb4-46bc-b55b-5991b61e9db6)
+2025-07-01 09:01:39,569 INFO kodo - GET /timeline - 200 in 0.0011s (386337db-5eb4-46bc-b55b-5991b61e9db6)
+2025-07-01 09:01:40,567 INFO kodo - GET /timeline - 200 in 0.0003s (386337db-5eb4-46bc-b55b-5991b61e9db6)
+2025-07-01 09:01:40,945 INFO kodo - GET /admin/routes - 200 in 0.0022s (386337db-5eb4-46bc-b55b-5991b61e9db6)
+2025-07-01 09:06:04,700 WARNING kodo - /morpheus/message Not Found (404)
+2025-07-01 09:13:23,850 INFO kodo - app server started at http://localhost:3370
+2025-07-01 09:13:23,850 INFO kodo - exec source path ./data/execution
+2025-07-01 09:13:23,850 DEBUG kodo - admin database at sqlite+aiosqlite:///./data/admin.db
+2025-07-01 09:13:23,850 DEBUG kodo - screen log level: INFO, file log level: DEBUG, uvicorn log level: WARNING
+2025-07-01 09:13:31,832 WARNING kodo - /login Missing required query parameter 'password' for path /login: None (400) - None
+2025-07-01 09:13:31,833 INFO kodo - GET /login - 400 in 0.0011s (-)
+2025-07-01 09:13:36,108 INFO kodo - GET / - 302 in 0.0005s (-)
+2025-07-01 09:13:36,122 INFO kodo - GET /admin/flow - 200 in 0.0113s (fdb02616-6376-4475-be92-c2822c06538f)
+2025-07-01 09:13:36,157 INFO kodo - GET /flow - 200 in 0.0005s (fdb02616-6376-4475-be92-c2822c06538f)
+2025-07-01 09:13:38,394 INFO kodo - GET /admin/routes - 200 in 0.0102s (fdb02616-6376-4475-be92-c2822c06538f)
+2025-07-02 11:53:09,418 INFO kodo - app server started at http://localhost:3370
+2025-07-02 11:53:09,418 INFO kodo - exec source path ./data/execution
+2025-07-02 11:53:09,419 DEBUG kodo - admin database at sqlite+aiosqlite:///./data/admin.db
+2025-07-02 11:53:09,419 DEBUG kodo - screen log level: INFO, file log level: DEBUG, uvicorn log level: WARNING
+2025-07-02 11:53:09,452 ERROR uvicorn.error -   + Exception Group Traceback (most recent call last):
+  |   File "/Users/rodg/Documents/Projects/drmz_agents/venv/lib/python3.11/site-packages/litestar/_asgi/asgi_router.py", line 181, in lifespan
+  |     async with self.app.lifespan():
+  |   File "/opt/homebrew/Cellar/python@3.11/3.11.13/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 210, in __aenter__
+  |     return await anext(self.gen)
+  |            ^^^^^^^^^^^^^^^^^^^^^
+  |   File "/Users/rodg/Documents/Projects/drmz_agents/venv/lib/python3.11/site-packages/litestar/app.py", line 646, in lifespan
+  |     async with AsyncExitStack() as exit_stack:
+  |   File "/opt/homebrew/Cellar/python@3.11/3.11.13/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 745, in __aexit__
+  |     raise exc_details[1]
+  |   File "/opt/homebrew/Cellar/python@3.11/3.11.13/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 728, in __aexit__
+  |     cb_suppress = await cb(*exc_details)
+  |                   ^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/Users/rodg/Documents/Projects/drmz_agents/venv/lib/python3.11/site-packages/litestar/events/emitter.py", line 111, in __aexit__
+  |     await self._exit_stack.__aexit__(exc_type, exc_val, exc_tb)
+  |   File "/opt/homebrew/Cellar/python@3.11/3.11.13/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 745, in __aexit__
+  |     raise exc_details[1]
+  |   File "/opt/homebrew/Cellar/python@3.11/3.11.13/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 728, in __aexit__
+  |     cb_suppress = await cb(*exc_details)
+  |                   ^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/Users/rodg/Documents/Projects/drmz_agents/venv/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "/Users/rodg/Documents/Projects/drmz_agents/venv/lib/python3.11/site-packages/litestar/app.py", line 658, in lifespan
+    |     await self._call_lifespan_hook(hook)
+    |   File "/Users/rodg/Documents/Projects/drmz_agents/venv/lib/python3.11/site-packages/litestar/app.py", line 635, in _call_lifespan_hook
+    |     await ret
+    |   File "/Users/rodg/Documents/Projects/drmz_agents/venv/lib/python3.11/site-packages/kodosumi/service/app.py", line 116, in startup
+    |     helper.ray_init()
+    |   File "/Users/rodg/Documents/Projects/drmz_agents/venv/lib/python3.11/site-packages/kodosumi/helper.py", line 30, in ray_init
+    |     ray.init(
+    |   File "/Users/rodg/Documents/Projects/drmz_agents/venv/lib/python3.11/site-packages/ray/_private/client_mode_hook.py", line 104, in wrapper
+    |     return func(*args, **kwargs)
+    |            ^^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/rodg/Documents/Projects/drmz_agents/venv/lib/python3.11/site-packages/ray/_private/worker.py", line 1919, in init
+    |     connect(
+    |   File "/Users/rodg/Documents/Projects/drmz_agents/venv/lib/python3.11/site-packages/ray/_private/worker.py", line 2440, in connect
+    |     raise e
+    |   File "/Users/rodg/Documents/Projects/drmz_agents/venv/lib/python3.11/site-packages/ray/_private/worker.py", line 2437, in connect
+    |     node.check_version_info()
+    |   File "/Users/rodg/Documents/Projects/drmz_agents/venv/lib/python3.11/site-packages/ray/_private/node.py", line 454, in check_version_info
+    |     ray._private.utils.check_version_info(
+    |   File "/Users/rodg/Documents/Projects/drmz_agents/venv/lib/python3.11/site-packages/ray/_private/utils.py", line 1569, in check_version_info
+    |     raise RuntimeError(error_message)
+    | RuntimeError: Version mismatch: The cluster was started with:
+    |     Ray: 2.47.1
+    |     Python: 3.12.11
+    | This process on node 127.0.0.1 was started with:
+    |     Ray: 2.47.1
+    |     Python: 3.11.13
+    | 
+    +------------------------------------
+
+2025-07-02 11:53:09,453 ERROR uvicorn.error - Application startup failed. Exiting.

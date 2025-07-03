@@ -1,33 +1,32 @@
 [
-    {
-      "source": "plato",
-      "target": "justice",
-      "type": "proposed"
-    },
-    {
-      "source": "justice",
-      "target": "delegation",
-      "type": "underpins"
-    },
-    {
-      "source": "decentralization",
-      "target": "delegation",
-      "type": "influences"
-    },
-    {
-      "source": "morpheus",
-      "target": "growth",
-      "type": "supports"
-    },
-    {
-      "source": "rod",
-      "target": "delegation",
-      "type": "participates_in"
-    },
-    {
-      "source": "catalyst_f12",
-      "target": "drep",
-      "type": "voted_on_by"
-    }
-  ]
-  
+  {
+    "source": "plato",
+    "target": "justice",
+    "type": "proposed"
+  },
+  {
+    "source": "justice",
+    "target": "delegation",
+    "type": "underpins"
+  },
+  {
+    "source": "decentralization",
+    "target": "delegation",
+    "type": "influences"
+  },
+  {
+    "source": "morpheus",
+    "target": "growth",
+    "type": "supports"
+  },
+  {
+    "source": "rod",
+    "target": "delegation",
+    "type": "participates_in"
+  },
+  {
+    "source": "catalyst_f12",
+    "target": "drep",
+    "type": "voted_on_by"
+  }
+]

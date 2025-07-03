@@ -1,3 +1,19 @@
+syllabus_policy_review_crew:
+  description: "Review course syllabi for AI policy inclusion and alignment"
+  agents:
+    - morpheus
+    - ai_integrationist
+
+content_review_crew:
+  description: "Review and validate content for accuracy, tone, and clarity"
+  agents:
+    - content_reviewer
+
+tweet_cleanup_crew:
+  description: "Remove hashtags and polish tweets for consistency"
+  agents:
+    - hashtag_remover
+
 governance_advisor_crew:
   description: "Clarify and summarize governance proposals for DReps"
   agents:

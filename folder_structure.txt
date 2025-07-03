@@ -1,0 +1,238 @@
+.
+├── data
+│   └── syllabus
+│       ├── AI_Policy_for_SP23_-_Gomez.docx.pdf
+│       └── Honors_English_101_Syllabus_-__Writing_in_the_Age_of_AI_.pdf
+├── folder_structure.txt
+├── knowledge
+│   ├── a treasury system for cryptocurrencies_enbling better collaborative intelligence.txt
+│   ├── ai-policy-for-SP23-Gomez.txt
+│   ├── ai-resolution-miramar-sdccd.txt
+│   ├── archive
+│   │   ├── 20250626_073752_a treasury system for cryptocurrencies_enbling better collaborative intelligence.txt
+│   │   ├── 20250626_073752_ai-policy-for-SP23-Gomez.pdf
+│   │   ├── 20250626_073752_ai-resolution-miramar-sdccd.pdf
+│   │   ├── 20250626_073752_babel-fees-via-limited-liabilities-2022.txt
+│   │   ├── 20250626_073752_native-custom-tokens-in-the-eutxo-model-chakravarty-et-al-2020.txt
+│   │   ├── 20250626_073752_ouroboros-a-provably-secure-proof-of-stake-blockchain-protocol.txt
+│   │   ├── 20250626_073752_the-extended-utxo-model-chakravarty-et-al-2020.txt
+│   │   ├── 20250626_073753_formal-specification-for-a-cardano-wallet-iohk-2018.txt
+│   │   ├── 20250626_073753_midnight_whitepaper.pdf
+│   │   ├── 20250626_073753_scripting-smart-contracts-iohk-Feb-2017.txt
+│   │   ├── 20250626_073753_user-preference.txt
+│   │   ├── 20250626_073753_why-we-are-building-cardano-iohk-2017.txt
+│   │   ├── 20250626_073804_discover-cardano-and-celebreate-DRMZ-3-yrs.txt
+│   │   ├── 20250626_073804_DRMZ Web3 Presents Web3 Is a Joke.pdf
+│   │   ├── 20250626_073804_DRMZ-Web3.txt
+│   │   ├── 20250626_073804_hydra-fast-isomorphic-state-channels.txt
+│   │   ├── 20250626_073804_proof-of-stake-sidechains-2018.txt
+│   │   └── 20250626_073804_syllabus-policies-for-genAI-tools.pdf
+│   ├── babel-fees-via-limited-liabilities-2022.txt
+│   ├── discover-cardano-and-celebreate-DRMZ-3-yrs.txt
+│   ├── DRMZ Web3 Presents Web3 Is a Joke.txt
+│   ├── DRMZ-Web3.txt
+│   ├── formal-specification-for-a-cardano-wallet-iohk-2018.txt
+│   ├── hydra-fast-isomorphic-state-channels.txt
+│   ├── images
+│   │   ├── Basho Foundation.png
+│   │   ├── Byron - Foundation (art by Dmitris Ladopoulos).png
+│   │   ├── Goguen Foundation.png
+│   │   ├── Shelley Foundation.png
+│   │   └── Voltaire Foudation.png
+│   ├── midnight_whitepaper.txt
+│   ├── native-custom-tokens-in-the-eutxo-model-chakravarty-et-al-2020.txt
+│   ├── ouroboros-a-provably-secure-proof-of-stake-blockchain-protocol.txt
+│   ├── permanent
+│   ├── placeholder.txt
+│   ├── proof-of-stake-sidechains-2018.txt
+│   ├── scripting-smart-contracts-iohk-Feb-2017.txt
+│   ├── syllabus-policies-for-genAI-tools.txt
+│   ├── the-extended-utxo-model-chakravarty-et-al-2020.txt
+│   ├── user-preference.txt
+│   └── why-we-are-building-cardano-iohk-2017.txt
+├── morpheus config
+│   └── morpheus.json
+├── morpheus_web
+├── output
+│   ├── curriculum
+│   ├── guides
+│   │   ├── complete_guide_california_carddano_and_web3.md
+│   │   ├── complete_guide_california.md
+│   │   └── guide_outline.json
+│   ├── logs
+│   └── onboarding
+├── package-lock.json
+├── package.json
+├── plan
+│   ├── plan_ai_tools_in_higher_education.json
+│   ├── plan_cardano_in_education.json
+│   ├── plan_cardano_real_world_adoption.json
+│   └── plan_web3_in_education.json
+├── pyproject.toml
+├── README.md
+├── requirements.txt
+├── src
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   └── __init__.cpython-311.pyc
+│   └── drmz
+│       ├── __init__.py
+│       ├── __pycache__
+│       │   ├── __init__.cpython-311.pyc
+│       │   ├── __init__.py
+│       │   └── config_loader.cpython-311.pyc
+│       ├── config
+│       │   ├── __init__.py
+│       │   ├── __pycache__
+│       │   ├── agents.yaml
+│       │   ├── crews.yaml
+│       │   └── tasks.yaml
+│       ├── crews
+│       │   ├── __init__.py
+│       │   ├── __pycache__
+│       │   ├── base_crew.py
+│       │   ├── config_loader.py
+│       │   ├── content_crew.py
+│       │   ├── crew_executor.py
+│       │   ├── crew.py
+│       │   ├── curriculum_crew.py
+│       │   ├── guide_creator_crew.py
+│       │   └── morpheus_crew.py
+│       ├── flows
+│       │   ├── __init__.py
+│       │   ├── __pycache__
+│       │   ├── base_flow.py
+│       │   ├── crew_graph_ingest.py
+│       │   ├── curriculum_creator_flow.py
+│       │   ├── guide_creator_flow.py
+│       │   ├── morpheus_planner.py
+│       │   ├── morpheus_tweet_flow.py
+│       │   └── syllabus
+│       ├── knowledge_graph
+│       │   ├── __init__.py
+│       │   ├── csv
+│       │   ├── edges.json
+│       │   ├── generated
+│       │   ├── graph.csv
+│       │   ├── ingest
+│       │   ├── nodes.json
+│       │   └── schema.json
+│       ├── main.py
+│       ├── morpheus_main.py
+│       ├── morpheus_task_router.py
+│       ├── subfolder
+│       │   ├── __init__.py
+│       │   └── morpheus_versions.txt
+│       ├── tools
+│       │   ├── __init__.py
+│       │   ├── __pycache__
+│       │   ├── custom_tool.py
+│       │   ├── fixed_scrapegraph_tool.py
+│       │   └── fixed_serper_tool.py
+│       ├── translate_content.py
+│       └── utils
+│           ├── __init__.py
+│           ├── __pycache__
+│           ├── file_utils.py
+│           ├── logger.py
+│           └── path_utils.py
+├── uv.lock
+└── venv
+    ├── bin
+    │   ├── __pycache__
+    │   │   ├── dumppdf.cpython-311.pyc
+    │   │   └── pdf2txt.cpython-311.pyc
+    │   ├── activate
+    │   ├── activate.csh
+    │   ├── activate.fish
+    │   ├── Activate.ps1
+    │   ├── alembic
+    │   ├── chroma
+    │   ├── coloredlogs
+    │   ├── crewai
+    │   ├── distro
+    │   ├── dotenv
+    │   ├── dumppdf.py
+    │   ├── ec
+    │   ├── f2py
+    │   ├── fastapi
+    │   ├── fastavro
+    │   ├── ghp-import
+    │   ├── gptcache_server
+    │   ├── httpx
+    │   ├── huggingface-cli
+    │   ├── humanfriendly
+    │   ├── identify-cli
+    │   ├── instructor
+    │   ├── ipython
+    │   ├── ipython3
+    │   ├── isympy
+    │   ├── json_repair
+    │   ├── jsondiff
+    │   ├── jsonpatch
+    │   ├── jsonpointer
+    │   ├── jsonschema
+    │   ├── litellm
+    │   ├── litellm-proxy
+    │   ├── mako-render
+    │   ├── markdown_py
+    │   ├── markdown-it
+    │   ├── mkdocs
+    │   ├── mkdocs-get-deps
+    │   ├── nodeenv
+    │   ├── normalizer
+    │   ├── numpy-config
+    │   ├── onnxruntime_test
+    │   ├── openai
+    │   ├── opentelemetry-bootstrap
+    │   ├── opentelemetry-instrument
+    │   ├── pdf2txt.py
+    │   ├── pdfplumber
+    │   ├── pip
+    │   ├── pip3
+    │   ├── pip3.11
+    │   ├── pre-commit
+    │   ├── pybabel
+    │   ├── pybase64
+    │   ├── pygmentize
+    │   ├── pyjson5
+    │   ├── pypdfium2
+    │   ├── pyproject-build
+    │   ├── pyright
+    │   ├── pyright-langserver
+    │   ├── pyright-python
+    │   ├── pyright-python-langserver
+    │   ├── pyrsa-decrypt
+    │   ├── pyrsa-encrypt
+    │   ├── pyrsa-keygen
+    │   ├── pyrsa-priv2pub
+    │   ├── pyrsa-sign
+    │   ├── pyrsa-verify
+    │   ├── python -> python3.11
+    │   ├── python3 -> python3.11
+    │   ├── python3.11 -> /opt/homebrew/opt/python@3.11/bin/python3.11
+    │   ├── pytube
+    │   ├── tabulate
+    │   ├── tiny-agents
+    │   ├── tqdm
+    │   ├── typer
+    │   ├── uv
+    │   ├── uvicorn
+    │   ├── uvx
+    │   ├── virtualenv
+    │   ├── watchfiles
+    │   ├── watchmedo
+    │   ├── websockets
+    │   └── wsdump
+    ├── include
+    │   └── python3.11
+    ├── lib
+    │   └── python3.11
+    │       └── site-packages
+    ├── pyvenv.cfg
+    ├── README.md
+    └── share
+        └── man
+            └── man1
+
+46 directories, 190 files

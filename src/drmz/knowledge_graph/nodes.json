@@ -1,56 +1,55 @@
 [
-    {
-      "id": "morpheus",
-      "type": "Identity",
-      "name": "Morpheus",
-      "attributes": {
-        "role": "AI emissary",
-        "voice": "philosophical, supportive"
-      }
-    },
-    {
-      "id": "decentralization",
-      "type": "Concept",
-      "name": "Decentralization"
-    },
-    {
-      "id": "drep",
-      "type": "Role",
-      "name": "Delegated Representative"
-    },
-    {
-      "id": "delegation",
-      "type": "GovernanceMechanism",
-      "name": "Delegation"
-    },
-    {
-      "id": "rod",
-      "type": "Identity",
-      "name": "Rod",
-      "attributes": {
-        "role": "DRep",
-        "stake_pool": "DRMZ"
-      }
-    },
-    {
-      "id": "growth",
-      "type": "Goal",
-      "name": "Grow Delegation"
-    },
-    {
-      "id": "plato",
-      "type": "Thinker",
-      "name": "Plato"
-    },
-    {
-      "id": "justice",
-      "type": "Principle",
-      "name": "Justice"
-    },
-    {
-      "id": "catalyst_f12",
-      "type": "Proposal",
-      "name": "Catalyst Fund 12"
+  {
+    "id": "morpheus",
+    "type": "Identity",
+    "name": "Morpheus",
+    "attributes": {
+      "role": "AI emissary",
+      "voice": "philosophical, supportive"
     }
-  ]
-  
+  },
+  {
+    "id": "decentralization",
+    "type": "Concept",
+    "name": "Decentralization"
+  },
+  {
+    "id": "drep",
+    "type": "Role",
+    "name": "Delegated Representative"
+  },
+  {
+    "id": "delegation",
+    "type": "GovernanceMechanism",
+    "name": "Delegation"
+  },
+  {
+    "id": "rod",
+    "type": "Identity",
+    "name": "Rod",
+    "attributes": {
+      "role": "DRep",
+      "stake_pool": "DRMZ"
+    }
+  },
+  {
+    "id": "growth",
+    "type": "Goal",
+    "name": "Grow Delegation"
+  },
+  {
+    "id": "plato",
+    "type": "Thinker",
+    "name": "Plato"
+  },
+  {
+    "id": "justice",
+    "type": "Principle",
+    "name": "Justice"
+  },
+  {
+    "id": "catalyst_f12",
+    "type": "Proposal",
+    "name": "Catalyst Fund 12"
+  }
+]

@@ -1,0 +1,172 @@
+.
+├── .DS_Store
+├── .env
+├── .gitignore
+├── .python-version
+├── data
+│   └── syllabus
+│       ├── AI_Policy_for_SP23_-_Gomez.docx.pdf
+│       ├── Honors_English_101_Syllabus_-__Writing_in_the_Age_of_AI_.pdf
+│       └── MartinP_COMS_103_73399_Fall_2024.pdf
+├── folder_structure.txt
+├── knowledge
+│   ├── .DS_Store
+│   ├── a treasury system for cryptocurrencies_enbling better collaborative intelligence.txt
+│   ├── ai-policy-for-SP23-Gomez.txt
+│   ├── ai-resolution-miramar-sdccd.txt
+│   ├── archive
+│   │   ├── 20250626_073752_a treasury system for cryptocurrencies_enbling better collaborative intelligence.txt
+│   │   ├── 20250626_073752_ai-policy-for-SP23-Gomez.pdf
+│   │   ├── 20250626_073752_ai-resolution-miramar-sdccd.pdf
+│   │   ├── 20250626_073752_babel-fees-via-limited-liabilities-2022.txt
+│   │   ├── 20250626_073752_native-custom-tokens-in-the-eutxo-model-chakravarty-et-al-2020.txt
+│   │   ├── 20250626_073752_ouroboros-a-provably-secure-proof-of-stake-blockchain-protocol.txt
+│   │   ├── 20250626_073752_the-extended-utxo-model-chakravarty-et-al-2020.txt
+│   │   ├── 20250626_073753_formal-specification-for-a-cardano-wallet-iohk-2018.txt
+│   │   ├── 20250626_073753_midnight_whitepaper.pdf
+│   │   ├── 20250626_073753_scripting-smart-contracts-iohk-Feb-2017.txt
+│   │   ├── 20250626_073753_user-preference.txt
+│   │   ├── 20250626_073753_why-we-are-building-cardano-iohk-2017.txt
+│   │   ├── 20250626_073804_discover-cardano-and-celebreate-DRMZ-3-yrs.txt
+│   │   ├── 20250626_073804_DRMZ Web3 Presents Web3 Is a Joke.pdf
+│   │   ├── 20250626_073804_DRMZ-Web3.txt
+│   │   ├── 20250626_073804_hydra-fast-isomorphic-state-channels.txt
+│   │   ├── 20250626_073804_proof-of-stake-sidechains-2018.txt
+│   │   └── 20250626_073804_syllabus-policies-for-genAI-tools.pdf
+│   ├── babel-fees-via-limited-liabilities-2022.txt
+│   ├── discover-cardano-and-celebreate-DRMZ-3-yrs.txt
+│   ├── DRMZ Web3 Presents Web3 Is a Joke.txt
+│   ├── DRMZ-Web3.txt
+│   ├── formal-specification-for-a-cardano-wallet-iohk-2018.txt
+│   ├── hydra-fast-isomorphic-state-channels.txt
+│   ├── images
+│   │   ├── Basho Foundation.png
+│   │   ├── Byron - Foundation (art by Dmitris Ladopoulos).png
+│   │   ├── Goguen Foundation.png
+│   │   ├── Shelley Foundation.png
+│   │   └── Voltaire Foudation.png
+│   ├── midnight_whitepaper.txt
+│   ├── native-custom-tokens-in-the-eutxo-model-chakravarty-et-al-2020.txt
+│   ├── ouroboros-a-provably-secure-proof-of-stake-blockchain-protocol.txt
+│   ├── permanent
+│   ├── placeholder.txt
+│   ├── proof-of-stake-sidechains-2018.txt
+│   ├── scripting-smart-contracts-iohk-Feb-2017.txt
+│   ├── syllabus-policies-for-genAI-tools.txt
+│   ├── the-extended-utxo-model-chakravarty-et-al-2020.txt
+│   ├── user-preference.txt
+│   └── why-we-are-building-cardano-iohk-2017.txt
+├── kodosumi_morpheus
+│   ├── app
+│   │   ├── __init__.py
+│   │   └── services
+│   │       ├── __init__.py
+│   │       └── morpheus
+│   │           ├── __init__.py
+│   │           └── morpheus_agent.py
+│   ├── data
+│   │   ├── admin.db
+│   │   ├── app.log
+│   │   ├── config
+│   │   ├── execution
+│   │   └── spooler.log
+│   ├── kodosumi.yml
+│   └── structure.txt
+├── morpheus config
+│   └── morpheus.json
+├── morpheus_web
+├── output
+│   ├── curriculum
+│   │   └── policy_reviews
+│   │       ├── AI_Policy_for_SP23_-_Gomez.docx_ai_policy_review.md
+│   │       ├── Honors_English_101_Syllabus_-__Writing_in_the_Age_of_AI__ai_policy_review.md
+│   │       └── MartinP_COMS_103_73399_Fall_2024_ai_policy_review.md
+│   ├── guides
+│   │   ├── complete_guide_california_carddano_and_web3.md
+│   │   ├── complete_guide_california.md
+│   │   └── guide_outline.json
+│   ├── logs
+│   └── onboarding
+├── package-lock.json
+├── package.json
+├── plan
+│   ├── plan_ai_tools_in_higher_education.json
+│   ├── plan_cardano_in_education.json
+│   ├── plan_cardano_real_world_adoption.json
+│   └── plan_web3_in_education.json
+├── pyproject.toml
+├── README.md
+├── requirements.txt
+├── src
+│   ├── __init__.py
+│   └── drmz
+│       ├── __init__.py
+│       ├── .DS_Store
+│       ├── config
+│       │   ├── __init__.py
+│       │   ├── agents.yaml
+│       │   ├── crews.yaml
+│       │   └── tasks.yaml
+│       ├── crews
+│       │   ├── __init__.py
+│       │   ├── base_crew.py
+│       │   ├── config_loader.py
+│       │   ├── content_crew.py
+│       │   ├── crew_executor.py
+│       │   ├── crew.py
+│       │   ├── curriculum_crew.py
+│       │   ├── guide_creator_crew.py
+│       │   └── morpheus_crew.py
+│       ├── flows
+│       │   ├── __init__.py
+│       │   ├── base_flow.py
+│       │   ├── crew_graph_ingest.py
+│       │   ├── curriculum_creator_flow.py
+│       │   ├── guide_creator_flow.py
+│       │   ├── morpheus_planner.py
+│       │   ├── morpheus_tweet_flow.py
+│       │   └── syllabus
+│       │       ├── __init__.py
+│       │       ├── check_outcomes_flow.py
+│       │       ├── evaluate_inclusivity_flow.py
+│       │       └── review_policy_flow.py
+│       ├── knowledge_graph
+│       │   ├── __init__.py
+│       │   ├── csv
+│       │   │   ├── __init__.py
+│       │   │   ├── edges.csv
+│       │   │   └── nodes.csv
+│       │   ├── edges.json
+│       │   ├── generated
+│       │   │   ├── __init__.py
+│       │   │   ├── new_edges.json
+│       │   │   └── new_nodes.json
+│       │   ├── graph.csv
+│       │   ├── ingest
+│       │   │   ├── __init__.py
+│       │   │   ├── graph_loader.py
+│       │   │   ├── run_txt_ingest.py
+│       │   │   └── txt_extractor.py
+│       │   ├── nodes.json
+│       │   └── schema.json
+│       ├── main.py
+│       ├── morpheus_main.py
+│       ├── morpheus_task_router.py
+│       ├── subfolder
+│       │   ├── __init__.py
+│       │   └── morpheus_versions.txt
+│       ├── tools
+│       │   ├── __init__.py
+│       │   ├── custom_tool.py
+│       │   ├── fixed_scrapegraph_tool.py
+│       │   └── fixed_serper_tool.py
+│       ├── translate_content.py
+│       └── utils
+│           ├── __init__.py
+│           ├── file_utils.py
+│           ├── logger.py
+│           └── path_utils.py
+├── structure.txt
+└── uv.lock
+
+36 directories, 134 files
