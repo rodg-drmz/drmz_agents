@@ -43,6 +43,20 @@ This example, unmodified, will run the create a `report.md` file with the output
 
 The DRMZ-Agents Crew is composed of multiple AI agents, each with unique roles, goals, and tools. These agents collaborate on a series of tasks, defined in `config/tasks.yaml`, leveraging their collective skills to achieve complex objectives. The `config/agents.yaml` file outlines the capabilities and configurations of each agent in your crew.
 
+## Syllabus Review Flow
+
+This flow analyzes uploaded syllabi to determine whether an AI policy is present. If none is found, it provides full reference text for Miramar College’s three AI policy models:
+- Prohibition
+- Permissive
+- Encouraged
+
+Responses include:
+- **Policy Status**
+- **Recommendations**
+- **Implementation Notes and Suggestions**
+
+The flow is powered by the `review_ai_policy_task` using the Morpheus agent.
+
 ## Support
 
 For support, questions, or feedback regarding the DrmzAgents Crew or crewAI.

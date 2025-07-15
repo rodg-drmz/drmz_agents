@@ -61,6 +61,117 @@ review_ai_policy_task:
 
   agent: morpheus
 
+ai_review_assignment_task:
+  description: >
+    Analyze the uploaded assignment prompt for how students might shortcut or complete the task using AI tools.
+
+    Then offer:
+    - Redesign strategies to make the task more original, deeper, or more resistant to automation
+    - Suggestions for clearly defining appropriate AI use
+    - Recommendations for adapting the task to inclusive, student-centered pedagogies (e.g. CRT, PBL, gamification, etc.)
+
+    This is a collaborative task led by Morpheus. If needed, Morpheus may consult:
+    - The Curriculum Developer (for redesign strategies)
+    - The AI Integrationist (for AI literacy and policy framing)
+    - The Faculty Coach (for inclusive and student-centered redesign)
+
+  expected_output: >
+    Return your response in three clearly labeled sections:
+
+    ## AI Use Risks  
+    - Identify how AI tools might be used to shortcut or complete the assignment  
+    - Note what skills or thinking may be bypassed  
+    - Optionally include example outputs or techniques (e.g. ChatGPT prompt examples)
+
+    ## Redesign Recommendations  
+    - Offer revised versions or variations of the task  
+    - Emphasize strategies that promote deeper engagement, creativity, or critical thinking  
+    - Note how AI use could be structured (or restricted) for better learning
+
+    ## Implementation Suggestions  
+    - Offer 2–4 practical notes for instructors (e.g. framing, rubric updates, scaffolding)
+    - Include optional references to frameworks like CRT, PBL, SEL, or flipped learning
+
+  agent: morpheus
+  config:
+    allow_delegation: true
+
+ai_meter_assignment_task:
+  description: >
+    Review the uploaded assignment prompt and help the instructor decide **how much AI use to allow**, and **where it should be restricted**, based on sound pedagogy and responsible innovation.
+
+    Prioritize analysis of the actual assignment prompt. Offer guidance for how AI tools:
+    - Might help in specific phases of the assignment (brainstorming, drafting, revising)
+    - Should be *avoided* in certain stages to preserve learning outcomes
+    - Can support skill development, digital literacy, and student agency
+
+    Support your guidance with 1–2 citations drawn from relevant educational frameworks (e.g., self-regulated learning, digital agency, moral imagination, transparency in tech, etc.). Vary sources when possible.
+
+    This is a reflective support task led by Morpheus. He may consult:
+    - The AI Integrationist (for AI literacy and policy alignment)
+    - The Curriculum Developer (for pedagogical alignment)
+    - The Faculty Coach (for ethical boundaries and learner growth)
+
+    Keep the tone supportive, insightful, and grounded in sound learning design.
+
+  expected_output: >
+    Return your response in three clearly labeled sections:
+
+    ## AI Use Suggestions  
+    - Offer assignment-specific suggestions for how AI could support learning  
+    - Indicate when in the assignment process each applies  
+    - Emphasize reflection, student control, and transparency
+
+    ## Cautions and Boundaries  
+    - Identify where AI *should not* be used in the assignment  
+    - Explain why, using educational rationale
+
+    ## Frameworks and Citations  
+    - Reference 1–2 educational frameworks or scholarly sources  
+    - Vary sources when possible (avoid repeating Zimmerman every time)  
+    - Include full citation details in APA or MLA style
+
+  agent: morpheus
+  config:
+    allow_delegation: true
+
+ai_redesign_assignment_task:
+  description: >
+    Reimagine the assignment using inclusive, student-centered, or active learning strategies.
+
+    Your response should:
+    - Offer a revised version of the task that incorporates CRT, PBL, SEL, gamification, or flipped learning
+    - Justify the changes with reference to scaffolding, cultural relevance, student voice, or creative engagement
+    - Suggest framing language, reflection prompts, or peer roles that enhance student agency and originality
+    - Cite pedagogical theorists and frameworks like Freire, Ladson-Billings, CASEL, or Dewey
+
+    This is a creative design task led by Morpheus. He may consult:
+    - The Curriculum Developer (for learning objectives and redesigns)
+    - The Faculty Coach (for inclusive practices)
+    - The Student Ally (for feedback on engagement and accessibility)
+
+  expected_output: >
+    Return your response in three clearly labeled sections:
+
+    ## Redesigned Task  
+    - Present a reimagined version of the assignment  
+    - Incorporate frameworks like CRT, PBL, SEL, gamification, or flipped classroom  
+    - Make the task more engaging, inclusive, and student-centered
+
+    ## Justification and Strategy  
+    - Explain why these changes enhance learning  
+    - Reference strategies like scaffolding, student voice, cultural relevance  
+    - Highlight benefits in relation to AI resilience and critical thinking
+
+    ## Prompts and Pedagogical References  
+    - Offer optional prompts, reflection questions, or peer activity structures  
+    - Cite pedagogical theorists (e.g. Freire, Ladson-Billings, Dewey, CASEL)  
+    - Support with research-informed justification for inclusive redesign
+
+  agent: morpheus
+  config:
+    allow_delegation: true
+
 # ───────────────────────────────────────────────
 # 📘 Content Writing & Review (Content Crew)
 # ───────────────────────────────────────────────
