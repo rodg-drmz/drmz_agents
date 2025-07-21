@@ -10,6 +10,7 @@ from drmz.crews.config_loader import load_agents, load_tasks
 from drmz.utils.logger import get_logger
 from drmz.utils.file_utils import ensure_dir
 from drmz.utils.path_utils import KNOWLEDGE_DIR, OUTPUT_DIR
+from drmz.utils.classifier import classify_file_type
 
 # === Setup ===
 log = get_logger("AIReviewFlow")
@@ -33,12 +34,33 @@ def extract_text(file_path: Path) -> str:
         raise ValueError(f"Unsupported file type: {file_path.suffix}")
 
 
+def classify_file_type(text: str) -> str:
+    """Simple heuristic to classify document type based on text content."""
+    lower = text.lower()
+    if any(phrase in lower for phrase in ["student learning outcome", "course description", "grading policy", "academic integrity", "class schedule"]):
+        return "syllabus"
+    elif any(phrase in lower for phrase in ["submit your work", "due date", "assignment instructions", "grading rubric", "final draft"]):
+        return "assignment"
+    else:
+        return "unknown"
+
+
 def review_file(file_path: Path) -> str:
     """Run AI policy review on a single syllabus file."""
     log.info(f"📄 Reviewing: {file_path.name}")
 
     content = extract_text(file_path)
     log.info(f"📄 Extracted content length: {len(content)} characters")
+
+    file_type = classify_file_type(content)
+    if file_type != "syllabus":
+        warning_msg = (
+            "❌ The uploaded file does not appear to be a syllabus.\n\n"
+            "Please upload a valid course syllabus for AI policy review."
+        )
+        log.warning(f"🛑 File classification result: {file_type}")
+        log.warning(warning_msg)
+        return warning_msg
 
     # Load agent + task from config
     task_config = tasks_config[TASK_NAME]
