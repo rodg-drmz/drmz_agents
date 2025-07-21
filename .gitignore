@@ -20,3 +20,11 @@ dist/
 output/
 plan/
 *.pdf
+
+# Python
+venv/
+*.pyc
+__pycache__/
+*.log
+data/*.log
+data/execution/
