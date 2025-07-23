@@ -1,37 +1,45 @@
-# 🚀 config_loader.py
-# Loads agent, task, and crew configuration from src/drmz/config (or from custom paths)
-
+# ── src/drmz/crews/config_loader.py ──────────────────────────────────────
 import yaml
 from pathlib import Path
+from pydantic import BaseModel, Field
 
-# 🔧 Default config directory: src/drmz/config/
+# 🔧 Default config directory
 DEFAULT_CONFIG_DIR = Path(__file__).parent.parent / "config"
 
-# ✅ YAML Loader
+# -------- YAML loader ----------------------------------------------------
 def load_yaml(path: Path):
-    with open(path, "r", encoding="utf-8") as file:
-        return yaml.safe_load(file)
+    with open(path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
 
-# 🧠 Load agents.yaml
+# -------- basic file helpers --------------------------------------------
 def load_agents(path: Path = None):
-    path = path or (DEFAULT_CONFIG_DIR / "agents.yaml")
-    return load_yaml(path)
+    return load_yaml(path or DEFAULT_CONFIG_DIR / "agents.yaml")
 
-# 📘 Load tasks.yaml
 def load_tasks(path: Path = None):
-    path = path or (DEFAULT_CONFIG_DIR / "tasks.yaml")
-    return load_yaml(path)
+    return load_yaml(path or DEFAULT_CONFIG_DIR / "tasks.yaml")
 
-# 🧩 Load crews.yaml
 def load_crews(path: Path = None):
-    path = path or (DEFAULT_CONFIG_DIR / "crews.yaml")
-    return load_yaml(path)
+    return load_yaml(path or DEFAULT_CONFIG_DIR / "crews.yaml")
 
-# 🧵 Load all configs
-def load_all(config_dir: Path = None):
-    config_dir = config_dir or DEFAULT_CONFIG_DIR
+def load_all(cfg_dir: Path = None):
+    cfg_dir = cfg_dir or DEFAULT_CONFIG_DIR
     return {
-        "agents": load_agents(config_dir / "agents.yaml"),
-        "tasks": load_tasks(config_dir / "tasks.yaml"),
-        "crews": load_crews(config_dir / "crews.yaml")
+        "agents": load_agents(cfg_dir / "agents.yaml"),
+        "tasks":  load_tasks(cfg_dir / "tasks.yaml"),
+        "crews":  load_crews(cfg_dir / "crews.yaml"),
     }
+
+# -------- Pydantic wrapper for single-task access -----------------------
+class TaskTemplate(BaseModel):
+    description:     str
+    expected_output: str | None = None
+    agent:           str | None = None
+    context:         list | None = None
+    config:          dict | None = None
+
+def get_task_template(task_id: str,
+                      tasks_path: Path = None) -> TaskTemplate:
+    tasks_dict = load_tasks(tasks_path)
+    if task_id not in tasks_dict:
+        raise KeyError(f"Task '{task_id}' not found in tasks.yaml")
+    return TaskTemplate(**tasks_dict[task_id])

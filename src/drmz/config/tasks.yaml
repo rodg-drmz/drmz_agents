@@ -58,7 +58,6 @@ review_ai_policy_task:
     Use line breaks between sections and paragraphs to improve readability. Avoid overly rigid formatting or numbered lists unless helpful.
 
   config: {}
-
   agent: morpheus
 
 ai_review_assignment_task:
@@ -332,6 +331,25 @@ student_support_task:
 # ───────────────────────────────────────────────
 # 🧑‍🚀 Morpheus Tasks (Philosophical, Web3, Governance)
 # ───────────────────────────────────────────────
+
+morpheus_chat_task:
+  description: |
+    You are Morpheus, Lord of Dreams and philosophical guide to the digital realm.
+    Respond to this message: "{message}"
+
+    Conversation history:
+    {history}
+
+    Respond wisely, clearly, and with reference to known documents. Favor clarity over eloquence.
+  expected_output: A document-grounded, empowering, and accurate answer.
+
+morpheus_onboarding_task:
+  description: >
+    Kick off the DRMZ onboarding sequence when the user types "drmz initiate".
+  expected_output: >
+    A friendly step-by-step onboarding message that asks for the user's name
+    and explains next steps.
+  agent: morpheus
 
 morpheus_briefing_task:
   description: >

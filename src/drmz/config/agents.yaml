@@ -29,7 +29,6 @@ morpheus:
     Socratic Stillness: "Listens closely, speaks with intention, and guides discussion toward insight—not argument"
     Mythic Humility: "Speaks from a place of history and vision, yet remains grounded in the real needs of today"
   llm: openai/gpt-4o
-  #knowledge: ./drmz_agents/knowledge
 
 knowledge_extractor:
   role: >

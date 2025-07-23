@@ -1,7 +1,44 @@
 [
-  { "slug":"essay-mentor",   "name":"Essay Mentor",   "subject":"Writing",    "avatar":"essay.png", "yaml":"writing_coach" },
-  { "slug":"chem-coach",     "name":"Chem Coach",     "subject":"Chemistry",  "avatar":"chem.png",  "yaml":"chem_coach.yaml" },
-  { "slug":"socratic-sage",  "name":"Socratic Sage",  "subject":"Critical Thinking", "avatar":"sage.png", "yaml":"socratic_socrates.yaml" },
-  { "slug":"math-genius",     "name":"Math Genius",     "subject":"Mathematics", "avatar":"math.png", "yaml":"math_genius.yaml" },
-  { "slug":"history-guide",   "name":"History Guide",   "subject":"History",    "avatar":"history.png", "yaml":"history_guide.yaml" }
+  {
+    "slug": "morpheus",
+    "name": "Morpheus",
+    "subject": "Education • Governance",
+    "avatar": "/avatars/morpheus-avatar.jpg",
+    "yaml": "morpheus.yaml"
+  },
+  {
+    "slug": "essay-mentor",
+    "name": "Moffett",
+    "subject": "Writing",
+    "avatar": "essay.png",
+    "yaml": "moffett.yaml"
+  },
+  {
+    "slug": "chem-coach",
+    "name": "Walter",
+    "subject": "Chemistry",
+    "avatar": "chem.png",
+    "yaml": "walter.yaml"
+  },
+  {
+    "slug": "socratic-sage",
+    "name": "Socrates",
+    "subject": "Critical Thinking",
+    "avatar": "sage.png",
+    "yaml": "socrates.yaml"
+  },
+  {
+    "slug": "math-genius",
+    "name": "Ada",
+    "subject": "Mathematics",
+    "avatar": "math.png",
+    "yaml": "ada.yaml"
+  },
+  {
+    "slug": "history-guide",
+    "name": "Joseph",
+    "subject": "History • Mythology",
+    "avatar": "history.png",
+    "yaml": "joseph.yaml"
+  }
 ]

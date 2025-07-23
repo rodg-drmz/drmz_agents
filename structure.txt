@@ -1,16 +1,23 @@
 .
-├── .DS_Store
-├── .env
-├── .gitignore
-├── .python-version
 ├── data
+│   ├── admin.db
+│   ├── assignments
+│   │   ├── Prompt__Solo_Trial__2__205__-_A_Clash_of_Giants.pdf
+│   │   └── Solo_Trial__1_-_Discourse_Analysis_Project__205_.pdf
+│   ├── config
+│   ├── execution
+│   │   ├── _annon_
+│   │   └── 2f4dced7-3954-4877-880d-e675a30a4d62
 │   └── syllabus
 │       ├── AI_Policy_for_SP23_-_Gomez.docx.pdf
+│       ├── AI_Resolution_-_SDCCD.pdf
+│       ├── final-reg-text-baccalaureate-degree-2025.0313-a11y.pdf
 │       ├── Honors_English_101_Syllabus_-__Writing_in_the_Age_of_AI_.pdf
-│       └── MartinP_COMS_103_73399_Fall_2024.pdf
+│       ├── MartinP_COMS_103_73399_Fall_2024.pdf
+│       ├── Prompt__Solo_Trial__2__205__-_A_Clash_of_Giants.pdf
+│       └── Solo_Trial__1_-_Discourse_Analysis_Project__205_.pdf
 ├── folder_structure.txt
 ├── knowledge
-│   ├── .DS_Store
 │   ├── a treasury system for cryptocurrencies_enbling better collaborative intelligence.txt
 │   ├── ai-policy-for-SP23-Gomez.txt
 │   ├── ai-resolution-miramar-sdccd.txt
@@ -37,6 +44,7 @@
 │   ├── discover-cardano-and-celebreate-DRMZ-3-yrs.txt
 │   ├── DRMZ Web3 Presents Web3 Is a Joke.txt
 │   ├── DRMZ-Web3.txt
+│   ├── f14launchguide.pdf
 │   ├── formal-specification-for-a-cardano-wallet-iohk-2018.txt
 │   ├── hydra-fast-isomorphic-state-channels.txt
 │   ├── images
@@ -52,38 +60,25 @@
 │   ├── placeholder.txt
 │   ├── proof-of-stake-sidechains-2018.txt
 │   ├── scripting-smart-contracts-iohk-Feb-2017.txt
+│   ├── Solo Trial #1 - Discourse Analysis Project (205).pdf
 │   ├── syllabus-policies-for-genAI-tools.txt
 │   ├── the-extended-utxo-model-chakravarty-et-al-2020.txt
 │   ├── user-preference.txt
 │   └── why-we-are-building-cardano-iohk-2017.txt
-├── kodosumi_morpheus
-│   ├── app
-│   │   ├── __init__.py
-│   │   └── services
-│   │       ├── __init__.py
-│   │       └── morpheus
-│   │           ├── __init__.py
-│   │           └── morpheus_agent.py
-│   ├── data
-│   │   ├── admin.db
-│   │   ├── app.log
-│   │   ├── config
-│   │   ├── execution
-│   │   └── spooler.log
-│   ├── kodosumi.yml
-│   └── structure.txt
+├── launch_servers.sh
 ├── morpheus config
 │   └── morpheus.json
-├── morpheus_web
 ├── output
+│   ├── assignments
+│   │   ├── ai_meter
+│   │   ├── ai_proof
+│   │   └── ai_review
 │   ├── curriculum
 │   │   └── policy_reviews
-│   │       ├── AI_Policy_for_SP23_-_Gomez.docx_ai_policy_review.md
-│   │       ├── Honors_English_101_Syllabus_-__Writing_in_the_Age_of_AI__ai_policy_review.md
-│   │       └── MartinP_COMS_103_73399_Fall_2024_ai_policy_review.md
 │   ├── guides
 │   │   ├── complete_guide_california_carddano_and_web3.md
 │   │   ├── complete_guide_california.md
+│   │   ├── complete_guide_honey_bees.md
 │   │   └── guide_outline.json
 │   ├── logs
 │   └── onboarding
@@ -97,76 +92,29 @@
 ├── pyproject.toml
 ├── README.md
 ├── requirements.txt
+├── run_morpheus.sh
 ├── src
 │   ├── __init__.py
 │   └── drmz
 │       ├── __init__.py
-│       ├── .DS_Store
+│       ├── academy_agents
+│       ├── anvil
+│       ├── api
 │       ├── config
-│       │   ├── __init__.py
-│       │   ├── agents.yaml
-│       │   ├── crews.yaml
-│       │   └── tasks.yaml
 │       ├── crews
-│       │   ├── __init__.py
-│       │   ├── base_crew.py
-│       │   ├── config_loader.py
-│       │   ├── content_crew.py
-│       │   ├── crew_executor.py
-│       │   ├── crew.py
-│       │   ├── curriculum_crew.py
-│       │   ├── guide_creator_crew.py
-│       │   └── morpheus_crew.py
 │       ├── flows
-│       │   ├── __init__.py
-│       │   ├── base_flow.py
-│       │   ├── crew_graph_ingest.py
-│       │   ├── curriculum_creator_flow.py
-│       │   ├── guide_creator_flow.py
-│       │   ├── morpheus_planner.py
-│       │   ├── morpheus_tweet_flow.py
-│       │   └── syllabus
-│       │       ├── __init__.py
-│       │       ├── check_outcomes_flow.py
-│       │       ├── evaluate_inclusivity_flow.py
-│       │       └── review_policy_flow.py
 │       ├── knowledge_graph
-│       │   ├── __init__.py
-│       │   ├── csv
-│       │   │   ├── __init__.py
-│       │   │   ├── edges.csv
-│       │   │   └── nodes.csv
-│       │   ├── edges.json
-│       │   ├── generated
-│       │   │   ├── __init__.py
-│       │   │   ├── new_edges.json
-│       │   │   └── new_nodes.json
-│       │   ├── graph.csv
-│       │   ├── ingest
-│       │   │   ├── __init__.py
-│       │   │   ├── graph_loader.py
-│       │   │   ├── run_txt_ingest.py
-│       │   │   └── txt_extractor.py
-│       │   ├── nodes.json
-│       │   └── schema.json
 │       ├── main.py
+│       ├── morpheus_main_legacy.py
 │       ├── morpheus_main.py
 │       ├── morpheus_task_router.py
+│       ├── output
+│       ├── routes
 │       ├── subfolder
-│       │   ├── __init__.py
-│       │   └── morpheus_versions.txt
 │       ├── tools
-│       │   ├── __init__.py
-│       │   ├── custom_tool.py
-│       │   ├── fixed_scrapegraph_tool.py
-│       │   └── fixed_serper_tool.py
 │       ├── translate_content.py
 │       └── utils
-│           ├── __init__.py
-│           ├── file_utils.py
-│           ├── logger.py
-│           └── path_utils.py
 ├── structure.txt
 └── uv.lock
 
-36 directories, 134 files
+38 directories, 80 files
