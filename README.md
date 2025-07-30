@@ -20,7 +20,7 @@ crewai install
 ```
 ### Customizing
 
-**Add your `OPENAI_API_KEY` into the `.env` file**
+**Add your `OPENAI_API_KEEY` into the `.env` file**
 
 - Modify `src/drmz_agents/config/agents.yaml` to define your agents
 - Modify `src/drmz_agents/config/tasks.yaml` to define your tasks

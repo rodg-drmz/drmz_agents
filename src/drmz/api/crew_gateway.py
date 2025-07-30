@@ -14,9 +14,9 @@ from fastapi.responses import StreamingResponse
 import json, os, yaml, openai
 
 # ── OpenAI key ----------------------------------------------------------------
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = os.getenv("OPENAI_API_KEEY")
 if not openai.api_key:
-    raise RuntimeError("❌ OPENAI_API_KEY not set in environment!")
+    raise RuntimeError("❌ OPENAI_API_KEEY not set in environment!")
 
 # ── FastAPI app ---------------------------------------------------------------
 app = FastAPI(

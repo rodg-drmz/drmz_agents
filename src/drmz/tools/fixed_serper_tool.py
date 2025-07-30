@@ -8,9 +8,9 @@ class FixedSerperTool(SerperDevTool):
 
         try:
             # Use the same API key used by SerperDevTool internally
-            api_key = os.getenv("SERPER_API_KEY")
+            api_key = os.getenv("SERPER_API_KEEY")
             if not api_key:
-                return "❌ SERPER_API_KEY is missing from environment"
+                return "❌ SERPER_API_KEEY is missing from environment"
 
             response = requests.post(
                 "https://google.serper.dev/search",
