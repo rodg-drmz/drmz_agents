@@ -306,3 +306,40 @@ def kickoff():
 
 if __name__ == "__main__":
     kickoff()
+
+# Add this at the end of your morpheus_chat_flow.py file
+# ── Enterprise Deployment Entry Point ──────────────────────────────────────────
+def chat_endpoint(message: str, user_data: dict = None) -> dict:
+    """
+    Enterprise deployment endpoint.
+    Returns structured response for API consumption.
+    """
+    flow = MorpheusChatFlow()
+    
+    # Load user data if provided
+    if user_data:
+        flow.state.user_data = UserData(**user_data)
+        flow.state.history = user_data.get("history", [])
+    
+    # Set message and execute
+    flow.state.message = message
+    response = flow.kickoff()
+    
+    return {
+        "response": response,
+        "user_data": {
+            "name": flow.state.user_data.name,
+            "wallet_address": flow.state.user_data.wallet_address,
+            "stage": flow.state.user_data.stage,
+            "onboarding_active": flow.state.user_data.onboarding_started,
+            "captured_data": flow.state.captured_data,
+            "history": flow.state.history
+        },
+        "onboarding_complete": (
+            flow.state.user_data.stage == "chat" and 
+            bool(flow.state.captured_data)
+        )
+    }
+
+# Export for enterprise deployment
+__all__ = ["MorpheusChatFlow", "chat_endpoint", "kickoff"]
