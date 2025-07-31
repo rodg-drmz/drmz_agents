@@ -32,19 +32,10 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["drmz_crewai", "src"]
 
-# Updated for Enterprise Flow deployment
+# Fixed for Enterprise Flow deployment
 [tool.crewai]
 type = "flow"
-entry_point = "drmz_crewai.flows.morpheus_chat_flow"
-
-# Optional: Enterprise-specific configuration
-[tool.crewai.enterprise]
-flow_name = "morpheus_chat_flow"
-description = "Morpheus-guided Cardano onboarding and chat experience"
-version = "1.0.0"
-endpoints = [
-    {name = "chat", function = "chat_endpoint", method = "POST"}
-]
+entry_point = "drmz_crewai.flows.morpheus_chat_flow:MorpheusChatFlow"
 
 # Development dependencies (optional)
 [project.optional-dependencies]
