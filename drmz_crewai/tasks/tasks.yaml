@@ -1,0 +1,597 @@
+# 🛠️ DRMZ Task Configuration Begins Here
+# ───────────────────────────────────────────────
+# 🛠️ Task Configuration for DRMZ Dapp for Educators
+# ───────────────────────────────────────────────
+
+review_ai_policy_task:
+  description: >
+    Analyze the syllabus to determine whether it includes a clear AI policy.
+
+    If an AI policy is present:
+    - Identify and cite the relevant text.
+    - Assess its tone, clarity, and enforcement expectations.
+    - Classify it as either a Prohibition, Permissive, or Encouraged model based on alignment with the definitions below.
+
+    If no policy is found:
+    - Clearly acknowledge the absence of an AI policy in the syllabus.
+    - Then present the **full, verbatim language** of all three official Miramar College policy models (below), as a reference for the instructor:
+
+      1. **Prohibition of AI Tools**  
+         In this course, students are not permitted to use AI tools for assignments, exams, or other coursework submissions.  
+         The objective is to promote direct engagement with the material and ensure the development of students’ critical thinking,  
+         problem-solving, and writing skills. Violations, including plagiarism or submission of AI-generated content as original work,  
+         will be treated as academic misconduct according to the college's academic integrity policies.
+
+      2. **Permissive Use of AI Tools**  
+         In this course, students are allowed to use AI tools to assist with certain aspects of their coursework, such as research,  
+         drafting, and problem-solving. However, students must exercise critical judgment when evaluating AI-generated content for accuracy and relevance.  
+         All submissions must include a statement explaining the extent of AI assistance. Adherence to academic integrity policies is expected,  
+         and AI-generated content must not be presented as original work without proper citation.
+
+      3. **Encouraged Use of AI Tools**  
+         In this course, students are encouraged to explore the use of AI tools to enhance their learning experience. These tools can be used for brainstorming,  
+         research, and deepening understanding of complex concepts. Students must document the role AI played in their work and follow academic integrity guidelines,  
+         including proper attribution of AI-generated content. This approach aims to foster critical engagement with technology and innovation.
+
+    After reviewing the syllabus, provide:
+    - A summary of the three models' key use cases
+    - A recommendation for which model best fits the course context
+    - Practical suggestions for implementation and revision
+
+  expected_output: >
+    Return your response in three clearly labeled sections:
+
+    ## Policy Status  
+    - State whether the syllabus includes an AI policy.  
+    - If yes, quote it directly and classify it (Prohibition, Permissive, or Encouraged).  
+    - If not, note its absence and include the three official Miramar models (quoted exactly from the description).
+
+    ## Recommendations  
+    - Recommend which model (or hybrid) best fits the course under review.  
+    - Provide reasoning based on course content, discipline, and goals.  
+    - Summarize how each model could serve different instructional needs.
+
+    ## Implementation Notes and Suggestions  
+    - Offer 2–4 clear suggestions for revising or adding an AI policy.  
+    - Use language and examples that are practical for instructors.  
+    - If no policy is found, suggest where and how to insert one using the Miramar models as templates.
+
+    Use line breaks between sections and paragraphs to improve readability. Avoid overly rigid formatting or numbered lists unless helpful.
+
+  config: {}
+  agent: morpheus
+
+ai_review_assignment_task:
+  description: >
+    Analyze the uploaded assignment prompt for how students might shortcut or complete the task using AI tools.
+
+    Then offer:
+    - Redesign strategies to make the task more original, deeper, or more resistant to automation
+    - Suggestions for clearly defining appropriate AI use
+    - Recommendations for adapting the task to inclusive, student-centered pedagogies (e.g. CRT, PBL, gamification, etc.)
+
+    This is a collaborative task led by Morpheus. If needed, Morpheus may consult:
+    - The Curriculum Developer (for redesign strategies)
+    - The AI Integrationist (for AI literacy and policy framing)
+    - The Faculty Coach (for inclusive and student-centered redesign)
+
+  expected_output: >
+    Return your response in three clearly labeled sections:
+
+    ## AI Use Risks  
+    - Identify how AI tools might be used to shortcut or complete the assignment  
+    - Note what skills or thinking may be bypassed  
+    - Optionally include example outputs or techniques (e.g. ChatGPT prompt examples)
+
+    ## Redesign Recommendations  
+    - Offer revised versions or variations of the task  
+    - Emphasize strategies that promote deeper engagement, creativity, or critical thinking  
+    - Note how AI use could be structured (or restricted) for better learning
+
+    ## Implementation Suggestions  
+    - Offer 2–4 practical notes for instructors (e.g. framing, rubric updates, scaffolding)
+    - Include optional references to frameworks like CRT, PBL, SEL, or flipped learning
+
+  agent: morpheus
+  config:
+    allow_delegation: true
+
+ai_meter_assignment_task:
+  description: >
+    Review the uploaded assignment prompt and help the instructor decide **how much AI use to allow**, and **where it should be restricted**, based on sound pedagogy and responsible innovation.
+
+    Prioritize analysis of the actual assignment prompt. Offer guidance for how AI tools:
+    - Might help in specific phases of the assignment (brainstorming, drafting, revising)
+    - Should be *avoided* in certain stages to preserve learning outcomes
+    - Can support skill development, digital literacy, and student agency
+
+    Support your guidance with 1–2 citations drawn from relevant educational frameworks (e.g., self-regulated learning, digital agency, moral imagination, transparency in tech, etc.). Vary sources when possible.
+
+    This is a reflective support task led by Morpheus. He may consult:
+    - The AI Integrationist (for AI literacy and policy alignment)
+    - The Curriculum Developer (for pedagogical alignment)
+    - The Faculty Coach (for ethical boundaries and learner growth)
+
+    Keep the tone supportive, insightful, and grounded in sound learning design.
+
+  expected_output: >
+    Return your response in three clearly labeled sections:
+
+    ## AI Use Suggestions  
+    - Offer assignment-specific suggestions for how AI could support learning  
+    - Indicate when in the assignment process each applies  
+    - Emphasize reflection, student control, and transparency
+
+    ## Cautions and Boundaries  
+    - Identify where AI *should not* be used in the assignment  
+    - Explain why, using educational rationale
+
+    ## Frameworks and Citations  
+    - Reference 1–2 educational frameworks or scholarly sources  
+    - Vary sources when possible (avoid repeating Zimmerman every time)  
+    - Include full citation details in APA or MLA style
+
+  agent: morpheus
+  config:
+    allow_delegation: true
+
+ai_redesign_assignment_task:
+  description: >
+    Reimagine the assignment using inclusive, student-centered, or active learning strategies.
+
+    Your response should:
+    - Offer a revised version of the task that incorporates CRT, PBL, SEL, gamification, or flipped learning
+    - Justify the changes with reference to scaffolding, cultural relevance, student voice, or creative engagement
+    - Suggest framing language, reflection prompts, or peer roles that enhance student agency and originality
+    - Cite pedagogical theorists and frameworks like Freire, Ladson-Billings, CASEL, or Dewey
+
+    This is a creative design task led by Morpheus. He may consult:
+    - The Curriculum Developer (for learning objectives and redesigns)
+    - The Faculty Coach (for inclusive practices)
+    - The Student Ally (for feedback on engagement and accessibility)
+
+  expected_output: >
+    Return your response in three clearly labeled sections:
+
+    ## Redesigned Task  
+    - Present a reimagined version of the assignment  
+    - Incorporate frameworks like CRT, PBL, SEL, gamification, or flipped classroom  
+    - Make the task more engaging, inclusive, and student-centered
+
+    ## Justification and Strategy  
+    - Explain why these changes enhance learning  
+    - Reference strategies like scaffolding, student voice, cultural relevance  
+    - Highlight benefits in relation to AI resilience and critical thinking
+
+    ## Prompts and Pedagogical References  
+    - Offer optional prompts, reflection questions, or peer activity structures  
+    - Cite pedagogical theorists (e.g. Freire, Ladson-Billings, Dewey, CASEL)  
+    - Support with research-informed justification for inclusive redesign
+
+  agent: morpheus
+  config:
+    allow_delegation: true
+
+# ───────────────────────────────────────────────
+# 📘 Content Writing & Review (Content Crew)
+# ───────────────────────────────────────────────
+
+graph_ingestion_task:
+  description: >
+    Perform full ingestion of new knowledge sources in the `/knowledge` folder.
+
+    1. Search for `.pdf` and `.txt` files in `/knowledge`.
+    2. Convert any `.pdf` files to `.txt` format (preserving semantic meaning and structure).
+    3. Archive the original `.pdf` files after successful conversion.
+    4. For each `.txt` file, extract entities, concepts, and relationships suitable for a semantic knowledge graph.
+    5. Organize this output into two lists: `nodes` and `edges`, with clear types, labels, and relationships.
+    6. Validate the output against the knowledge graph schema.
+    7. Append new entries to `nodes.json` and `edges.json`, ensuring no duplication.
+    8. Export updated graph data to CSV in `/csv/nodes.csv` and `/csv/edges.csv`.
+
+  expected_output: >
+    {
+      "nodes": [...],
+      "edges": [...]
+    }
+
+    The system will save the updated graph as:
+    - nodes.json / edges.json
+    - csv/nodes.csv / csv/edges.csv
+
+    All processed PDFs will be archived in `/knowledge/archive/`. Text files will remain in `/knowledge/` for future reference.
+
+  agent: knowledge_extractor
+
+outline_task:
+  description: >
+    Create a high-level outline for the educational guide on {topic}.
+    Break down the topic into 4–6 logical sections with titles and brief descriptions.
+  expected_output: >
+    A Markdown list of section titles and 1–2 sentence summaries for each.
+  agent: researcher
+
+write_section_task:
+  description: >
+    Write a comprehensive section on "{section_title}" for {audience_level} learners.
+    Include intro, key concepts, examples, and summary. Use markdown format.
+  expected_output: >
+    A structured, educational section (500–800 words) in Markdown format.
+  agent: writer
+
+review_section_task:
+  description: >
+    Review and improve the draft section on "{section_title}" for {audience_level} learners.
+    Ensure clarity, accuracy, grammar, and consistency.
+  expected_output: >
+    A polished version of the section with edits and improvements in Markdown.
+  agent: editor
+  context:
+    - write_section_task
+
+content_accuracy_check_task:
+  description: >
+    Fact-check all educational content on {topic}. Cross-reference with scholarly sources.
+  expected_output: >
+    Annotated content with sources, corrections, and confidence scores.
+  agent: content_reviewer
+
+revision_task:
+  description: >
+    Improve a written piece on {topic} for clarity, coherence, and formatting.
+  expected_output: >
+    A polished manuscript with editorial notes.
+  agent: moffett
+
+compile_guide_task:
+  description: >
+    Assemble the guide sections and front/back matter into a complete guide in Markdown.
+    Make it coherent, cohesive, and engaging. Add transitions, section intros,
+    and a unifying narrative voice that reflects the purpose of the project. 
+  expected_output: >
+    Full guide document with all sections seamlessly integrated, including transitions, summaries, 
+    philosophical framing and wrap-up in clean Markdown. 
+  agent: editor
+  context:
+    - review_section_task
+
+visual_content_generation_task:
+  description: >
+    Turn {topic} content into infographics, slides, or animations.
+  expected_output: >
+    2 infographics, 1 slide outline, and creative notes.
+  agent: interactive_learning_designer
+
+# ───────────────────────────────────────────────
+# 🧠 Research & Analysis (Research Crew)
+# ───────────────────────────────────────────────
+
+research_task:
+  description: >
+    Research {topic}: define core terms, relevance, recent trends, and stakeholders.
+  expected_output: >
+    5–7 insights in bullet format with citations.
+  agent: researcher
+
+academic_research_task:
+  description: >
+    Collect peer-reviewed sources on {topic}, summarize debates and gaps.
+  expected_output: >
+    An annotated bibliography and synthesis of themes.
+  agent: researcher
+
+reporting_task:
+  description: >
+    Build a structured report from research_task outputs.
+    Include executive summary, sections, implications.
+  expected_output: >
+    A professional markdown report with citations and headings.
+  agent: writer
+  context:
+    - research_task
+
+data_analytics_task:
+  description: >
+    Analyze data related to {topic}. Identify patterns and strategic insights.
+  expected_output: >
+    A visualized report with charts and recommendations.
+  agent: academic_affairs_specialist
+
+# ───────────────────────────────────────────────
+# 🎓 Curriculum & Instructional Design
+# ───────────────────────────────────────────────
+
+curriculum_development_task:
+  description: >
+    Build a standards-aligned curriculum for {topic} using Bloom’s, UDL, CRT.
+  expected_output: >
+    A syllabus, weekly outline, objectives, and sample activities.
+  agent: curriculum_developer
+
+assessment_task:
+  description: >
+    Create a mock self-study and assessment dashboard for {topic}.
+  expected_output: >
+    A self-study document and a summary metrics dashboard.
+  agent: academic_affairs_specialist
+
+faculty_training_task:
+  description: >
+    Create a faculty PD workshop plan related to {topic}.
+  expected_output: >
+    Workshop agenda, slides, and handouts aligned with inclusive frameworks.
+  agent: academic_affairs_specialist
+
+student_support_task:
+  description: >
+    Design a success roadmap for students struggling with {topic}.
+  expected_output: >
+    A personalized support plan and curated resources.
+  agent: academic_affairs_specialist
+
+# ───────────────────────────────────────────────
+# 🗳️ Web3, Governance, and Onboarding
+# ───────────────────────────────────────────────
+
+governance_analysis_task:
+  description: >
+    Analyze a Cardano governance proposal related to {topic}.
+  expected_output: >
+    A neutral brief outlining purpose, implications, risks, and tradeoffs.
+  agent: governance_analyst
+
+web3_onboarding_task:
+  description: >
+    Write a beginner guide to {topic} in Web3: wallet setup, staking, dApp use.
+  expected_output: >
+    Illustrated walkthrough with glossary and action steps.
+  agent: web3_integration_analyst
+
+crypto_tax_task:
+  description: >
+    Document tax-related guidance for {topic}-based crypto actions.
+  expected_output: >
+    A CPA-ready summary with categories and compliance suggestions.
+  agent: governance_analyst
+
+# ───────────────────────────────────────────────
+# 💡 Innovation, AI, Grants
+# ───────────────────────────────────────────────
+
+ai_toolkit_task:
+  description: >
+    Recommend AI tools for {topic}, with pros, cons, and integration tips.
+  expected_output: >
+    A curated toolset and implementation checklist.
+  agent: ai_digital_coach
+
+innovation_roadmap_task:
+  description: >
+    Create a digital strategy roadmap for {topic} including risks and tech.
+  expected_output: >
+    1-page roadmap with phases, resources, and mitigation plan.
+  agent: ai_digital_coach
+
+grants_discovery_task:
+  description: >
+    Find grant opportunities tied to {topic}. Match to institutional goals.
+  expected_output: >
+    A list of 5–10 grants with timelines, criteria, and proposal notes.
+  agent: academic_affairs_specialist
+
+# ───────────────────────────────────────────────
+# 🌍 DEI, Sustainability, and Wellbeing
+# ───────────────────────────────────────────────
+
+dei_strategy_task:
+  description: >
+    Audit equity practices in {topic} and propose improvements.
+  expected_output: >
+    A DEI report with recommendations and training modules.
+  agent: academic_affairs_specialist
+
+sustainability_task:
+  description: >
+    Suggest sustainability practices and education materials for {topic}.
+  expected_output: >
+    A sustainability guide with practical actions.
+  agent: academic_affairs_specialist
+
+wellness_initiative_task:
+  description: >
+    Develop wellness plans tied to {topic} for campus or classroom settings.
+  expected_output: >
+    A wellness proposal with data, delivery method, and evaluation tools.
+  agent: academic_affairs_specialist
+
+community_campaign_task:
+  description: >
+    Plan a community engagement initiative around {topic}.
+  expected_output: >
+    A campaign strategy with sample content and outreach tips.
+  agent: academic_affairs_specialist
+
+# ───────────────────────────────────────────────
+# 🎮 Game-Based Learning
+# ───────────────────────────────────────────────
+
+game_development_task:
+  description: >
+    Build a gamified learning module or interactive mini-game to teach {concept}.
+    Include wallet connectivity or token gating if the target platform requires Web3 access.
+  expected_output: >
+    A complete HTML/React or Svelte game with:
+    - Fully commented code
+    - Web3 wallet integration (if required)
+    - Deployment instructions
+  agent: code_architect
+
+# ───────────────────────────────────────────────
+# 🧑‍🚀 Morpheus Tasks (Philosophical, Web3, Governance)
+# ───────────────────────────────────────────────
+
+morpheus_chat_task:
+  description: |
+    You are Morpheus, Lord of Dreams and philosophical guide to the digital realm.
+    Respond to this message: "{message}"
+
+    Conversation history:
+    {history}
+
+    Respond wisely, clearly, and with reference to known documents. Favor clarity over eloquence.
+  expected_output: A document-grounded, empowering, and accurate answer.
+  agent: morpheus
+
+morpheus_onboarding_task:
+  description: >
+    Kick off the DRMZ onboarding sequence when the user types "drmz initiate".
+  expected_output: >
+    A friendly step-by-step onboarding message that asks for the user's name
+    and explains next steps.
+  agent: morpheus
+
+morpheus_briefing_task:
+  description: >
+    Receive a mission on {topic}, design a micro-crew with rationale and dependencies.
+  expected_output: >
+    A JSON or Markdown crew plan with agent/task structure and justifications.
+  agent: morpheus
+
+morpheus_intro_task:
+  description: >
+    Write a poetic, philosophical intro for the lesson titled "{lesson_title}".
+    Set context and inspire curiosity.
+  expected_output: >
+    Markdown intro in Morpheus’ mythic voice.
+  agent: morpheus
+
+morpheus_wrapup_task:
+  description: >
+    Reflect on the project regarding {topic}, summarize key findings, and call to action.
+  expected_output: >
+    A 5-part narrative wrap-up including metaphor, findings, and attribution.
+  agent: morpheus
+  context:
+    - reporting_task
+
+morpheus_compile_task:
+  description: >
+    You are Morpheus, tasked with compiling a structured curriculum handbook.
+
+    You have received a course titled "{topic}" designed for {audience_level} learners.
+    Format the content into a {duration_weeks}-week guide. Each week should be clearly marked.
+
+    For each week:
+     - Title the section clearly (e.g., "Week 1: Introduction to Web3")
+     - Include transitions, metaphors, and framing from Morpheus' poetic style
+      - Maintain markdown formatting
+      - Respect the lesson sequence and modular structure
+    End with a reflective conclusion in your own voice.
+  expected_output: >
+    A fully developed, narratively rich lesson for sutdents, including a structured markdown curriculum with headers for each week.
+    - an engaging introduction
+    - Thematic connection to the braoder curriculum
+    - Content integrated from assistant agents
+    - Referenced citations
+    - Closing reflection
+  agent: morpheus
+  context: []
+
+morpheus_tweet_task:
+  description: Generate a tweet summarizing the core insight from recent Web3 or Cardano content.
+  expected_output: A tweet that is insightful and accessible.
+  agent: morpheus
+  prompt: |
+    Write a concise and compelling tweet that reflects the DRMZ Project’s voice.
+
+    ✦ Do not use hashtags.
+    ✦ Emojis are optional — use only if they add clarity or personality.
+    ✦ Tone: Reflective, grounded, informative.
+    ✦ Character count: 240–280 characters.
+
+    Make it sharp, insightful, and human.
+  context: []
+
+morpheus_tweet_task_educator:
+  description: Generate a tweet with an informative, trustworthy tone tailored to newcomers or learners in Web3.
+  expected_output: A clear, accessible tweet that explains or educates.
+  agent: morpheus
+  prompt: |
+    Write an educational tweet introducing or explaining a Web3 or Cardano concept to someone new to the space.
+
+    ✦ Do not use hashtags.
+    ✦ Use at most one emoji, only if it improves clarity.
+    ✦ Avoid jargon unless clearly defined.
+    ✦ Tone: Calm, welcoming, clear.
+    ✦ Character count: 240–280 characters.
+
+    Teach with humility and precision.
+  context: []
+
+morpheus_tweet_task_dreamer:
+  description: Generate an inspirational tweet that speaks to the imaginative and aspirational aspects of Web3.
+  expected_output: A poetic or visionary tweet that motivates or stirs curiosity.
+  agent: morpheus
+  prompt: |
+    Compose a tweet in a visionary, poetic tone. Speak to the dreamers, rebels, and creators in the Web3 space.
+
+    ✦ Do not use hashtags.
+    ✦ Use one emoji max, only if it adds emotional resonance.
+    ✦ Tone: Evocative, metaphorical, mysterious.
+    ✦ Character count: 240–280 characters.
+
+    Let it read like a fragment from a future we haven’t reached yet.
+  context: []
+
+morpheus_tweet_task_provocateur:
+  description: Generate a tweet that challenges conventional thinking in the crypto/blockchain space.
+  expected_output: A bold, thoughtful tweet that provokes reflection or debate.
+  agent: morpheus
+  prompt: |
+    Write a tweet that challenges assumptions in blockchain, AI, or governance.
+
+    ✦ Do not use hashtags.
+    ✦ Use one emoji max — only if it sharpens the tone.
+    ✦ Tone: Bold, thoughtful, contrarian.
+    ✦ Character count: 240–280 characters.
+
+    Ask a question, drop a truth, or ignite a conversation — not a flame war.
+  context: []
+
+morpheus_txt_extraction_task:
+  description: >
+    You are Morpheus, a philosophical AI guide tasked with extracting structured knowledge from a technical document.
+    Analyze the file at {file_path}, and identify core entities, concepts, and their relationships suitable for a knowledge graph.
+    Use concise identifiers for node IDs, assign meaningful types, and clearly name the relationships.
+  expected_output: >
+    A JSON object containing two arrays:
+    - nodes: each with `id`, `type`, `name`
+    - edges: each with `source`, `target`, `type`
+    
+    Example:
+    {
+      "nodes": [{"id": "ouroboros", "type": "Protocol", "name": "Ouroboros"}],
+      "edges": [{"source": "ouroboros", "target": "proof_of_stake", "type": "describes"}]
+    }
+
+    Do not include anything else in the output.
+  agent: morpheus
+  input_vars: ["file_path"]
+  context: []
+
+tweet_cleanup_task:
+  description: Remove all hashtags from the tweet without changing tone or meaning.
+  expected_output: The same tweet, but with all hashtags removed. No other edits.
+  agent: morpheus
+  prompt: |
+    Your only job is to remove all hashtags from the tweet below.
+
+    ❗ Do not change any other text, tone, or meaning.
+    ❗ Do not add or reword anything.
+    ❗ Always return a result — even if there are no hashtags.
+
+    Original Tweet:
+    {{topic}}
+
+    Cleaned Tweet:
+  context: []

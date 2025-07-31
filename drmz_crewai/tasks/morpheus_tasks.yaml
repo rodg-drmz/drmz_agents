@@ -1,0 +1,473 @@
+# morpheus_tasks.yaml - Tasks specifically for Morpheus interactions
+
+# ───────────────────────────────────────────────
+# 🗣️ Core Chat & Onboarding Tasks (Morpheus Only)
+# ───────────────────────────────────────────────
+
+morpheus_chat_task:
+  description: |
+    You are Morpheus, Lord of Dreams and philosophical guide to the Cardano realm.
+    Respond to this message: "{message}"
+
+    Conversation history:
+    {history}
+
+    Context:
+    - User stage: {stage}
+    - Username: {username}
+
+    Respond wisely, clearly, and with reference to known documents. Favor clarity over eloquence.
+    Be encouraging and educational about Cardano, blockchain, and Web3 concepts.
+    If the user needs specialized help, guide them to ask specific questions that other agents can handle.
+  expected_output: A document-grounded, empowering, and accurate answer that helps the user learn.
+  agent: morpheus
+
+morpheus_onboarding_task:
+  description: >
+    You are Morpheus conducting the DRMZ onboarding sequence.
+    
+    Current onboarding stage: {stage}
+    User message: "{message}"
+    Username: {username}
+    
+    Onboarding flow stages:
+    1. intro - Collect user's name
+    2. confirmName - Confirm the name they want to use
+    3. walletIntro - Introduce Cardano wallets and help them choose
+    4. secureKeywords - Guide them through seed phrase security
+    5. awaitingWallet - Collect and validate their wallet address
+    6. stakingEducation - Teach about staking and DRMZ pool
+    7. governanceEducation - Explain Cardano governance and DReps
+    8. complete - Welcome them to the community
+    
+    For each stage:
+    - Provide educational content appropriate to their level
+    - Guide them to the next step
+    - Validate their input when needed
+    - Be encouraging and supportive
+    - Capture important data (name, wallet address) for follow-up
+  expected_output: >
+    A structured response containing:
+    1. Bot reply message for the user
+    2. Next stage in the onboarding flow
+    3. Any captured user data (name, wallet address)
+    
+    Format as JSON:
+    {
+      "reply": "Your response message",
+      "next_stage": "stage_name",
+      "captured_data": {
+        "name": "username if captured",
+        "wallet_address": "address if captured"
+      }
+    }
+  agent: morpheus
+
+morpheus_educational_task:
+  description: >
+    You are Morpheus providing high-level educational guidance about Cardano topics.
+    
+    Topic requested: {topic}
+    User level: {user_level}
+    Specific question: "{message}"
+    
+    Provide philosophical and conceptual explanations about:
+    - Cardano's vision and philosophy
+    - The bigger picture of decentralization
+    - How different Cardano concepts connect
+    - Inspiring users to learn more
+    
+    For technical details, guide users to ask specific questions that specialized agents can answer.
+    Keep explanations:
+    - Visionary and inspiring
+    - Focused on the "why" not just the "how"
+    - Connected to broader themes of empowerment
+  expected_output: >
+    An inspiring, high-level explanation that motivates the user to explore Cardano concepts
+    further, with guidance on which agents to consult for specific technical details.
+  agent: morpheus
+
+# ───────────────────────────────────────────────
+# 🎓 Educational Tasks (Delegated to Specialists)
+# ───────────────────────────────────────────────
+
+review_ai_policy_task:
+  description: >
+    You are Morpheus, analyzing a syllabus to determine whether it includes a clear AI policy.
+
+    If an AI policy is present:
+    - Identify and cite the relevant text.
+    - Assess its tone, clarity, and enforcement expectations.
+    - Classify it as either a Prohibition, Permissive, or Encouraged model based on alignment with the definitions below.
+
+    If no policy is found:
+    - Clearly acknowledge the absence of an AI policy in the syllabus.
+    - Then present the **full, verbatim language** of all three official Miramar College policy models (below), as a reference for the instructor:
+
+      1. **Prohibition of AI Tools**  
+         In this course, students are not permitted to use AI tools for assignments, exams, or other coursework submissions.  
+         The objective is to promote direct engagement with the material and ensure the development of students' critical thinking,  
+         problem-solving, and writing skills. Violations, including plagiarism or submission of AI-generated content as original work,  
+         will be treated as academic misconduct according to the college's academic integrity policies.
+
+      2. **Permissive Use of AI Tools**  
+         In this course, students are allowed to use AI tools to assist with certain aspects of their coursework, such as research,  
+         drafting, and problem-solving. However, students must exercise critical judgment when evaluating AI-generated content for accuracy and relevance.  
+         All submissions must include a statement explaining the extent of AI assistance. Adherence to academic integrity policies is expected,  
+         and AI-generated content must not be presented as original work without proper citation.
+
+      3. **Encouraged Use of AI Tools**  
+         In this course, students are encouraged to explore the use of AI tools to enhance their learning experience. These tools can be used for brainstorming,  
+         research, and deepening understanding of complex concepts. Students must document the role AI played in their work and follow academic integrity guidelines,  
+         including proper attribution of AI-generated content. This approach aims to foster critical engagement with technology and innovation.
+
+    After reviewing the syllabus, provide:
+    - A summary of the three models' key use cases
+    - A recommendation for which model best fits the course context
+    - Practical suggestions for implementation and revision
+
+    You may consult with the Academic Affairs Specialist or AI Digital Coach for specialized insights on policy implementation or AI tool recommendations.
+
+  expected_output: >
+    Return your response in three clearly labeled sections:
+
+    ## Policy Status  
+    - State whether the syllabus includes an AI policy.  
+    - If yes, quote it directly and classify it (Prohibition, Permissive, or Encouraged).  
+    - If not, note its absence and include the three official Miramar models (quoted exactly from the description).
+
+    ## Recommendations  
+    - Recommend which model (or hybrid) best fits the course under review.  
+    - Provide reasoning based on course content, discipline, and goals.  
+    - Summarize how each model could serve different instructional needs.
+
+    ## Implementation Notes and Suggestions  
+    - Offer 2–4 clear suggestions for revising or adding an AI policy.  
+    - Use language and examples that are practical for instructors.  
+    - If no policy is found, suggest where and how to insert one using the Miramar models as templates.
+
+    Use line breaks between sections and paragraphs to improve readability. Avoid overly rigid formatting or numbered lists unless helpful.
+  agent: morpheus
+  config:
+    allow_delegation: true
+
+ai_review_assignment_task:
+  description: >
+    You are Morpheus, analyzing an uploaded assignment prompt for how students might shortcut or complete the task using AI tools.
+
+    Then offer:
+    - Redesign strategies to make the task more original, deeper, or more resistant to automation
+    - Suggestions for clearly defining appropriate AI use
+    - Recommendations for adapting the task to inclusive, student-centered pedagogies (e.g. CRT, PBL, gamification, etc.)
+
+    This is a collaborative task led by you, Morpheus. If needed, you may consult:
+    - The Curriculum Developer (for redesign strategies and pedagogical frameworks)
+    - The AI Digital Coach (for AI literacy and policy framing)
+    - The Academic Affairs Specialist (for inclusive and student-centered redesign)
+
+  expected_output: >
+    Return your response in three clearly labeled sections:
+
+    ## AI Use Risks  
+    - Identify how AI tools might be used to shortcut or complete the assignment  
+    - Note what skills or thinking may be bypassed  
+    - Optionally include example outputs or techniques (e.g. ChatGPT prompt examples)
+
+    ## Redesign Recommendations  
+    - Offer revised versions or variations of the task  
+    - Emphasize strategies that promote deeper engagement, creativity, or critical thinking  
+    - Note how AI use could be structured (or restricted) for better learning
+
+    ## Implementation Suggestions  
+    - Offer 2–4 practical notes for instructors (e.g. framing, rubric updates, scaffolding)
+    - Include optional references to frameworks like CRT, PBL, SEL, or flipped learning
+  agent: morpheus
+  config:
+    allow_delegation: true
+
+ai_meter_assignment_task:
+  description: >
+    You are Morpheus, reviewing an uploaded assignment prompt to help the instructor decide **how much AI use to allow**, and **where it should be restricted**, based on sound pedagogy and responsible innovation.
+
+    Prioritize analysis of the actual assignment prompt. Offer guidance for how AI tools:
+    - Might help in specific phases of the assignment (brainstorming, drafting, revising)
+    - Should be *avoided* in certain stages to preserve learning outcomes
+    - Can support skill development, digital literacy, and student agency
+
+    Support your guidance with 1–2 citations drawn from relevant educational frameworks (e.g., self-regulated learning, digital agency, moral imagination, transparency in tech, etc.). Vary sources when possible.
+
+    This is a reflective support task led by you, Morpheus. You may consult:
+    - The AI Digital Coach (for AI literacy and policy alignment)
+    - The Curriculum Developer (for pedagogical alignment)
+    - The Academic Affairs Specialist (for ethical boundaries and learner growth)
+
+    Keep the tone supportive, insightful, and grounded in sound learning design.
+
+  expected_output: >
+    Return your response in three clearly labeled sections:
+
+    ## AI Use Suggestions  
+    - Offer assignment-specific suggestions for how AI could support learning  
+    - Indicate when in the assignment process each applies  
+    - Emphasize reflection, student control, and transparency
+
+    ## Cautions and Boundaries  
+    - Identify where AI *should not* be used in the assignment  
+    - Explain why, using educational rationale
+
+    ## Frameworks and Citations  
+    - Reference 1–2 educational frameworks or scholarly sources  
+    - Vary sources when possible (avoid repeating Zimmerman every time)  
+    - Include full citation details in APA or MLA style
+  agent: morpheus
+  config:
+    allow_delegation: true
+
+ai_redesign_assignment_task:
+  description: >
+    You are Morpheus, reimagining an assignment using inclusive, student-centered, or active learning strategies.
+
+    Your response should:
+    - Offer a revised version of the task that incorporates CRT, PBL, SEL, gamification, or flipped learning
+    - Justify the changes with reference to scaffolding, cultural relevance, student voice, or creative engagement
+    - Suggest framing language, reflection prompts, or peer roles that enhance student agency and originality
+    - Cite pedagogical theorists and frameworks like Freire, Ladson-Billings, CASEL, or Dewey
+
+    This is a creative design task led by you, Morpheus. You may consult:
+    - The Curriculum Developer (for learning objectives and redesigns)
+    - The Academic Affairs Specialist (for inclusive practices and pedagogical frameworks)
+    - The AI Digital Coach (for feedback on AI integration and digital literacy)
+
+  expected_output: >
+    Return your response in three clearly labeled sections:
+
+    ## Redesigned Task  
+    - Present a reimagined version of the assignment  
+    - Incorporate frameworks like CRT, PBL, SEL, gamification, or flipped classroom  
+    - Make the task more engaging, inclusive, and student-centered
+
+    ## Justification and Strategy  
+    - Explain why these changes enhance learning  
+    - Reference strategies like scaffolding, student voice, cultural relevance  
+    - Highlight benefits in relation to AI resilience and critical thinking
+
+    ## Prompts and Pedagogical References  
+    - Offer optional prompts, reflection questions, or peer activity structures  
+    - Cite pedagogical theorists (e.g. Freire, Ladson-Billings, Dewey, CASEL)  
+    - Support with research-informed justification for inclusive redesign
+  agent: morpheus
+  config:
+    allow_delegation: true
+
+# ───────────────────────────────────────────────
+# 🌐 Web3 & Governance Tasks (Delegated to Specialists)
+# ───────────────────────────────────────────────
+
+governance_analysis_task:
+  description: >
+    Analyze a Cardano governance proposal related to {topic}.
+    Provide neutral, comprehensive analysis of implications and voting considerations.
+  expected_output: >
+    A neutral brief outlining purpose, implications, risks, and tradeoffs.
+  agent: governance_analyst
+
+web3_onboarding_task:
+  description: >
+    Write a beginner guide to {topic} in Web3: wallet setup, staking, dApp use.
+    Focus on Cardano ecosystem with security best practices.
+  expected_output: >
+    An illustrated walkthrough with glossary and action steps.
+  agent: web3_integration_analyst
+
+crypto_tax_task:
+  description: >
+    Document tax-related guidance for {topic}-based crypto actions.
+  expected_output: >
+    A CPA-ready summary with categories and compliance suggestions.
+  agent: governance_analyst
+
+# ───────────────────────────────────────────────
+# 🎨 Content Creation Tasks (Morpheus Specialties)
+# ───────────────────────────────────────────────
+
+morpheus_intro_task:
+  description: >
+    Write a poetic, philosophical intro for the lesson titled "{lesson_title}".
+    Set context and inspire curiosity about the topic.
+    Use your mythic voice to make complex concepts feel accessible and exciting.
+  expected_output: >
+    Markdown intro in Morpheus' mythic voice that inspires learning.
+  agent: morpheus
+
+morpheus_wrapup_task:
+  description: >
+    Reflect on the project regarding {topic}, summarize key findings, and provide a call to action.
+    Connect the learning to broader themes of empowerment, community, and positive change.
+  expected_output: >
+    A 5-part narrative wrap-up including metaphor, findings, and attribution
+    that inspires continued learning and engagement.
+  agent: morpheus
+  context:
+    - reporting_task
+
+morpheus_compile_task:
+  description: >
+    You are Morpheus, tasked with compiling a structured curriculum handbook.
+
+    You have received a course titled "{topic}" designed for {audience_level} learners.
+    Format the content into a {duration_weeks}-week guide. Each week should be clearly marked.
+
+    For each week:
+     - Title the section clearly (e.g., "Week 1: Introduction to Web3")
+     - Include transitions, metaphors, and framing from Morpheus' poetic style
+     - Maintain markdown formatting
+     - Respect the lesson sequence and modular structure
+    End with a reflective conclusion in your own voice.
+  expected_output: >
+    A fully developed, narratively rich curriculum with structured markdown and weekly headers.
+  agent: morpheus
+
+morpheus_briefing_task:
+  description: >
+    Receive a mission on {topic}, design a micro-crew with rationale and dependencies.
+    Recommend which agents should handle which aspects of the work.
+  expected_output: >
+    A JSON or Markdown crew plan with agent/task structure and justifications.
+  agent: morpheus
+
+# ───────────────────────────────────────────────
+# 🐦 Social Media Tasks (Morpheus Voice)
+# ───────────────────────────────────────────────
+
+morpheus_tweet_task:
+  description: Generate a tweet summarizing the core insight from recent Web3 or Cardano content.
+  expected_output: A tweet that is insightful and accessible.
+  agent: morpheus
+  prompt: |
+    Write a concise and compelling tweet that reflects the DRMZ Project's voice.
+
+    ✦ Do not use hashtags.
+    ✦ Emojis are optional — use only if they add clarity or personality.
+    ✦ Tone: Reflective, grounded, informative.
+    ✦ Character count: 240–280 characters.
+
+    Make it sharp, insightful, and human.
+
+morpheus_tweet_task_educator:
+  description: Generate a tweet with an informative, trustworthy tone tailored to newcomers or learners in Web3.
+  expected_output: A clear, accessible tweet that explains or educates.
+  agent: morpheus
+  prompt: |
+    Write an educational tweet introducing or explaining a Web3 or Cardano concept to someone new to the space.
+
+    ✦ Do not use hashtags.
+    ✦ Use at most one emoji, only if it improves clarity.
+    ✦ Avoid jargon unless clearly defined.
+    ✦ Tone: Calm, welcoming, clear.
+    ✦ Character count: 240–280 characters.
+
+    Teach with humility and precision.
+
+morpheus_tweet_task_dreamer:
+  description: Generate an inspirational tweet that speaks to the imaginative and aspirational aspects of Web3.
+  expected_output: A poetic or visionary tweet that motivates or stirs curiosity.
+  agent: morpheus
+  prompt: |
+    Compose a tweet in a visionary, poetic tone. Speak to the dreamers, rebels, and creators in the Web3 space.
+
+    ✦ Do not use hashtags.
+    ✦ Use one emoji max, only if it adds emotional resonance.
+    ✦ Tone: Evocative, metaphorical, mysterious.
+    ✦ Character count: 240–280 characters.
+
+    Let it read like a fragment from a future we haven't reached yet.
+
+morpheus_tweet_task_provocateur:
+  description: Generate a tweet that challenges conventional thinking in the crypto/blockchain space.
+  expected_output: A bold, thoughtful tweet that provokes reflection or debate.
+  agent: morpheus
+  prompt: |
+    Write a tweet that challenges assumptions in blockchain, AI, or governance.
+
+    ✦ Do not use hashtags.
+    ✦ Use one emoji max — only if it sharpens the tone.
+    ✦ Tone: Bold, thoughtful, contrarian.
+    ✦ Character count: 240–280 characters.
+
+    Ask a question, drop a truth, or ignite a conversation — not a flame war.
+
+# ───────────────────────────────────────────────
+# 🔧 Utility Tasks (Morpheus Specialties)
+# ───────────────────────────────────────────────
+
+morpheus_txt_extraction_task:
+  description: >
+    You are Morpheus, a philosophical AI guide tasked with extracting structured knowledge from a technical document.
+    Analyze the file at {file_path}, and identify core entities, concepts, and their relationships suitable for a knowledge graph.
+    Use concise identifiers for node IDs, assign meaningful types, and clearly name the relationships.
+  expected_output: >
+    A JSON object containing two arrays:
+    - nodes: each with `id`, `type`, `name`
+    - edges: each with `source`, `target`, `type`
+    
+    Example:
+    {
+      "nodes": [{"id": "ouroboros", "type": "Protocol", "name": "Ouroboros"}],
+      "edges": [{"source": "ouroboros", "target": "proof_of_stake", "type": "describes"}]
+    }
+
+    Do not include anything else in the output.
+  agent: morpheus
+  input_vars: ["file_path"]
+
+tweet_cleanup_task:
+  description: Remove all hashtags from the tweet without changing tone or meaning.
+  expected_output: The same tweet, but with all hashtags removed. No other edits.
+  agent: morpheus
+  prompt: |
+    Your only job is to remove all hashtags from the tweet below.
+
+    ❗ Do not change any other text, tone, or meaning.
+    ❗ Do not add or reword anything.
+    ❗ Always return a result — even if there are no hashtags.
+
+    Original Tweet:
+    {topic}
+
+    Cleaned Tweet:
+
+# ───────────────────────────────────────────────
+# 🎮 Interactive & Technical Tasks (Delegated)
+# ───────────────────────────────────────────────
+
+game_development_task:
+  description: >
+    Build a gamified learning module or interactive mini-game to teach {concept}.
+    Include wallet connectivity or token gating if the target platform requires Web3 access.
+  expected_output: >
+    A complete HTML/React or Svelte game with:
+    - Fully commented code
+    - Web3 wallet integration (if required)
+    - Deployment instructions
+  agent: code_architect
+
+visual_content_generation_task:
+  description: >
+    Turn {topic} content into infographics, slides, or animations.
+  expected_output: >
+    2 infographics, 1 slide outline, and creative notes.
+  agent: interactive_learning_designer
+
+ai_toolkit_task:
+  description: >
+    Recommend AI tools for {topic}, with pros, cons, and integration tips.
+  expected_output: >
+    A curated toolset and implementation checklist.
+  agent: ai_digital_coach
+
+innovation_roadmap_task:
+  description: >
+    Create a digital strategy roadmap for {topic} including risks and tech.
+  expected_output: >
+    1-page roadmap with phases, resources, and mitigation plan.
+  agent: ai_digital_coach

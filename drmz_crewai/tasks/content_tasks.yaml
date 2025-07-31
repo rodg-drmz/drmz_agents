@@ -1,0 +1,31 @@
+# content_tasks.yaml - Tasks specifically for ContentCrew (writer and editor agents only)
+
+write_section_task:
+  description: >
+    Write a comprehensive section on "{section_title}" for {audience_level} learners.
+    Include intro, key concepts, examples, and summary. Use markdown format.
+  expected_output: >
+    A structured, educational section (500–800 words) in Markdown format.
+  agent: writer
+
+review_section_task:
+  description: >
+    Review and improve the draft section on "{section_title}" for {audience_level} learners.
+    Ensure clarity, accuracy, grammar, and consistency.
+  expected_output: >
+    A polished version of the section with edits and improvements in Markdown.
+  agent: editor
+  context:
+    - write_section_task
+
+compile_guide_task:
+  description: >
+    Assemble the guide sections and front/back matter into a complete guide in Markdown.
+    Make it coherent, cohesive, and engaging. Add transitions, section intros,
+    and a unifying narrative voice that reflects the purpose of the project. 
+  expected_output: >
+    Full guide document with all sections seamlessly integrated, including transitions, summaries, 
+    philosophical framing and wrap-up in clean Markdown. 
+  agent: editor
+  context:
+    - review_section_task

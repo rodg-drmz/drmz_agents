@@ -1,0 +1,90 @@
+syllabus_policy_review_crew:
+  description: "Review course syllabi for AI policy, alignment, and institutional compliance."
+  agents:
+    - morpheus
+    - ai-digital-coach
+
+curriculum_design_crew:
+  description: "Design and align curriculum that meets standards, equity goals, and instructional quality."
+  agents:
+    - curriculum-developer
+    - knowledge-extractor
+    - researcher
+    - writer
+    - editor
+
+governance_insight_crew:
+  description: "Analyze governance proposals and generate summaries for decision-making."
+  agents:
+    - governance-analyst
+    - morpheus
+
+research_pipeline_crew:
+  description: "Coordinate research, writing, and editing to produce high-quality academic output."
+  agents:
+    - researcher
+    - writer
+    - editor
+    - moffett
+
+knowledge_graph_crew:
+  description: "Extract structured knowledge from long documents to feed graph databases or reasoning chains."
+  agents:
+    - knowledge-extractor
+    - morpheus
+
+content_quality_crew:
+  description: "Ensure quality, clarity, and consistency of educational or institutional content."
+  agents:
+    - content-reviewer
+    - editor
+    - moffett
+
+web3_literacy_crew:
+  description: "Build onboarding and explainers to help users understand and navigate Web3 tools."
+  agents:
+    - web3-integration-analyst
+    - interactive-learning-designer
+    - researcher
+
+faculty_support_crew:
+  description: "Support faculty development with AI tools, pedagogy strategies, and coaching."
+  agents:
+    - academic-affairs-specialist
+    - ai-digital-coach
+    - moffett
+
+student_success_crew:
+  description: "Develop plans, resources, and interventions to help students thrive in hybrid environments."
+  agents:
+    - academic-affairs-specialist
+    - curriculum-developer
+    - moffett
+
+ai_toolkit_integration_crew:
+  description: "Evaluate and integrate AI tools for education, accessibility, and engagement."
+  agents:
+    - ai-digital-coach
+    - researcher
+    - interactive-learning-designer
+
+interactive_learning_crew:
+  description: "Develop games, diagrams, and simulations that turn content into immersive learning."
+  agents:
+    - interactive-learning-designer
+    - writer
+    - editor
+
+onboarding_content_crew:
+  description: "Generate clear, engaging onboarding docs and presentations for staff, students, or community."
+  agents:
+    - writer
+    - editor
+    - interactive-learning-designer
+
+game_development_crew:
+  description: "Develop educational games or interactive tools using HTML, React, and Web3 integrations"
+  agents:
+    - code_architect
+    - interactive_learning_designer
+    - morpheus
