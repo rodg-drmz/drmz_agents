@@ -3,22 +3,8 @@
     "slug": "morpheus",
     "name": "Morpheus",
     "subject": "Education • Governance",
-    "avatar": "/avatars/morpheus-avatar.jpg",
+    "avatar": "morpheus.png",
     "yaml": "morpheus.yaml"
-  },
-  {
-    "slug": "essay-mentor",
-    "name": "Moffett",
-    "subject": "Writing",
-    "avatar": "essay.png",
-    "yaml": "moffett.yaml"
-  },
-  {
-    "slug": "chem-coach",
-    "name": "Walter",
-    "subject": "Chemistry",
-    "avatar": "chem.png",
-    "yaml": "walter.yaml"
   },
   {
     "slug": "socratic-sage",
@@ -28,17 +14,80 @@
     "yaml": "socrates.yaml"
   },
   {
+    "slug": "aristotle",
+    "name": "Aristotle",
+    "subject": "Rhetoric • Communication",
+    "avatar": "aristotle.png",
+    "yaml": "aristotle.yaml"
+  },
+  {
+    "slug": "essay-mentor",
+    "name": "Moffett",
+    "subject": "Writing",
+    "avatar": "essay.png",
+    "yaml": "moffett.yaml"
+  },
+  {
+    "slug": "history-guide",
+    "name": "Campbell",
+    "subject": "History • Mythology",
+    "avatar": "history.png",
+    "yaml": "joseph.yaml"
+  },
+  {
     "slug": "math-genius",
-    "name": "Ada",
+    "name": "Lovelace",
     "subject": "Mathematics",
     "avatar": "math.png",
     "yaml": "ada.yaml"
   },
   {
-    "slug": "history-guide",
-    "name": "Joseph",
-    "subject": "History • Mythology",
-    "avatar": "history.png",
-    "yaml": "joseph.yaml"
+    "slug": "curie",
+    "name": "Curie",
+    "subject": "Chemistry • Physics",
+    "avatar": "curie.png",
+    "yaml": "curie.yaml"
+  },
+  {
+    "slug": "neo",
+    "name": "Neo",
+    "subject": "Web3 Engineering • Smart Contracts",
+    "avatar": "neo.png",
+    "yaml": "neo.yaml"
+  },
+  {
+    "slug": "athenia",
+    "name": "Athenia",
+    "subject": "Governance • Policy • Treasury",
+    "avatar": "athenia.png",
+    "yaml": "athenia.yaml"
+  },
+  {
+    "slug": "daedalus",
+    "name": "Daedalus",
+    "subject": "Innovation • Systems Thinking",
+    "avatar": "daedalus.png",
+    "yaml": "daedalus.yaml"
+  },
+  {
+    "slug": "pavlova",
+    "name": "Pavlova",
+    "subject": "Psychology • Digital Behavior",
+    "avatar": "pavlova.png",
+    "yaml": "pavlova.yaml"
+  },
+  {
+    "slug": "gaia",
+    "name": "Gaia",
+    "subject": "Ecology • Sustainability",
+    "avatar": "gaia.png",
+    "yaml": "gaia.yaml"
+  },
+  {
+    "slug": "cyrus",
+    "name": "Cyrus",
+    "subject": "Financial Literacy • Economics",
+    "avatar": "cyrus.png",
+    "yaml": "cyrus.yaml"
   }
 ]

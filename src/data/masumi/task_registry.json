@@ -1,0 +1,183 @@
+{
+  "morpheus_chat_task": {
+    "task_id": "morpheus_chat_task",
+    "name": "Morpheus Chat Task",
+    "description": "You are Morpheus, Lord of Dreams and philosophical guide to the digital realm.\nRespond to this message: \"{message}\"\n\nConversation history:\n{history}\n\nRespond wisely, clearly, and with reference to known documents. Favor clarity over eloquence.\n",
+    "agent": "morpheus",
+    "category": "chat",
+    "version": "1.0.0",
+    "inputs": {},
+    "outputs": {
+      "expected_output": "A document-grounded, empowering, and accurate answer."
+    },
+    "tags": [
+      "conversation"
+    ],
+    "registered_at": "2025-11-26T14:57:31.301730",
+    "enabled": true
+  },
+  "morpheus_onboarding_task": {
+    "task_id": "morpheus_onboarding_task",
+    "name": "Morpheus Onboarding Task",
+    "description": "Kick off the DRMZ onboarding sequence when the user types \"drmz initiate\".\n",
+    "agent": "morpheus",
+    "category": "morpheus",
+    "version": "1.0.0",
+    "inputs": {},
+    "outputs": {
+      "expected_output": "A friendly step-by-step onboarding message that asks for the user's name and explains next steps.\n"
+    },
+    "tags": [],
+    "registered_at": "2025-11-26T14:57:31.302125",
+    "enabled": true
+  },
+  "morpheus_briefing_task": {
+    "task_id": "morpheus_briefing_task",
+    "name": "Morpheus Briefing Task",
+    "description": "Receive a mission on {topic}, design a micro-crew with rationale and dependencies.\n",
+    "agent": "morpheus",
+    "category": "morpheus",
+    "version": "1.0.0",
+    "inputs": {},
+    "outputs": {
+      "expected_output": "A JSON or Markdown crew plan with agent/task structure and justifications.\n"
+    },
+    "tags": [],
+    "registered_at": "2025-11-26T14:57:31.302322",
+    "enabled": true
+  },
+  "morpheus_intro_task": {
+    "task_id": "morpheus_intro_task",
+    "name": "Morpheus Intro Task",
+    "description": "Write a poetic, philosophical intro for the lesson titled \"{lesson_title}\". Set context and inspire curiosity.\n",
+    "agent": "morpheus",
+    "category": "education",
+    "version": "1.0.0",
+    "inputs": {},
+    "outputs": {
+      "expected_output": "Markdown intro in Morpheus’ mythic voice.\n"
+    },
+    "tags": [],
+    "registered_at": "2025-11-26T14:57:31.302491",
+    "enabled": true
+  },
+  "morpheus_wrapup_task": {
+    "task_id": "morpheus_wrapup_task",
+    "name": "Morpheus Wrapup Task",
+    "description": "Reflect on the project regarding {topic}, summarize key findings, and call to action.\n",
+    "agent": "morpheus",
+    "category": "morpheus",
+    "version": "1.0.0",
+    "inputs": {},
+    "outputs": {
+      "expected_output": "A 5-part narrative wrap-up including metaphor, findings, and attribution.\n"
+    },
+    "tags": [],
+    "registered_at": "2025-11-26T14:57:31.302651",
+    "enabled": true
+  },
+  "morpheus_compile_task": {
+    "task_id": "morpheus_compile_task",
+    "name": "Morpheus Compile Task",
+    "description": "You are Morpheus, tasked with compiling a structured curriculum handbook.\nYou have received a course titled \"{topic}\" designed for {audience_level} learners. Format the content into a {duration_weeks}-week guide. Each week should be clearly marked.\nFor each week:\n - Title the section clearly (e.g., \"Week 1: Introduction to Web3\")\n - Include transitions, metaphors, and framing from Morpheus' poetic style\n  - Maintain markdown formatting\n  - Respect the lesson sequence and modular structure\nEnd with a reflective conclusion in your own voice.\n",
+    "agent": "morpheus",
+    "category": "morpheus",
+    "version": "1.0.0",
+    "inputs": {},
+    "outputs": {
+      "expected_output": "A fully developed, narratively rich lesson for sutdents, including a structured markdown curriculum with headers for each week. - an engaging introduction - Thematic connection to the braoder curriculum - Content integrated from assistant agents - Referenced citations - Closing reflection\n"
+    },
+    "tags": [
+      "web3"
+    ],
+    "registered_at": "2025-11-26T14:57:31.302804",
+    "enabled": true
+  },
+  "morpheus_tweet_task": {
+    "task_id": "morpheus_tweet_task",
+    "name": "Morpheus Tweet Task",
+    "description": "Generate a tweet summarizing the core insight from recent Web3 or Cardano content.",
+    "agent": "morpheus",
+    "category": "social",
+    "version": "1.0.0",
+    "inputs": {},
+    "outputs": {
+      "expected_output": "A tweet that is insightful and accessible."
+    },
+    "tags": [
+      "social-media",
+      "cardano",
+      "web3"
+    ],
+    "registered_at": "2025-11-26T14:57:31.302960",
+    "enabled": true
+  },
+  "morpheus_tweet_task_educator": {
+    "task_id": "morpheus_tweet_task_educator",
+    "name": "Morpheus Tweet Task Educator",
+    "description": "Generate a tweet with an informative, trustworthy tone tailored to newcomers or learners in Web3.",
+    "agent": "morpheus",
+    "category": "social",
+    "version": "1.0.0",
+    "inputs": {},
+    "outputs": {
+      "expected_output": "A clear, accessible tweet that explains or educates."
+    },
+    "tags": [
+      "social-media",
+      "web3"
+    ],
+    "registered_at": "2025-11-26T14:57:31.303323",
+    "enabled": true
+  },
+  "morpheus_tweet_task_dreamer": {
+    "task_id": "morpheus_tweet_task_dreamer",
+    "name": "Morpheus Tweet Task Dreamer",
+    "description": "Generate an inspirational tweet that speaks to the imaginative and aspirational aspects of Web3.",
+    "agent": "morpheus",
+    "category": "social",
+    "version": "1.0.0",
+    "inputs": {},
+    "outputs": {
+      "expected_output": "A poetic or visionary tweet that motivates or stirs curiosity."
+    },
+    "tags": [
+      "social-media",
+      "web3"
+    ],
+    "registered_at": "2025-11-26T14:57:31.303486",
+    "enabled": true
+  },
+  "morpheus_tweet_task_provocateur": {
+    "task_id": "morpheus_tweet_task_provocateur",
+    "name": "Morpheus Tweet Task Provocateur",
+    "description": "Generate a tweet that challenges conventional thinking in the crypto/blockchain space.",
+    "agent": "morpheus",
+    "category": "social",
+    "version": "1.0.0",
+    "inputs": {},
+    "outputs": {
+      "expected_output": "A bold, thoughtful tweet that provokes reflection or debate."
+    },
+    "tags": [
+      "social-media"
+    ],
+    "registered_at": "2025-11-26T14:57:31.303637",
+    "enabled": true
+  },
+  "morpheus_txt_extraction_task": {
+    "task_id": "morpheus_txt_extraction_task",
+    "name": "Morpheus Txt Extraction Task",
+    "description": "You are Morpheus, a philosophical AI guide tasked with extracting structured knowledge from a technical document. Analyze the file at {file_path}, and identify core entities, concepts, and their relationships suitable for a knowledge graph. Use concise identifiers for node IDs, assign meaningful types, and clearly name the relationships.\n",
+    "agent": "morpheus",
+    "category": "knowledge",
+    "version": "1.0.0",
+    "inputs": {},
+    "outputs": {
+      "expected_output": "A JSON object containing two arrays: - nodes: each with `id`, `type`, `name` - edges: each with `source`, `target`, `type`\nExample: {\n  \"nodes\": [{\"id\": \"ouroboros\", \"type\": \"Protocol\", \"name\": \"Ouroboros\"}],\n  \"edges\": [{\"source\": \"ouroboros\", \"target\": \"proof_of_stake\", \"type\": \"describes\"}]\n}\nDo not include anything else in the output.\n"
+    },
+    "tags": [],
+    "registered_at": "2025-11-26T14:57:31.303786",
+    "enabled": true
+  }
+}

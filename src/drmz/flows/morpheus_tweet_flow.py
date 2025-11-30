@@ -17,7 +17,7 @@ from drmz.tools.fixed_serper_tool import FixedSerperTool  # 👈 Replaces defaul
 # 🔧 Load environment variables
 # ───────────────────────────────────────────────────────────────
 load_dotenv(dotenv_path=Path(__file__).resolve().parents[2] / ".env")
-api_key = os.getenv("SGAI_API_KEEY")
+api_key = os.getenv("DRMZ_SGAI_API_KEY")
 print("🔍 Loaded SGAI_API_KEEY:", api_key if api_key else "❌ Not Found")
 
 # 🔑 Search terms of interest

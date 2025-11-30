@@ -580,8 +580,488 @@ community_campaign_task:
   agent: community_builder
 
 # ───────────────────────────────────────────────
-# 🎮 Game-Based Learning
+# 📚 Syllabus Review Tasks
 # ───────────────────────────────────────────────
+
+check_learning_outcomes_task:
+  description: >
+    Analyze the uploaded syllabus to check alignment with established learning outcomes for the course.
+    
+    Use the Knowledge Graph RAG Tool to search for:
+    - Learning outcomes standards for the course discipline and level
+    - Accreditation requirements
+    - Bloom's Taxonomy alignment
+    - Institutional learning outcome frameworks
+    
+    Then evaluate:
+    - Which learning outcomes are explicitly stated in the syllabus
+    - Whether course activities and assessments align with stated outcomes
+    - Missing outcomes that should be included
+    - Gaps between stated outcomes and course content
+    
+    Provide specific, actionable recommendations for improvement.
+
+  expected_output: >
+    Return your response in three clearly labeled sections:
+    
+    ## Learning Outcomes Status
+    - List all learning outcomes explicitly stated in the syllabus (quote them directly if possible).
+    - Identify which outcomes align with standards for this course/discipline based on the knowledge base or general educational standards.
+    - Note any missing outcomes that should be included for this course level and discipline.
+    - If no outcomes are found, clearly state this and provide examples of what should be included.
+    
+    ## Alignment Assessment
+    - Evaluate how well course activities and assignments support the stated outcomes.
+    - Check if assessments measure the intended outcomes effectively.
+    - Identify any misalignments or gaps between stated outcomes and course content/activities.
+    - Assess whether the outcomes are measurable and appropriately leveled (e.g., using Bloom's Taxonomy).
+    
+    ## Recommendations
+    - Provide 3–5 specific, actionable recommendations for improvement.
+    - Suggest how to better align activities with outcomes.
+    - Recommend missing outcomes to add, with specific examples.
+    - Offer practical suggestions for revising or adding learning outcomes.
+    
+    Use clear, actionable language that instructors can implement. Avoid overly rigid formatting unless helpful.
+
+  agent: morpheus
+  config:
+    allow_delegation: false
+
+evaluate_inclusivity_task:
+  description: >
+    Evaluate the uploaded syllabus for inclusivity, accessibility, cultural responsiveness, and modern pedagogical approaches.
+    
+    Use the Knowledge Graph RAG Tool to search for:
+    - Universal Design for Learning (UDL) guidelines
+    - Culturally Responsive Teaching (CRT) principles
+    - Accessibility standards (ADA, WCAG)
+    - Inclusive language guidelines
+    - Diversity, Equity, and Inclusion (DEI) frameworks
+    - Project-Based Learning (PBL) strategies
+    - Social Emotional Learning (SEL) integration
+    - Gamification strategies
+    
+    Then evaluate the syllabus for:
+    - Inclusive and welcoming language
+    - Accessibility accommodations and statements
+    - Cultural responsiveness in content and examples
+    - Bias-free language
+    - Support for diverse learners (first-gen, international, students with disabilities, etc.)
+    - Representation of diverse perspectives
+    - Engagement strategies (PBL, SEL, gamification)
+    - Student-centered design elements
+    
+    Provide specific, actionable recommendations based on established frameworks.
+
+  expected_output: >
+    Return your response in three clearly labeled sections:
+    
+    ## Inclusivity Status
+    - Evaluate the syllabus language for inclusivity, welcoming tone, and bias-free communication.
+    - Check for explicit accessibility statements, accommodations information, and contact details for disability services.
+    - Assess cultural responsiveness in content, examples, and reading selections.
+    - Review support resources mentioned for diverse learners (first-gen, international, students with disabilities, etc.).
+    - Note any gaps or areas that need improvement.
+    
+    ## Framework Alignment
+    - Evaluate how well the syllabus aligns with UDL principles (multiple means of representation, engagement, action/expression).
+    - Assess CRT alignment and cultural responsiveness.
+    - Check accessibility compliance (ADA, WCAG standards).
+    - Review DEI considerations and representation.
+    - Identify PBL elements (if applicable).
+    - Assess SEL integration (if applicable).
+    - Note gamification strategies (if applicable).
+    
+    ## Recommendations
+    - Provide 3–5 specific, actionable recommendations for improvement.
+    - Suggest inclusive language changes with examples.
+    - Recommend accessibility enhancements (statements, accommodations process, etc.).
+    - Suggest ways to increase cultural responsiveness.
+    - Recommend PBL, SEL, or gamification strategies if appropriate for the course context.
+    - Offer practical suggestions for revising or adding inclusivity elements.
+    
+    Cite relevant frameworks (UDL, CRT, PBL, SEL, gamification) when making recommendations. Use clear, actionable language that instructors can implement. Avoid overly rigid formatting unless helpful.
+
+  agent: morpheus
+  config:
+    allow_delegation: false
+
+# ───────────────────────────────────────────────
+# 📊 Assessment Review
+# ───────────────────────────────────────────────
+
+assessment_review_task:
+  description: >
+    Review the uploaded assessment device for clarity, rigor, inclusivity, and alignment with course objectives.
+    
+    If a rubric is provided:
+    - Evaluate how well the rubric aligns with the assessment tasks
+    - Check if rubric criteria match what students are asked to do
+    - Assess rubric clarity, specificity, and measurability
+    - Identify gaps or misalignments between rubric and assessment
+    
+    If NO rubric is provided:
+    - Generate a recommended rubric based on best practices and sound educational theory
+    - Use frameworks like Bloom's Taxonomy, authentic assessment principles, or standards-based grading
+    - Ensure rubric criteria align with the assessment tasks
+    - Make it clear, specific, measurable, and student-friendly
+    
+    If student work is provided:
+    - Analyze how the rubric would apply to this work sample
+    - Identify strengths and areas for improvement
+    - Suggest rubric refinements if needed
+    
+    Evaluate the assessment for:
+    - Clarity of instructions and expectations
+    - Rigor and appropriate challenge level
+    - Inclusivity and accessibility
+    - Alignment with learning objectives
+    - Fairness and bias
+    - Authentic assessment practices
+
+  expected_output: >
+    Return your response in three clearly labeled sections:
+    
+    ## Assessment Analysis
+    - Evaluate clarity, rigor, inclusivity, and alignment
+    - Assess fairness and bias
+    - Note strengths and areas for improvement
+    
+    ## Rubric Evaluation or Recommendation
+    - If rubric provided: Evaluate alignment, clarity, and effectiveness
+    - If NO rubric: Generate a recommended rubric based on best practices
+    - Include specific, measurable criteria aligned with assessment tasks
+    - Reference educational theory and frameworks
+    
+    ## Recommendations
+    - Provide 3–5 specific, actionable recommendations for improvement
+    - Suggest rubric refinements if needed
+    - Recommend assessment design improvements
+    - Include best practices and theoretical grounding
+    
+    Use clear, actionable language that instructors can implement.
+
+  agent: morpheus
+  config:
+    allow_delegation: true
+
+# ───────────────────────────────────────────────
+# 📝 Quiz Generation
+# ───────────────────────────────────────────────
+
+generate_quiz_task:
+  description: |
+    OUTPUT THE ACTUAL QUIZ QUESTIONS. DO NOT DESCRIBE THE QUIZ. DO NOT SAY "THE QUIZ HAS BEEN GENERATED".
+    
+    Start immediately with:
+    # Quiz: [Topic]
+    
+    Then list the actual questions with options and answers.
+    
+    FORBIDDEN: Any sentence that describes what you did (e.g., "The quiz has been successfully created", "According to instructions", "Complete with questions").
+    
+    REQUIRED: The actual quiz questions formatted exactly as shown in the instructions.
+    
+    Your output must start with "# Quiz:" and contain only the quiz itself - no introduction, no summary, no meta-commentary.
+
+  expected_output: |
+    A complete, ready-to-use quiz formatted EXACTLY as:
+    
+    # Quiz: [Topic from Content]
+    
+    ## Questions
+    
+    **Question 1:**
+    [Actual question text]
+    
+    A) [Option A]
+    B) [Option B]
+    C) [Option C]
+    D) [Option D]
+    
+    **Answer:** [Letter] - [Brief explanation]
+    
+    [Repeat for all questions]
+    
+    ## Answer Key
+    
+    1. [Letter] - [Brief explanation]
+    2. [Letter] - [Brief explanation]
+    [Continue for all questions]
+    
+    DO NOT include a "Quiz Overview" section.
+    DO NOT write meta-commentary about the quiz.
+    Start immediately with "# Quiz:" and write the actual questions.
+
+  agent: morpheus
+  config:
+    allow_delegation: true
+
+# ───────────────────────────────────────────────
+# 📊 Rubric Generation
+# ───────────────────────────────────────────────
+
+generate_rubric_task:
+  description: >
+    Analyze an assignment and provide a focused AI Usage Framework recommendation based on the AI Assessment Scale (AIAS).
+    
+    PRIMARY FOCUS: Recommend the appropriate AIAS level (1-5) with a detailed, compelling rationale.
+    
+    The output should be concise and focused on:
+    1. Brief assignment overview (2-3 sentences)
+    2. AI Usage Framework recommendation with detailed rationale (main focus)
+    3. Brief implementation guidance
+    
+    The rationale should thoroughly explain why the recommended level aligns with:
+    - Assignment type and learning objectives
+    - Cognitive skills being assessed
+    - Whether assessment measures process, product, or both
+    - Pedagogical alignment with learning goals
+    - Academic integrity considerations
+
+  expected_output: |
+    A focused AI Usage Framework recommendation starting with "## Assignment Overview".
+    
+    Format:
+    ## Assignment Overview
+    [Brief 2-3 sentence overview of assignment and learning objectives]
+    
+    ## AI Usage Framework Recommendation
+    ### Recommended Level: [Level 1-5] - [Level Name]
+    **Rationale:**
+    [Detailed 3-5 paragraph rationale explaining why this level is appropriate]
+    
+    <img src="https://leonfurze.com/wp-content/uploads/2024/08/AI-Assessment-Scale-Updated-August-2024.png" alt="AI Assessment Scale" style="max-width: 100%; height: auto;" />
+    
+    ## Implementation Guidance
+    [Brief guidance for students and instructors]
+    
+    **Citation:**
+    [Citation for AI Assessment Scale]
+    
+    NO meta-commentary. NO descriptions. Focus on the AI usage recommendation and rationale.
+
+  agent: morpheus
+  config:
+    allow_delegation: true
+
+# ───────────────────────────────────────────────
+# 📚 OER Generation
+# ───────────────────────────────────────────────
+
+generate_oer_task:
+  description: >
+    Generate high-quality, college-level academic reading content as Open Educational Resources (OER).
+    
+    The content must be:
+    - Well-researched and grounded in current scholarship and theoretical frameworks
+    - Critical, problem-posing, and thought-provoking
+    - Address both current issues and enduring questions in the field
+    - Presented in the specified tone (critical, analytical, scholarly, engaging, or interrogative)
+    - Grounded in evidence and theory while remaining accessible
+    
+    Research current scholarship, best practices, and pedagogical approaches for the topic.
+    
+    Design content that is:
+    - Open and accessible (OER principles)
+    - Aligned with learning objectives
+    - Inclusive and culturally responsive
+    - Engaging and student-centered
+    - Based on sound educational theory (UDL, CRT, PBL, SEL, etc.)
+    - Well-structured with clear introduction, analysis, and reflection questions
+    
+    Create comprehensive content that educators can use immediately, including:
+    - Learning objectives
+    - Activities and assessments
+    - Resources and materials
+    - Clear structure and organization
+    
+    Ensure content follows OER principles:
+    - Openly licensed (suggest CC BY or CC BY-SA)
+    - Accessible to diverse learners
+    - Adaptable and remixable
+    - High quality and pedagogically sound
+    - Free to use, share, and modify
+
+  expected_output: >
+    Return your response in clearly labeled sections:
+    
+    ## Content Overview
+    - Subject, topic, theme (if specified), and learning level
+    - Learning objectives
+    - Content type and structure
+    - Tone and approach (critical, problem-posing, thought-provoking)
+    
+    ## Main Content
+    - Complete, well-researched academic reading content
+    - Critical analysis addressing both current issues and enduring questions
+    - Problem-posing questions and thought-provoking perspectives
+    - Well-organized, pedagogically sound, and grounded in evidence
+    - Inclusive and accessible
+    
+    ## Activities and Assessments
+    - Engaging activities aligned with learning objectives
+    - Critical thinking and reflection prompts
+    - Assessment strategies and criteria
+    - Differentiation options
+    
+    ## Resources and Materials
+    - Suggested scholarly resources and materials
+    - Additional reading or references
+    - Tools and technologies (if applicable)
+    
+    ## OER Information
+    - Suggested license (CC BY or CC BY-SA)
+    - Attribution requirements
+    - Adaptability notes
+
+  agent: morpheus
+  config:
+    allow_delegation: true
+
+# ───────────────────────────────────────────────
+# 🎮 Game-Based Learning & Gamification
+# ───────────────────────────────────────────────
+
+generate_gamified_activities_task:
+  description: >
+    Generate engaging gamified activities and games for an assignment that make learning fun and interactive.
+    
+    Analyze the assignment to understand:
+    - Learning objectives and key concepts
+    - Topic and subject matter
+    - Required skills and knowledge
+    - Assignment complexity and cognitive demands
+    
+    Design gamified activities that:
+    - Make learning engaging and fun
+    - Reinforce key concepts from the assignment
+    - Use game mechanics (points, levels, challenges, rewards, competition, collaboration)
+    - Align with learning objectives
+    - Are accessible and inclusive
+    - Can be implemented in classroom or online settings
+    
+    Create multiple activity options (2-3 different designs):
+    - Mix of competitive and collaborative activities
+    - Various formats (board games, digital games, role-playing, simulations, quests, etc.)
+    - Activities that can be adapted for different learning styles
+    
+    Use gamification strategies from established frameworks:
+    - Points, badges, leaderboards
+    - Levels and progression
+    - Challenges and quests
+    - Storytelling and narrative
+    - Social interaction and collaboration
+    - Immediate feedback
+    - Choice and autonomy
+    
+    For each activity, provide:
+    - Clear title and description
+    - Learning objectives alignment
+    - Game mechanics and rules
+    - Materials needed
+    - Step-by-step instructions
+    - Assessment/reflection components
+    - Variations and adaptations
+
+  expected_output: |
+    Return your response in clearly labeled sections:
+    
+    ## Overview
+    - How gamification enhances this assignment
+    - Key learning objectives addressed
+    - Benefits of gamified approach
+    
+    ## Gamified Activity 1
+    - Title and description
+    - Learning objectives alignment
+    - Game mechanics and rules
+    - Materials needed
+    - Step-by-step instructions
+    - Assessment/reflection components
+    - Variations and adaptations
+    
+    ## Gamified Activity 2
+    [Same structure as Activity 1]
+    
+    ## Gamified Activity 3 (if applicable)
+    [Same structure as Activity 1]
+    
+    ## Implementation Guidance
+    - Tips for successful implementation
+    - Adaptations for different settings (in-person, online, hybrid)
+    - Assessment strategies for gamified learning
+    - Troubleshooting common challenges
+
+  agent: morpheus
+  config:
+    allow_delegation: true
+
+generate_game_code_task:
+  description: >
+    Generate a complete, playable educational game in HTML/JavaScript/React based on an assignment.
+    
+    Analyze the assignment to understand:
+    - Learning objectives and key concepts
+    - Topic and subject matter
+    - Required skills and knowledge
+    
+    Design and build a complete, playable educational game that:
+    - Teaches the key concepts from the assignment
+    - Is engaging and fun to play
+    - Reinforces learning objectives
+    - Uses appropriate game mechanics (points, levels, challenges, feedback)
+    - Is accessible and works in a browser
+    - Can be played individually or in groups
+    
+    Generate complete, runnable code:
+    - Use HTML, CSS, and JavaScript (vanilla JS or React)
+    - Include all necessary code in a single file or clearly structured files
+    - Make it self-contained and easy to deploy
+    - Include clear comments explaining the code
+    - Ensure the game is fully functional and playable
+    
+    Game requirements:
+    - Interactive gameplay (not just a quiz)
+    - Visual feedback and progress indicators
+    - Clear instructions for players
+    - Scoring or progression system
+    - Engaging UI/UX design
+    - Responsive design (works on desktop and mobile)
+    
+    Use the Knowledge Graph RAG Tool to search for gamification strategies and game mechanics.
+
+  expected_output: |
+    Return your response with:
+    
+    ## Game Concept
+    - Brief description of the game
+    - How it teaches the assignment concepts
+    - Learning objectives addressed
+    
+    ## Complete Game Code
+    - Full HTML/JavaScript/React code
+    - All CSS styling included
+    - Complete, runnable, self-contained code
+    - Clear comments explaining functionality
+    - No pseudocode - actual working code
+    
+    ## Setup Instructions
+    - How to run/deploy the game
+    - Any dependencies required
+    - Browser compatibility notes
+    
+    ## Gameplay Instructions
+    - How to play
+    - Rules and mechanics
+    - Scoring system
+    
+    CRITICAL: Output actual, complete, runnable code - not descriptions or pseudocode. The code must be ready to copy-paste and run immediately.
+
+  agent: game_developer
+  config:
+    allow_delegation: false
 
 game_creation_task:
   description: >

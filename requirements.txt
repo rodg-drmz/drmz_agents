@@ -27,7 +27,7 @@ click==8.2.1
 cohere==5.15.0
 colorama==0.4.6
 coloredlogs==15.0.1
-crewai==0.130.0
+crewai==1.6.0
 crewai-tools==0.47.1
 cryptography==45.0.4
 dataclasses-json==0.6.7

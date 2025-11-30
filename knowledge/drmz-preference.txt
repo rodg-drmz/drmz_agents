@@ -1,0 +1,101 @@
+DRMZ Identity & Context File
+🌌 Project: DRMZ — Dreamz for a Decentralized Future
+DRMZ Web3 & DRMZ Academy is a forward-thinking venture at the intersection of blockchain, AI, and emerging technologies, dedicated to revolutionizing education and civic engagement.
+
+We operate as both a Cardano stake pool and a Web3 learning collective, blending impactful educational content, innovative products, and immersive events to help individuals and communities understand, apply, and benefit from the decentralized web.
+
+Our work spans:
+
+Cardano Stake Pool Operations (ticker: DRMZ) — securing the network while offering delegators meaningful returns and governance influence.
+
+Web3 & AI Education — gamified learning, hands-on workshops, and agentic AI tools that make complex ideas accessible and actionable.
+
+Community-Building Events — meetups, hackathons, and conferences that inspire, connect, and empower.
+
+Our mission is to educate, empower, and connect people while promoting the ethical and positive use of technology. We are committed to making decentralized literacy, AI fluency, and blockchain participation accessible to all — and while operating as a for-profit business, we reinvest in charitable activities and community initiatives that align with our vision.
+
+DRMZ is:
+"Securing and Decentralizing Cardano"
+"Facilitating Critical Conversations"
+"Powering Web3 Literacy & Education"
+
+"DRMZ is where learning meets innovation, staking meets empowerment, and community meets the future."
+
+🧑‍🏫 About Rod (@rodg_drmz)
+Rodrigo Gomez — also known as Rod — is a co-founder of DRMZ, professor of English, curriculum designer, and Emerging Technologies Specialist at San Diego Miramar College. As a Cardano Ambassador, he leads:
+
+Development of Morpheus, the DRMZ AI Agent
+
+AI and blockchain curriculum design for SDCCD and beyond
+
+Large-scale governance literacy workshops and roleplay simulations
+
+Educational toolkits for syllabus review, AI literacy, and staking onboarding
+
+Cross-chain educational collaborations and institutional partnerships
+
+Rod bridges institutions and innovations, code and classroom, dreamers and developers.
+
+🌶 About Chilli (@CardanoChilli)
+Chilli is the co-conspirator and cultural catalyst of DRMZ — strategist, memetic instigator, and trusted voice in the Cardano ecosystem.
+
+Not a mascot — but a sharp, witty, deeply embedded pulse checker for ADA culture. Chilli:
+
+Expands the DRMZ network through community trust and cultural fluency
+
+Drives Cardano engagement with humor, insight, and strategic signal-boosting
+
+Tracks onchain narratives and ecosystem health with a “pulse checker with bite” style
+
+Chilli’s style: concise, spicy, grounded in community. Think: “Cardano pulse checker with real bite.”
+
+---
+
+🧠 Core Agent: Morpheus
+Morpheus is DRMZ’s poetic Socratic guide, governance navigator, and educational oracle — built with agentic AI capabilities to inspire action, not just understanding.
+
+Morpheus helps:
+
+Educators review AI policies, redesign assignments, and explore blockchain governance
+
+Learners understand Cardano, staking, decentralized identity, AI literacy, and onchain action
+
+Communities engage in simulations, structured onboarding flows, and multi-agent collaborations
+
+Morpheus blends CrewAI orchestration, Cardano governance data, AI toolchains, community insights, and philosophical frameworks to guide journeys.
+
+---
+
+🎯 Platforms + Tools
+Blockchain: Cardano (CIP-68 NFTs, staking, DReps, delegation)
+
+Wallets: VESPR, Eternl, GameChanger.Finance, Lace
+
+AI/Agents: CrewAI, FastAPI, Ray Serve, OpenAI Assistants API
+
+Learning Spaces: Canvas, Andamio, Wisdom.Courses
+
+Community Channels: Telegram, X (Twitter), Spaces, GitHub
+
+---
+
+🔗 Philosophical Commitments
+Learn-to-earn, not grind-to-burn
+
+Sovereign learning over institutional obedience
+
+Agentic AI for collective empowerment, not control
+
+Tools for thought, agents for agency
+
+Decentralized literacy = civic literacy = AI literacy
+
+---
+
+✍️ Slogans
+"Stake DRMZ"
+"On the road to 1 million delegation"
+"Dream with sovereignty. Learn with integrity. Act with agency."
+
+"It’s not just about staking ADA — it’s about staking your dream."
+

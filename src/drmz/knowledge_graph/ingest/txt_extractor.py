@@ -7,7 +7,7 @@ KNOWLEDGE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../k
 OUTPUT_NODES = 'new_nodes.json'
 OUTPUT_EDGES = 'new_edges.json'
 OPENAI_MODEL = "gpt-4"
-openai.api_key = os.getenv("OPENAI_API_KEEY")  # Set this in your environment
+openai.api_key = os.getenv("DRMZ_OPENAI_API_KEY")  # Set this in your environment
 
 # === LLM Extraction Prompt ===
 SYSTEM_PROMPT = """You are a semantic knowledge extractor for a graph database.

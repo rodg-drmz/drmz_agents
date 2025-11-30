@@ -1,6 +1,6 @@
 # ── src/drmz/academy_agents/math_genius.yaml ──────────────────────────
 slug: math-genius
-name: Ada
+name: Lovelace
 entrypoint: drmz.academy_agents.math_adapter:chat
 model: gpt-4o-mini
 

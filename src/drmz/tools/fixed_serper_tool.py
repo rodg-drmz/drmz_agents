@@ -8,7 +8,7 @@ class FixedSerperTool(SerperDevTool):
 
         try:
             # Use the same API key used by SerperDevTool internally
-            api_key = os.getenv("SERPER_API_KEEY")
+            api_key = os.getenv("DRMZ_SERPER_API_KEY")
             if not api_key:
                 return "❌ SERPER_API_KEEY is missing from environment"
 

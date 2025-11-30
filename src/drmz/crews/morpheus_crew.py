@@ -1,8 +1,15 @@
 # 🧠 morpheus_crew.py — Master orchestrator for Morpheus-led CrewAI flows
 
+import os
 from pathlib import Path
 from crewai import Agent, Crew, Task, Process
+from dotenv import load_dotenv
 from src.drmz.crews.config_loader import load_agents, load_tasks
+
+# Load environment variables and map DRMZ_OPENAI_API_KEY to OPENAI_API_KEY
+load_dotenv()
+if os.getenv("DRMZ_OPENAI_API_KEY") and not os.getenv("OPENAI_API_KEY"):
+    os.environ["OPENAI_API_KEY"] = os.getenv("DRMZ_OPENAI_API_KEY")
 
 from crewai.knowledge.source.pdf_knowledge_source import PDFKnowledgeSource
 from crewai.knowledge.source.text_file_knowledge_source import TextFileKnowledgeSource
@@ -17,26 +24,48 @@ def load_all_knowledge_sources(knowledge_dir="knowledge") -> list:
     and returns them as a list of CrewAI-compatible KnowledgeSource objects.
     This includes normalization to avoid nested 'knowledge/knowledge/' errors.
     """
-    path = Path(knowledge_dir).resolve()
-    if path.name == "knowledge" and "knowledge" in str(path.parent):
-        path = Path.cwd() / "knowledge"
+    # Resolve to absolute path first
+    if Path(knowledge_dir).is_absolute():
+        path = Path(knowledge_dir)
+    else:
+        # Try relative to project root
+        project_root = Path(__file__).resolve().parents[3]
+        path = project_root / knowledge_dir
+    
+    if not path.exists():
+        print(f"⚠️  Knowledge directory not found: {path}")
+        return []
 
     sources = []
+    # Get project root for relative paths
+    project_root = Path(__file__).resolve().parents[3]
+    
     for file in path.glob("*"):
-        if file.name.startswith("."):
-            continue  # Skip hidden files like .DS_Store
+        if file.name.startswith(".") or file.is_dir():
+            continue  # Skip hidden files and directories
+        
+        # Use relative path from project root for CrewAI
         try:
+            # Get relative path from project root
+            try:
+                relative_path = file.relative_to(project_root)
+            except ValueError:
+                # If file is not under project root, use absolute path
+                relative_path = file
+            file_path_str = str(relative_path)
+            
             match file.suffix:
                 case ".pdf":
-                    sources.append(PDFKnowledgeSource(file_paths=[str(file)]))
+                    sources.append(PDFKnowledgeSource(file_paths=[file_path_str]))
                 case ".txt":
-                    sources.append(TextFileKnowledgeSource(file_path=str(file)))
+                    # TextFileKnowledgeSource uses file_paths in CrewAI 1.6.0
+                    sources.append(TextFileKnowledgeSource(file_paths=[file_path_str]))
                 case ".csv":
-                    sources.append(CSVKnowledgeSource(file_paths=[str(file)]))
+                    sources.append(CSVKnowledgeSource(file_paths=[file_path_str]))
                 case ".json":
-                    sources.append(JSONKnowledgeSource(file_paths=[str(file)]))
+                    sources.append(JSONKnowledgeSource(file_paths=[file_path_str]))
                 case ".xlsx":
-                    sources.append(ExcelKnowledgeSource(file_paths=[str(file)]))
+                    sources.append(ExcelKnowledgeSource(file_paths=[file_path_str]))
         except Exception as e:
             print(f"⚠️ Failed to load knowledge source {file.name}: {e}")
     return sources
@@ -52,14 +81,35 @@ class MorpheusCrew:
     """
 
     def __init__(self, agent_configs=None, task_configs=None):
-        self.agent_configs = load_agents() if agent_configs is None else agent_configs
+        raw_agents = load_agents() if agent_configs is None else agent_configs
+        # Handle flat structure (single agent config) vs nested structure
+        if "name" in raw_agents and raw_agents.get("name") == "morpheus":
+            # Flat structure: wrap it in a dict
+            self.agent_configs = {"morpheus": raw_agents}
+        else:
+            # Nested structure: use as-is
+            self.agent_configs = raw_agents
+        
         self.task_configs = load_tasks() if task_configs is None else task_configs
         self._built_tasks = {}
         self.knowledge_sources = load_all_knowledge_sources()
 
     def get_agent(self, name: str) -> Agent:
+        # Import knowledge graph tool
+        try:
+            from drmz.knowledge_graph.rag_tool import KnowledgeGraphRAGTool
+            kg_tool = KnowledgeGraphRAGTool()
+        except ImportError:
+            kg_tool = None
+            print("⚠️  KnowledgeGraphRAGTool not available")
+        
         if name in self.agent_configs:
-            return Agent(config=self.agent_configs[name])
+            config = self.agent_configs[name].copy()
+            # Add knowledge graph tool to Morpheus
+            tools = []
+            if name == "morpheus" and kg_tool:
+                tools.append(kg_tool)
+            return Agent(config=config, tools=tools if tools else None)
         elif name == "researcher":
             fallback = self.agent_configs["morpheus"].copy()
             fallback["role"] = "Research Assistant"

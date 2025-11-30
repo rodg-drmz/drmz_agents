@@ -5,128 +5,207 @@ import os
 import sys
 import argparse
 from pathlib import Path
+import fitz  # PyMuPDF for PDF parsing
+
 from crewai import Crew, Task, Agent, Process
+from drmz.crews.config_loader import load_agents, load_tasks
+from drmz.utils.logger import get_logger
+from drmz.utils.file_utils import ensure_dir
+from drmz.utils.path_utils import OUTPUT_DIR
 from drmz.utils.classifier import classify_file_type
 
-# 📦 Safe path patching for CLI and API
-project_root = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(project_root))
-
-from drmz.crews.config_loader import load_agents, load_tasks
-from drmz.tools.text_extractor import extract_text_from_pdf
-
-# === Load Configs ===
+# === Setup ===
+log = get_logger("AssignmentReviewFlow")
 agents_config = load_agents()
 tasks_config = load_tasks()
 
-# === Logging Helper ===
-def log(message: str):
-    print(f"[INFO] {message}")
+TASK_NAME = "ai_review_assignment_task"
+OUTPUT_FOLDER = OUTPUT_DIR / "assignments" / "ai_review"
+ensure_dir(OUTPUT_FOLDER)
 
-# === Save Final Output ===
-def save_output(result, file_path: str):
-    base_name = Path(file_path).stem
-    output_folder = project_root / "output" / "assignments" / "ai_review"
-    os.makedirs(output_folder, exist_ok=True)
-    output_file = output_folder / f"{base_name}_ai_review.md"
-    final_text = result.output if hasattr(result, "output") else str(result)
-    with open(output_file, "w", encoding="utf-8") as f:
-        f.write(final_text)
 
-# === Core Flow Function ===
-def run_assignment_review(file_path: str):
-    log(f"📄 Reviewing assignment: {os.path.basename(file_path)}")
-    assignment_text = extract_text_from_pdf(file_path)
+def extract_text(file_path: Path) -> str:
+    """Extract and return text content from a .txt or .pdf file."""
+    if file_path.suffix.lower() == ".txt":
+        with open(file_path, "r", encoding="utf-8") as f:
+            return f.read()
+    elif file_path.suffix.lower() == ".pdf":
+        doc = fitz.open(file_path)
+        return "\n".join([page.get_text() for page in doc])
+    else:
+        raise ValueError(f"Unsupported file type: {file_path.suffix}")
 
-    file_type = classify_file_type(assignment_text)
+
+def review_assignment(file_path: Path) -> str:
+    """Run AI review analysis on an assignment file."""
+    log.info(f"📄 Reviewing assignment: {file_path.name}")
+
+    content = extract_text(file_path)
+    log.info(f"📄 Extracted content length: {len(content)} characters")
+
+    file_type = classify_file_type(content)
     if file_type != "assignment":
         warning_msg = (
             "❌ The uploaded file does not appear to be an assignment.\n\n"
             "Please upload a valid assignment prompt or instructions for AI analysis."
         )
-        log(f"[WARNING] File classification result: {file_type}")
-        log(warning_msg)
+        log.warning(f"🛑 File classification result: {file_type}")
+        log.warning(warning_msg)
         return warning_msg
 
-    # 🎭 Agents
-    morpheus = Agent(config=agents_config["morpheus"])
-    researcher = Agent(config=agents_config["researcher"])
-    ai_integrationist = Agent(config=agents_config["ai_integrationist"])
-    curriculum_developer = Agent(config=agents_config["curriculum_developer"])
+    # Load task from config
+    task_config = tasks_config.get(TASK_NAME, {})
+    if not task_config:
+        # Fallback task config
+        task_config = {
+            "description": "Analyze the assignment for AI shortcut risks and provide redesign recommendations.",
+            "expected_output": "A structured analysis with shortcut risks, redesign recommendations, and frameworks.",
+            "agent": "morpheus"
+        }
 
-    # 🧪 Tasks
-    shortcut_risks_task = Task(
-        description="Analyze the uploaded assignment for ways students could shortcut the task using AI tools. Identify risks to academic integrity or learning outcomes.",
-        expected_output="A list of potential shortcut strategies students might attempt using AI tools, with notes on how they affect learning integrity.",
-        agent=researcher,
-        input=assignment_text,
+    # Get agents
+    morpheus_data = agents_config.get("morpheus")
+    researcher_data = agents_config.get("researcher")
+    ai_integrationist_data = agents_config.get("ai_integrationist")
+    curriculum_developer_data = agents_config.get("curriculum_developer")
+
+    if not morpheus_data:
+        return "❌ Agent 'morpheus' not found in config."
+
+    # Create agents
+    morpheus = Agent(
+        role=morpheus_data["role"],
+        goal=morpheus_data["goal"],
+        backstory=morpheus_data["backstory"],
+        llm=morpheus_data["llm"],
+        allow_delegation=task_config.get("config", {}).get("allow_delegation", True),
     )
 
-    mitigation_task = Task(
-        description="Suggest countermeasures to reduce the effectiveness of AI shortcuts in the uploaded assignment. Focus on clarity, process-based scaffolding, and reflection.",
-        expected_output="2–3 redesign ideas or task adjustments that could reduce AI misuse (e.g. meta-cognitive reflection, process checkpoints, peer discussion).",
-        agent=ai_integrationist,
-        context=[shortcut_risks_task],
-        input=assignment_text,
+    researcher = None
+    ai_integrationist = None
+    curriculum_developer = None
+
+    if researcher_data:
+        researcher = Agent(
+            role=researcher_data["role"],
+            goal=researcher_data["goal"],
+            backstory=researcher_data["backstory"],
+            llm=researcher_data["llm"],
+            allow_delegation=False,
+        )
+
+    if ai_integrationist_data:
+        ai_integrationist = Agent(
+            role=ai_integrationist_data["role"],
+            goal=ai_integrationist_data["goal"],
+            backstory=ai_integrationist_data["backstory"],
+            llm=ai_integrationist_data["llm"],
+            allow_delegation=False,
+        )
+
+    if curriculum_developer_data:
+        curriculum_developer = Agent(
+            role=curriculum_developer_data["role"],
+            goal=curriculum_developer_data["goal"],
+            backstory=curriculum_developer_data["backstory"],
+            llm=curriculum_developer_data["llm"],
+            allow_delegation=False,
+        )
+
+    # Build task description with content
+    base_description = task_config.get("description", "Analyze the assignment for AI shortcut risks.")
+    full_description = (
+        base_description
+        + "\n\n--- ASSIGNMENT CONTENT START ---\n"
+        + content
+        + "\n--- ASSIGNMENT CONTENT END ---"
     )
 
-    redesign_task = Task(
-        description="Offer strategic changes to the assignment that preserve rigor while encouraging authentic student effort. Aim to strengthen academic integrity and deeper learning.",
-        expected_output="2–3 redesign strategies or variations of the assignment prompt to improve authenticity and learning value.",
-        agent=curriculum_developer,
-        context=[shortcut_risks_task],
-        input=assignment_text,
-    )
+    # Create tasks
+    if researcher and ai_integrationist and curriculum_developer:
+        # Multi-agent approach
+        shortcut_risks_task = Task(
+            description="Analyze the uploaded assignment for ways students could shortcut the task using AI tools. Identify risks to academic integrity or learning outcomes.",
+            expected_output="A list of potential shortcut strategies students might attempt using AI tools.",
+            agent=researcher,
+        )
 
-    summary_task = Task(
-        description="""
-Write a final, structured summary for instructors on how to revise this assignment to avoid AI overuse while maintaining strong student outcomes.
+        mitigation_task = Task(
+            description="Suggest countermeasures to reduce the effectiveness of AI shortcuts in the uploaded assignment.",
+            expected_output="2–3 redesign ideas or task adjustments that could reduce AI misuse.",
+            agent=ai_integrationist,
+            context=[shortcut_risks_task],
+        )
 
-Structure the output with:
-- Top 3 AI shortcut risks
-- Key changes instructors can make
-- 1–2 frameworks or references to support your recommendations
-""",
-        expected_output="""
-Return your response in three sections:
+        redesign_task = Task(
+            description="Offer strategic changes to the assignment that preserve rigor while encouraging authentic student effort.",
+            expected_output="2–3 redesign strategies or variations of the assignment prompt.",
+            agent=curriculum_developer,
+            context=[shortcut_risks_task],
+        )
 
-## Shortcut Risks
-- What students might do to bypass the assignment using AI
+        summary_task = Task(
+            description=full_description,
+            expected_output=task_config.get("expected_output", "A structured analysis with shortcut risks, redesign recommendations, and frameworks."),
+            agent=morpheus,
+            context=[shortcut_risks_task, mitigation_task, redesign_task],
+        )
 
-## Redesign Recommendations
-- Specific suggestions to improve the task and reduce misuse
-
-## Frameworks and Rationale
-- Cite 1–2 relevant pedagogical models or scholarly sources
-""",
-        agent=morpheus,
-        context=[shortcut_risks_task, mitigation_task, redesign_task],
-        input=assignment_text,
-    )
-
-    # 🧠 Build Crew
-    crew = Crew(
-        agents=[morpheus, researcher, ai_integrationist, curriculum_developer],
-        tasks=[shortcut_risks_task, mitigation_task, redesign_task, summary_task],
-        process=Process.sequential,
-        verbose=True,
-    )
-
-    result = crew.kickoff()
-    return result
-
-# === CLI Entrypoint ===
-def main():
-    parser = argparse.ArgumentParser(description="Run AI Review (assignment shortcut analysis).")
-    parser.add_argument("--file", required=True, help="Path to assignment PDF file")
-    args = parser.parse_args()
-    result = run_assignment_review(args.file)
-
-    if isinstance(result, str) and result.startswith("❌"):
-        print("\n🧠 FINAL OUTPUT:\n", result)
+        tasks = [shortcut_risks_task, mitigation_task, redesign_task, summary_task]
+        agents_list = [morpheus, researcher, ai_integrationist, curriculum_developer]
     else:
-        print("\n🧠 FINAL OUTPUT:\n", result.output if hasattr(result, "output") else str(result))
-        save_output(result, args.file)
+        # Single agent approach
+        task = Task(
+            description=full_description,
+            expected_output=task_config.get("expected_output", "A structured analysis with shortcut risks, redesign recommendations, and frameworks."),
+            agent=morpheus,
+        )
+        tasks = [task]
+        agents_list = [morpheus]
+
+    # === Crew execution ===
+    try:
+        crew = Crew(
+            agents=agents_list,
+            tasks=tasks,
+            process=Process.sequential if len(tasks) > 1 else Process.hierarchical,
+            verbose=False,
+        )
+        result = crew.kickoff()
+
+        if not result or str(result).strip() == "":
+            log.error("❌ Crew returned no result or blank output.")
+            result = "⚠️ No output generated. The task ran, but nothing was returned."
+        else:
+            log.info("✅ Crew returned a non-empty result.")
+
+    except Exception as e:
+        log.exception(f"❌ Exception during Crew execution: {e}")
+        result = f"❌ Error during task execution:\n{str(e)}"
+
+    # === Save result to disk ===
+    output_file = OUTPUT_FOLDER / f"{file_path.stem}_ai_review.md"
+    try:
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write(str(result))
+        log.info(f"✅ Review complete. Output saved to: {output_file.name}")
+    except Exception as e:
+        log.exception(f"❌ Failed to write output file: {e}")
+
+    return str(result or "⚠️ No result. Something failed during task execution.")
+
+def main():
+    parser = argparse.ArgumentParser(description="Run AI Review Assignment Flow")
+    parser.add_argument("--file", type=str, help="Path to a .pdf or .txt file")
+    args = parser.parse_args()
+
+    if args.file:
+        result = review_assignment(Path(args.file))
+        print("\n🧠 FINAL OUTPUT:\n")
+        print(result)
+    else:
+        log.error("❌ No file provided. Use --file <path>")
+
 
 if __name__ == "__main__":
     main()

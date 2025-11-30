@@ -1,6 +1,6 @@
 # ── src/drmz/academy_agents/history_guide.yaml ────────────────────────
 slug: history-guide
-name: Joseph
+name: Campbell
 entrypoint: drmz.academy_agents.history_adapter:chat
 model: gpt-4o-mini
 

@@ -24,7 +24,7 @@ from langchain_openai import ChatOpenAI
 # ──────────────────────────────────────────────────────────────────────────
 # 1.  Paths & env
 # ──────────────────────────────────────────────────────────────────────────
-load_dotenv()  # Loads OPENAI_API_KEEY, etc.
+load_dotenv()  # Loads DRMZ_OPENAI_API_KEY, etc.
 
 BASE_DIR    = Path(__file__).resolve().parent
 CONFIG_PATH = BASE_DIR.parent / "config"

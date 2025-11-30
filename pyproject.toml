@@ -5,7 +5,7 @@ description = "DRMZ-Agents using crewAI with Morpheus Chat Flow"
 authors = [{ name = "Your Name", email = "you@example.com" }]
 requires-python = ">=3.10,<3.13"
 dependencies = [
-    "crewai[tools]>=0.105.0,<1.0.0",
+    "crewai[tools]>=1.6.0,<2.0.0",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0"
 ]
@@ -18,24 +18,20 @@ train = "drmz_agents.main:train"
 replay = "drmz_agents.main:replay"
 test = "drmz_agents.main:test"
 
-# CrewAI flows
-guide_flow = "drmz_crewai.flows.guide_creator_flow:kickoff"
-morpheus_chat = "drmz_crewai.flows.morpheus_chat_flow:kickoff"
-
-# Enterprise deployment endpoint
-morpheus_api = "drmz_crewai.flows.morpheus_chat_flow:chat_endpoint"
+# Note: Old drmz_crewai CLI commands removed - use src/drmz/ flows directly
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["drmz_crewai", "src"]
+packages = ["src"]
 
-# Fixed for Enterprise Flow deployment
+# Note: Enterprise Flow deployment entry point removed
+# Use src/drmz/ flows directly for deployment
 [tool.crewai]
 type = "flow"
-entry_point = "drmz_crewai.flows.morpheus_chat_flow:MorpheusChatFlow"
+# entry_point removed - use src/drmz/ flows instead
 
 # Development dependencies (optional)
 [project.optional-dependencies]

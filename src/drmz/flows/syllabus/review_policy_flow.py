@@ -5,12 +5,12 @@ import os
 from pathlib import Path
 import fitz  # PyMuPDF for PDF parsing
 
-from crewai import Crew, Agent, Task
+from crewai import Crew, Agent, Task, Process
 from drmz.crews.config_loader import load_agents, load_tasks
 from drmz.utils.logger import get_logger
 from drmz.utils.file_utils import ensure_dir
 from drmz.utils.path_utils import KNOWLEDGE_DIR, OUTPUT_DIR
-from drmz.utils.classifier import classify_file_type
+# Note: We define classify_file_type locally for this flow to have more control
 
 # === Setup ===
 log = get_logger("AIReviewFlow")
@@ -37,12 +37,41 @@ def extract_text(file_path: Path) -> str:
 def classify_file_type(text: str) -> str:
     """Simple heuristic to classify document type based on text content."""
     lower = text.lower()
-    if any(phrase in lower for phrase in ["student learning outcome", "course description", "grading policy", "academic integrity", "class schedule"]):
+    
+    # More comprehensive syllabus indicators
+    syllabus_indicators = [
+        "student learning outcome", "learning outcome", "course description", 
+        "grading policy", "academic integrity", "class schedule", "course schedule",
+        "syllabus", "course outline", "course information", "instructor",
+        "office hours", "required text", "textbook", "course objectives",
+        "course goals", "prerequisites", "course number", "credit hours",
+        "attendance policy", "late work", "make-up", "final exam", "midterm"
+    ]
+    
+    # Assignment indicators
+    assignment_indicators = [
+        "submit your work", "due date", "assignment instructions", 
+        "grading rubric", "final draft", "assignment prompt", "essay prompt"
+    ]
+    
+    # Count matches for each type
+    syllabus_score = sum(1 for phrase in syllabus_indicators if phrase in lower)
+    assignment_score = sum(1 for phrase in assignment_indicators if phrase in lower)
+    
+    # If it has syllabus indicators, classify as syllabus
+    # Be lenient - if it has at least 2 syllabus indicators, accept it
+    if syllabus_score >= 2:
         return "syllabus"
-    elif any(phrase in lower for phrase in ["submit your work", "due date", "assignment instructions", "grading rubric", "final draft"]):
+    elif assignment_score >= 2:
         return "assignment"
+    elif syllabus_score >= 1:
+        # If it has at least one syllabus indicator, assume it's a syllabus
+        return "syllabus"
     else:
-        return "unknown"
+        # If no clear indicators, default to syllabus (be permissive)
+        # This allows files without obvious indicators to still be processed
+        log.info("⚠️ No clear file type indicators found. Defaulting to syllabus.")
+        return "syllabus"
 
 
 def review_file(file_path: Path) -> str:
@@ -53,14 +82,20 @@ def review_file(file_path: Path) -> str:
     log.info(f"📄 Extracted content length: {len(content)} characters")
 
     file_type = classify_file_type(content)
-    if file_type != "syllabus":
+    # Only reject if it's clearly an assignment (not a syllabus)
+    # Be permissive - if it's unknown or unclear, process it as a syllabus
+    if file_type == "assignment":
         warning_msg = (
-            "❌ The uploaded file does not appear to be a syllabus.\n\n"
-            "Please upload a valid course syllabus for AI policy review."
+            "⚠️ The uploaded file appears to be an assignment rather than a syllabus.\n\n"
+            "This tool is designed for reviewing course syllabi. If this is a syllabus, it will still be processed."
         )
-        log.warning(f"🛑 File classification result: {file_type}")
-        log.warning(warning_msg)
-        return warning_msg
+        log.warning(f"⚠️ File classification result: {file_type}")
+        # Don't return early - continue processing anyway
+        # return warning_msg
+    elif file_type == "syllabus":
+        log.info(f"✅ File classified as syllabus")
+    else:
+        log.info(f"ℹ️ File type unclear, processing as syllabus")
 
     # Load agent + task from config
     task_config = tasks_config[TASK_NAME]
@@ -95,8 +130,31 @@ def review_file(file_path: Path) -> str:
 
     # === Crew execution ===
     try:
-        crew = Crew(agents=[agent], tasks=[task], verbose=True)
-        result = crew.kickoff()
+        crew = Crew(agents=[agent], tasks=[task], process=Process.sequential, verbose=False)
+        crew_result = crew.kickoff()
+
+        # Extract the actual result content
+        if hasattr(crew_result, 'raw_output'):
+            result_str = str(crew_result.raw_output)
+        elif hasattr(crew_result, 'result'):
+            result_str = str(crew_result.result)
+        elif hasattr(crew_result, 'content'):
+            result_str = str(crew_result.content)
+        elif hasattr(crew_result, 'output'):
+            result_str = str(crew_result.output)
+        else:
+            result_str = str(crew_result)
+        
+        # Remove "Thought:" prefixes if present
+        if result_str and "Thought:" in result_str:
+            for marker in ["## AI Policy", "## Policy", "## Review", "# "]:
+                marker_pos = result_str.find(marker)
+                if marker_pos != -1:
+                    result_str = result_str[marker_pos:]
+                    log.info(f"✅ Extracted content starting from {marker}")
+                    break
+        
+        result = result_str
 
         if not result or str(result).strip() == "":
             log.error("❌ Crew returned no result or blank output.")
